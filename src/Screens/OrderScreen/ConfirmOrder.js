@@ -1,0 +1,638 @@
+import {
+  StyleSheet,
+  Text,
+  View,
+  PermissionsAndroid,
+  Alert,
+  Platform,
+  FlatList,
+  ScrollView,
+} from 'react-native';
+import React, {useEffect, useState, useContext} from 'react';
+import OrderStatus from '../../Components/CreateOrderComponent.js/OrderStatus';
+// import {ScrollView} from 'react-native-gesture-handler';
+import ShopInvoiceCreate from '../../Components/CreateOrderComponent.js/ShopInvoiceCreate';
+import {useSelector, useDispatch} from 'react-redux';
+import {TouchableOpacity} from '@gorhom/bottom-sheet';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import GetLocation from 'react-native-get-location';
+import moment from 'moment';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import instance from '../../Components/BaseUrl';
+import ShowValues from '../../Components/CreateOrderComponent.js/ShowValues';
+import Loader from '../../Components/Loaders/Loader';
+import {Remove_All_Cart} from '../../Components/redux/constants';
+import NetInfo from '@react-native-community/netinfo';
+
+const ConfirmOrder = ({route, navigation}) => {
+  const [allProducts, setAllProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [productNaame, SetProductname] = useState([]);
+  const [date, setdate] = useState();
+  const {
+    Store,
+    FinalDistributiveDiscount,
+    applySpecialDiscount,
+    GST,
+    orderId,
+    RouteDate,
+  } = route.params;
+  const [GrossAmount, setGrossAmount] = useState(0);
+  const [totalPrice, setTotalprice] = useState(0);
+  const isEditingOrder = !!orderId;
+  const dispatch = useDispatch();
+  // console.log(RouteDate, 'RouteDate');
+  console.log(GST, 'gst');
+  // console.log(Store, 'Store');
+  // useEffect(() => {
+  //   return () => {
+  //     dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
+  //   };
+  // }, [dispatch]);
+  // useEffect(() => {
+  //   if (!isEditingOrder) {
+  //     dispatch({type: Remove_All_Cart}); // Clear cart if it's a new order
+  //   }
+  // }, [isEditingOrder, dispatch]);
+  // const cartItems = useSelector(state => state.reducer);
+  const cartItems = route.params?.cItems || useSelector(state => state.reducer);
+  // const cartItems = route.params.cartItems;
+  console.log(JSON.stringify(cartItems), 'hello motherfather--');
+
+  useEffect(() => {
+    // Reset state when the component mounts or receives new cartItems
+    const resetState = () => {
+      setAllProducts([]);
+      SetProductname([]); // Reset product names properly
+      setGrossAmount(0);
+      setTotalprice(0);
+    };
+    resetState();
+
+    const filteredData = [];
+    const productNames = new Set(); // Ensures unique product names
+
+    cartItems.forEach(item => {
+      if (
+        item &&
+        item.itemss &&
+        item.itemss.product &&
+        !productNames.has(item.itemss.product.name)
+      ) {
+        filteredData.push(item.itemss.product.name);
+        productNames.add(item.itemss.product.name);
+      }
+    });
+
+    SetProductname(Array.from(productNames)); // Ensure unique product names
+    setAllProducts(cartItems);
+    // console.log(allProducts, 'allproducts');
+
+    // Only update price calculations if cartItems exist
+    if (cartItems.length > 0) {
+      let productCount = 0;
+      let grossAmount = 0;
+
+      cartItems.forEach(item => {
+        const tradePrice = item?.itemss?.trade_price || 0;
+        const tradeOffer = item?.itemss?.trade_offer || 0;
+        const cartonOrdered = item?.carton_ordered || 0;
+        const boxOrdered = item?.box_ordered || 0;
+        const packInBox = item?.pack_in_box || 0;
+        const totalUnits = cartonOrdered * packInBox + boxOrdered;
+        const discount = (tradeOffer / 100) * tradePrice * totalUnits;
+        productCount += tradePrice * totalUnits - discount;
+        grossAmount += tradePrice * totalUnits;
+      });
+
+      setTotalprice(productCount);
+      setGrossAmount(grossAmount);
+    }
+  }, [cartItems]); // Ensure the effect runs only when cartItems change
+
+  // Ensure that values are numbers and not NaN before rendering
+  const safeNumber = value => {
+    return !isNaN(value) && value !== null ? value : 0;
+  };
+  const requestLocationPermission = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message:
+              'This app needs access to your location to show your current position.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      }
+      return true;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
+  const getLocation = async () => {
+    // console.log('lllllldldlld');
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+      Alert.alert(
+        'Permission Denied',
+        'Location permission is required to continue.',
+      );
+      return;
+    }
+    try {
+      const location = await GetLocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 60000,
+      });
+      const currentLocation = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+      };
+      // Call post or put depending on if we're editing or creating a new order
+      if (isEditingOrder) {
+        updateOrder(currentLocation); // PUT request
+      } else {
+        postOrder(currentLocation); // POST request
+      }
+      saveOrderOffline(currentLocation);
+    } catch (error) {
+      if (error.code === 'CANCELLED') {
+        console.log('Location request was cancelled by the user.');
+      } else {
+        Alert.alert('Error', 'Unable to fetch location. Please try again.');
+      }
+      console.warn(error);
+    }
+  };
+
+  const saveOrderOffline = async currentLocation => {
+    const userId = await AsyncStorage.getItem('userId');
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
+    const fk_employee = await AsyncStorage.getItem('fk_employee');
+
+    let orderDetails = cartItems.map(item => ({
+      carton_ordered: item.carton_ordered,
+      box_ordered: item.box_ordered,
+      pricing_id: item.pricing_id,
+    }));
+
+    const offlineOrder = {
+      date: moment().toISOString(),
+      location: currentLocation,
+      fk_distribution: parseInt(distributor_id),
+      fk_shop: Store.id,
+      fk_orderbooker_employee: parseInt(fk_employee),
+      details: orderDetails,
+      discounts: {
+        distributive: FinalDistributiveDiscount,
+        special: applySpecialDiscount,
+      },
+      grossAmount: GrossAmount,
+      totalPrice: totalPrice,
+      gstAmount: GST,
+      shop: Store,
+    };
+
+    try {
+      // Check for network connection
+      const state = await NetInfo.fetch();
+
+      if (!state.isConnected) {
+        // Save the order if there is no internet connection
+        const key = `offlineOrders_${userId}`;
+        const existingOrders = await AsyncStorage.getItem(key);
+        let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
+        offlineOrders.push(offlineOrder);
+
+        await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
+        Alert.alert('Order Saved', 'Order has been saved locally for syncing.');
+      } else {
+        console.log(state.isConnected);
+      }
+    } catch (error) {
+      console.error('Failed to save order offline:', error);
+      Alert.alert('Error', 'Failed to save the order locally.');
+    }
+  };
+
+  const currentTime = moment().format('HH:mm:ss.SSS'); // Get the current time with milliseconds
+
+  // Combine the RouteDate with the current time
+  const formattedDate = moment(
+    `${route.params.RouteDate}T${currentTime}`,
+  ).toISOString();
+  // setdate(formattedDate);
+  // Function to create a new order (POST)
+  const postOrder = async currentLocation => {
+    setIsLoading(true);
+    const userId = await AsyncStorage.getItem('userId');
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    console.log(authToken);
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
+    const fk_employee = await AsyncStorage.getItem('fk_employee');
+    let details = [];
+    cartItems.forEach(item => {
+      details.push({
+        carton_ordered: item.carton_ordered,
+        box_ordered: item.box_ordered,
+        pricing_id: item.pricing_id,
+      });
+    });
+    try {
+      const data = {
+        date: formattedDate,
+        lng: currentLocation.longitude,
+        lat: currentLocation.latitude,
+        fk_distribution: parseInt(distributor_id),
+        fk_shop: Store.id,
+        fk_orderbooker_employee: parseInt(fk_employee),
+        details: details,
+      };
+      console.log(data, '--------------------------');
+      const response = await instance.post(
+        '/secondary_order',
+        JSON.stringify(data),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      console.log('Post Data', response.data);
+      console.log(response.status, 'status');
+      Alert.alert('Success', 'Order Created successfully!', [
+        {
+          text: 'OK',
+          // onPress: () => navigation.navigate('Home')
+        },
+      ]);
+    } catch (error) {
+      console.log(error);
+      const mergedCartItems = cartItems.map(item => {
+        const {
+          carton_ordered,
+          box_ordered,
+          pricing_id,
+          itemss: {
+            retail_price,
+            invoice_price,
+            trade_price,
+            pricing_gst,
+            fk_variant,
+            fk_product,
+            pieces,
+            box_in_carton,
+            product,
+            sku,
+            variant,
+            trade_offer,
+          },
+          pack_in_box,
+        } = item;
+
+        // Safely extract the name properties, ensuring the objects exist
+        const product_name = product ? product.name : null;
+        const sku_name = sku ? sku.name : null;
+        const variant_name = variant ? variant.name : null;
+
+        return {
+          // ...item, // Keep original cartItem data
+          carton_ordered,
+          box_ordered,
+          pricing_id,
+          retail_price,
+          invoice_price,
+          trade_price,
+          pricing_gst,
+          fk_variant,
+          fk_product,
+          pieces,
+          box_in_carton,
+          product: product_name, // Use product name directly
+          sku: sku_name, // Use SKU name directly
+          variant: variant_name, // Use variant name directly
+          trade_offer,
+          pack_in_box,
+        };
+      });
+
+      // Now, use mergedCartItems in the failedOrder
+      const failedOrder = {
+        date: formattedDate,
+        details: mergedCartItems, // Use mergedCartItems here
+        shop: Store,
+        location: currentLocation,
+        fk_distribution: parseInt(distributor_id),
+        fk_shop: Store.id,
+        fk_orderbooker_employee: parseInt(fk_employee),
+        discount: (GrossAmount - totalPrice).toFixed(2),
+        cartItems: cartItems,
+        gst_amount: GST,
+        net_amount: (
+          totalPrice -
+          applySpecialDiscount -
+          FinalDistributiveDiscount
+        ).toFixed(2),
+        gross_amount: GrossAmount.toFixed(2),
+        error: error.message || 'Order creation failed',
+      };
+      await saveFailedOrder(userId, failedOrder);
+      console.log(error);
+      Alert.alert('Error', 'An error occurred while processing your request.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateOrder = async currentLocation => {
+    const userId = await AsyncStorage.getItem('userId');
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    console.log(authToken);
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
+    const fk_employee = await AsyncStorage.getItem('fk_employee');
+    const mergedCartItems = cartItems.map(item => {
+      const {
+        carton_ordered,
+        box_ordered,
+        pricing_id,
+        itemss: {
+          id,
+          retail_price,
+          invoice_price,
+          trade_price,
+          pricing_gst,
+          fk_variant,
+          fk_product,
+          pieces,
+          box_in_carton,
+          product,
+          sku,
+          variant,
+          trade_offer,
+          gst_base,
+        },
+        pack_in_box,
+      } = item;
+
+      // Safely extract the name properties, ensuring the objects exist
+      const product_name = product ? product.name : null;
+      const sku_name = sku ? sku.name : null;
+      const variant_name = variant ? variant.name : null;
+
+      return {
+        // ...item, // Keep original cartItem data if necessary
+        id: id, // Using `pricing_id` as `id` since `id` is not provided directly
+        product: product_name, // Use product name directly
+        variant: variant_name, // Use variant name directly
+        sku: sku_name, // Use SKU name directly
+        pieces,
+        box_in_carton,
+        carton_ordered,
+        box_ordered,
+        free_piece_ordered: 0, // Assuming default value as it's not in the original object
+        carton_dispatched: 0, // Assuming default value
+        box_dispatched: 0, // Assuming default value
+        free_piece_dispatched: 0, // Assuming default value
+        carton_received: 0, // Assuming default value
+        box_received: 0, // Assuming default value
+        free_piece_received: 0, // Assuming default value
+        retail_price,
+        trade_price,
+        invoice_price,
+        gross_price: 0, // Assuming this needs to be calculated or default
+        net_price: 0, // Assuming this needs to be calculated or default
+        trade_offer,
+        gst_rate: pricing_gst, // Renamed `pricing_gst` to `gst_rate` as per new structure
+        gst_base: GST || 0, // Handle possible missing value with default
+        pricing_id,
+        pack_in_box,
+      };
+    });
+
+    try {
+      const data = {
+        id: orderId,
+        details: mergedCartItems,
+        shop: Store,
+      };
+      console.log(data, '--------------------------');
+      // console.log(data);
+      // const filter_data = details.filter(it => it.pricing_id);
+      // console.log(filter_data);
+      const response = await instance.put(
+        `/secondary_order/${orderId}`,
+        JSON.stringify(data),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+
+      console.log(response.data, 'Put data');
+      console.log(response.status, 'status');
+      Alert.alert('Success', 'Order Edited successfully!', [{text: 'OK'}]);
+    } catch (error) {
+      console.log(error);
+      const mergedCartItems = cartItems.map(item => {
+        const {
+          carton_ordered,
+          box_ordered,
+          pricing_id,
+          itemss: {
+            retail_price,
+            invoice_price,
+            trade_price,
+            pricing_gst,
+            fk_variant,
+            fk_product,
+            pieces,
+            box_in_carton,
+            product,
+            sku,
+            variant,
+            trade_offer,
+          },
+          pack_in_box,
+        } = item;
+
+        // Safely extract the name properties, ensuring the objects exist
+        const product_name = product ? product.name : null;
+        const sku_name = sku ? sku.name : null;
+        const variant_name = variant ? variant.name : null;
+
+        return {
+          // ...item, // Keep original cartItem data
+          carton_ordered,
+          box_ordered,
+          pricing_id,
+          retail_price,
+          invoice_price,
+          trade_price,
+          pricing_gst,
+          fk_variant,
+          fk_product,
+          pieces,
+          box_in_carton,
+          product: product_name, // Use product name directly
+          sku: sku_name, // Use SKU name directly
+          variant: variant_name, // Use variant name directly
+          trade_offer,
+          pack_in_box,
+        };
+      });
+
+      // Now, use mergedCartItems in the failedOrder
+      const failedOrder = {
+        date: formattedDate,
+        details: mergedCartItems, // Use mergedCartItems here
+        shop: Store,
+        location: currentLocation,
+        fk_distribution: parseInt(distributor_id),
+        fk_shop: Store.id,
+        fk_orderbooker_employee: parseInt(fk_employee),
+        discount: (GrossAmount - totalPrice).toFixed(2),
+        cartItems: cartItems,
+        orderId: orderId,
+        gst_amount: GST,
+        net_amount: (
+          totalPrice -
+          applySpecialDiscount -
+          FinalDistributiveDiscount
+        ).toFixed(2),
+        gross_amount: GrossAmount.toFixed(2),
+        error: error.message || 'Order creation failed',
+      };
+      await saveFailedOrder(userId, failedOrder);
+      Alert.alert('Error', 'An error occurred while updating the order.');
+    }
+  };
+  // Helper function to save failed orders in AsyncStorage
+  const saveFailedOrder = async (userId, failedOrder) => {
+    try {
+      const key = `failedOrders_${userId}`;
+      const existingFailedOrders = await AsyncStorage.getItem(key);
+      let failedOrders = existingFailedOrders
+        ? JSON.parse(existingFailedOrders)
+        : [];
+
+      // Add the new failed order
+      failedOrders.push(failedOrder);
+
+      // Save back to AsyncStorage
+      await AsyncStorage.setItem(key, JSON.stringify(failedOrders));
+      console.log('Failed order saved successfully');
+    } catch (error) {
+      console.error('Error saving failed order:', error);
+    }
+  };
+  return (
+    <View style={{flex: 1, position: 'relative'}}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{paddingBottom: 100}}>
+        <View style={{marginTop: 5}}>
+          <OrderStatus Lefttxt={'Invoice Number'} RightText={'-'} />
+          <OrderStatus Lefttxt={'Order Status'} RightText={'Draft'} />
+          <OrderStatus Lefttxt={'Payment Done'} RightText={'False'} />
+        </View>
+        <View style={{padding: '3%'}}>
+          <OrderStatus Lefttxt={'Shop Id '} RightText={Store.id} />
+          <OrderStatus Lefttxt={'Shop Name'} RightText={Store.name} />
+          <OrderStatus Lefttxt={'Owner'} RightText={Store.owner} />
+          <OrderStatus Lefttxt={'Cell No'} RightText={Store?.cell} />
+        </View>
+        <View>
+          <ShopInvoiceCreate datas={allProducts} allProduct={productNaame} />
+        </View>
+        <View>
+          <ShowValues
+            Lefttxt={'T.O Discount:'}
+            RightText={(GrossAmount - totalPrice).toFixed(2)}
+          />
+          <ShowValues
+            Lefttxt={'Distribution Discount:'}
+            RightText={FinalDistributiveDiscount.toFixed(2)}
+          />
+          <ShowValues
+            Lefttxt={'Special Discount:'}
+            RightText={applySpecialDiscount.toFixed(2)}
+          />
+          <ShowValues Lefttxt={'Total GST:'} RightText={GST} />
+        </View>
+        <View style={{padding: '2%'}}>
+          <View
+            style={{
+              width: '100%',
+              height: 1,
+              borderBottomWidth: 1,
+              borderBottomColor: '#e0e0e0',
+              marginTop: '2%',
+            }}></View>
+        </View>
+        <ShowValues
+          Lefttxt={'Gross Amount:'}
+          RightText={GrossAmount.toFixed(2)}
+          leftStyle={{fontWeight: 'bold', color: '#000'}}
+        />
+        <ShowValues
+          Lefttxt={'Total Discount:'}
+          RightText={(
+            GrossAmount -
+            totalPrice +
+            applySpecialDiscount +
+            FinalDistributiveDiscount
+          ).toFixed(2)}
+        />
+        <ShowValues
+          Lefttxt={'Total Price:'}
+          RightText={(
+            totalPrice -
+            applySpecialDiscount -
+            FinalDistributiveDiscount
+          ).toFixed(2)}
+          leftStyle={{fontWeight: 'bold', color: '#000'}}
+        />
+      </ScrollView>
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 5,
+          width: '100%',
+          padding: 10,
+          backgroundColor: '#f5f5f5',
+        }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#407BFF',
+            paddingVertical: 12,
+            borderRadius: 10,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          onPress={() => {
+            getLocation();
+          }}>
+          <AntDesign name="shoppingcart" size={24} color="#fff" />
+          <Text style={{color: '#fff', marginLeft: 10}}>
+            {!orderId ? 'Confirm Order' : 'Edit Order'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      {isLoading ? <Loader /> : null}
+    </View>
+  );
+};
+export default ConfirmOrder;
