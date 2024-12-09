@@ -26,7 +26,7 @@ import Loader from '../../Components/Loaders/Loader';
 import instance from '../../Components/BaseUrl';
 import GetLocation from 'react-native-get-location';
 import {VisitContext} from './VisitContext';
-import {useIsFocused} from '@react-navigation/native';
+import {useIsFocused, useFocusEffect} from '@react-navigation/native';
 
 const Home = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +40,7 @@ const Home = ({navigation}) => {
   const [checkAttandance, setCheckAttandance] = useState(false);
   const [id, setID] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [orderCount, setOrderCount] = useState(0);
   const {totalVisits} = useContext(VisitContext);
   const handleLogout = async () => {
     await AsyncStorage.removeItem('access_token');
@@ -243,12 +244,12 @@ const Home = ({navigation}) => {
       setIsLoading(false);
     };
     loadInitialData();
-  }, [isFocused]);
+  }, []);
   useEffect(() => {
     if (userId) {
       getAttandanceStatus();
     }
-  }, [userId, isFocused]);
+  }, [userId]);
 
   const getMondayToSundayWeek = date => {
     const dateObj = new Date(date);
@@ -594,19 +595,56 @@ const Home = ({navigation}) => {
   const fetchTotalAmount = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId');
-      const amount = await AsyncStorage.getItem(`totalAmount_${userId}`);
-      if (amount !== null) {
-        setTotalAmount(parseFloat(amount));
+      const storedDate = await AsyncStorage.getItem(`lastUpdated_${userId}`);
+      const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+      // Check if stored date is different from today's date (new day)
+      if (storedDate !== today) {
+        // New day, reset the total amount
+        await AsyncStorage.removeItem(`totalAmount_${userId}`); // Clear previous total amount
+        await AsyncStorage.setItem(`lastUpdated_${userId}`, today); // Update the date to today
+        setTotalAmount(0); // Reset the displayed amount
+      } else {
+        // Fetch the total amount for the current day
+        const amount = await AsyncStorage.getItem(`totalAmount_${userId}`);
+        if (amount !== null) {
+          setTotalAmount(parseFloat(amount)); // Set the total amount from AsyncStorage
+        }
       }
     } catch (error) {
       console.error('Error fetching total amount:', error);
     }
   };
+  const fetchOrderData = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
 
+      // Fetch the order count
+      const storedOrderCount = await AsyncStorage.getItem(
+        `orderCount_${userId}`,
+      );
+      if (storedOrderCount !== null) {
+        setOrderCount(parseInt(storedOrderCount)); // Set the order count if found
+      }
+
+      // Fetch the total amount
+      const storedTotalAmount = await AsyncStorage.getItem(
+        `totalAmount_${userId}`,
+      );
+      if (storedTotalAmount !== null) {
+        setTotalAmount(parseFloat(storedTotalAmount)); // Set the total amount if found
+      }
+    } catch (error) {
+      console.error('Error fetching order data:', error);
+    }
+  };
   // Fetch the total amount when the component is mounted
-  useEffect(() => {
-    fetchTotalAmount();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchOrderData();
+      fetchTotalAmount();
+    }, []), // Empty dependency array ensures it runs on screen focus only
+  );
   return (
     <ImageBackground
       style={styles.image}
@@ -665,7 +703,7 @@ const Home = ({navigation}) => {
             <Text style={styles.MiddleTXT}>TOTAL VISITS</Text>
             <Text style={styles.MiddleTXT}>{totalVisits}</Text>
             <Text style={styles.MiddleTXT}>ORDERS</Text>
-            <Text style={styles.MiddleTXT}>0</Text>
+            <Text style={styles.MiddleTXT}>{orderCount}</Text>
           </View>
           <View style={styles.MiddleRight}>
             <Text style={styles.MiddleTXT}>Working Date</Text>

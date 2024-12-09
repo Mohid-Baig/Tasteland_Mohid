@@ -293,6 +293,18 @@ const ConfirmOrder = ({route, navigation}) => {
 
       console.log(`Updated Total Amount: ${totalAmount}`);
 
+      // Retrieve existing order count from AsyncStorage
+      let orderCount = await AsyncStorage.getItem(`orderCount_${userId}`);
+      orderCount = parseInt(orderCount) || 0; // Initialize with 0 if not found
+
+      // Increment the order count
+      orderCount++;
+
+      // Save updated order count in AsyncStorage
+      await AsyncStorage.setItem(`orderCount_${userId}`, orderCount.toString());
+
+      console.log(`Updated Order Count: ${orderCount}`);
+
       console.log('Post Data', response.data);
       Alert.alert('Success', 'Order Created successfully!', [
         {
