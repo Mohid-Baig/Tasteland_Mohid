@@ -172,6 +172,13 @@ const ConfirmOrder = ({route, navigation}) => {
     }
   };
 
+  const currentTime = moment().format('HH:mm:ss.SSS'); // Get the current time with milliseconds
+
+  // Combine the RouteDate with the current time
+  const formattedDate = moment(
+    `${route.params.RouteDate}T${currentTime}`,
+  ).toISOString();
+  // Function to save the order offline when there is no network
   const saveOrderOffline = async currentLocation => {
     const userId = await AsyncStorage.getItem('userId');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
@@ -201,51 +208,45 @@ const ConfirmOrder = ({route, navigation}) => {
     };
 
     try {
-      // Check for network connection
-      const state = await NetInfo.fetch();
+      // Save the order locally since there's no internet connection
+      const key = `offlineOrders_${userId}`;
+      const existingOrders = await AsyncStorage.getItem(key);
+      let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
+      offlineOrders.push(offlineOrder);
 
-      if (!state.isConnected) {
-        // Save the order if there is no internet connection
-        const key = `offlineOrders_${userId}`;
-        const existingOrders = await AsyncStorage.getItem(key);
-        let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
-        offlineOrders.push(offlineOrder);
-
-        await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
-        Alert.alert('Order Saved', 'Order has been saved locally for syncing.');
-      } else {
-        console.log(state.isConnected);
-      }
+      await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
+      Alert.alert('Order Saved', 'Order has been saved locally for syncing.');
     } catch (error) {
       console.error('Failed to save order offline:', error);
       Alert.alert('Error', 'Failed to save the order locally.');
     }
   };
 
-  const currentTime = moment().format('HH:mm:ss.SSS'); // Get the current time with milliseconds
-
-  // Combine the RouteDate with the current time
-  const formattedDate = moment(
-    `${route.params.RouteDate}T${currentTime}`,
-  ).toISOString();
-  // setdate(formattedDate);
-  // Function to create a new order (POST)
+  // Function to post the order to the server
   const postOrder = async currentLocation => {
     setIsLoading(true);
     const userId = await AsyncStorage.getItem('userId');
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-    console.log(authToken);
     const distributor_id = await AsyncStorage.getItem('distribution_id');
     const fk_employee = await AsyncStorage.getItem('fk_employee');
-    let details = [];
-    cartItems.forEach(item => {
-      details.push({
-        carton_ordered: item.carton_ordered,
-        box_ordered: item.box_ordered,
-        pricing_id: item.pricing_id,
-      });
-    });
+
+    let details = cartItems.map(item => ({
+      carton_ordered: item.carton_ordered,
+      box_ordered: item.box_ordered,
+      pricing_id: item.pricing_id,
+    }));
+
     try {
+      // Check for network connectivity
+      const state = await NetInfo.fetch();
+
+      // If there's no network, save the order offline
+      if (!state.isConnected) {
+        await saveOrderOffline(currentLocation);
+        return; // Exit the function as no further action is needed
+      }
+
+      // If there's network connectivity, proceed to post the order
       const data = {
         date: formattedDate,
         lng: currentLocation.longitude,
@@ -255,7 +256,7 @@ const ConfirmOrder = ({route, navigation}) => {
         fk_orderbooker_employee: parseInt(fk_employee),
         details: details,
       };
-      console.log(data, '--------------------------');
+
       const response = await instance.post(
         '/secondary_order',
         JSON.stringify(data),
@@ -267,16 +268,17 @@ const ConfirmOrder = ({route, navigation}) => {
           },
         },
       );
+
       console.log('Post Data', response.data);
-      console.log(response.status, 'status');
       Alert.alert('Success', 'Order Created successfully!', [
         {
           text: 'OK',
-          // onPress: () => navigation.navigate('Home')
         },
       ]);
     } catch (error) {
       console.log(error);
+
+      // Save failed order data when posting fails
       const mergedCartItems = cartItems.map(item => {
         const {
           carton_ordered,
@@ -299,13 +301,11 @@ const ConfirmOrder = ({route, navigation}) => {
           pack_in_box,
         } = item;
 
-        // Safely extract the name properties, ensuring the objects exist
         const product_name = product ? product.name : null;
         const sku_name = sku ? sku.name : null;
         const variant_name = variant ? variant.name : null;
 
         return {
-          // ...item, // Keep original cartItem data
           carton_ordered,
           box_ordered,
           pricing_id,
@@ -317,18 +317,17 @@ const ConfirmOrder = ({route, navigation}) => {
           fk_product,
           pieces,
           box_in_carton,
-          product: product_name, // Use product name directly
-          sku: sku_name, // Use SKU name directly
-          variant: variant_name, // Use variant name directly
+          product: product_name,
+          sku: sku_name,
+          variant: variant_name,
           trade_offer,
           pack_in_box,
         };
       });
 
-      // Now, use mergedCartItems in the failedOrder
       const failedOrder = {
         date: formattedDate,
-        details: mergedCartItems, // Use mergedCartItems here
+        details: mergedCartItems,
         shop: Store,
         location: currentLocation,
         fk_distribution: parseInt(distributor_id),
@@ -345,8 +344,8 @@ const ConfirmOrder = ({route, navigation}) => {
         gross_amount: GrossAmount.toFixed(2),
         error: error.message || 'Order creation failed',
       };
+
       await saveFailedOrder(userId, failedOrder);
-      console.log(error);
       Alert.alert('Error', 'An error occurred while processing your request.');
     } finally {
       setIsLoading(false);
@@ -356,9 +355,11 @@ const ConfirmOrder = ({route, navigation}) => {
   const updateOrder = async currentLocation => {
     const userId = await AsyncStorage.getItem('userId');
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-    console.log(authToken);
-    const distributor_id = await AsyncStorage.getItem('distribution_id');
-    const fk_employee = await AsyncStorage.getItem('fk_employee');
+
+    // Check network availability using NetInfo
+    const networkInfo = await NetInfo.fetch();
+    const networkAvailable = networkInfo.isConnected;
+
     const mergedCartItems = cartItems.map(item => {
       const {
         carton_ordered,
@@ -383,141 +384,106 @@ const ConfirmOrder = ({route, navigation}) => {
         pack_in_box,
       } = item;
 
-      // Safely extract the name properties, ensuring the objects exist
       const product_name = product ? product.name : null;
       const sku_name = sku ? sku.name : null;
       const variant_name = variant ? variant.name : null;
 
       return {
-        // ...item, // Keep original cartItem data if necessary
-        id: id, // Using `pricing_id` as `id` since `id` is not provided directly
-        product: product_name, // Use product name directly
-        variant: variant_name, // Use variant name directly
-        sku: sku_name, // Use SKU name directly
+        id: product.id,
+        product: product_name,
+        variant: variant_name,
+        sku: sku_name,
         pieces,
         box_in_carton,
         carton_ordered,
         box_ordered,
-        free_piece_ordered: 0, // Assuming default value as it's not in the original object
-        carton_dispatched: 0, // Assuming default value
-        box_dispatched: 0, // Assuming default value
-        free_piece_dispatched: 0, // Assuming default value
-        carton_received: 0, // Assuming default value
-        box_received: 0, // Assuming default value
-        free_piece_received: 0, // Assuming default value
+        free_piece_ordered: 0,
+        carton_dispatched: 0,
+        box_dispatched: 0,
+        free_piece_dispatched: 0,
+        carton_received: 0,
+        box_received: 0,
+        free_piece_received: 0,
         retail_price,
         trade_price,
         invoice_price,
-        gross_price: 0, // Assuming this needs to be calculated or default
-        net_price: 0, // Assuming this needs to be calculated or default
+        gross_price: 0,
+        net_price: 0,
         trade_offer,
-        gst_rate: pricing_gst, // Renamed `pricing_gst` to `gst_rate` as per new structure
-        gst_base: GST || 0, // Handle possible missing value with default
-        pricing_id,
+        gst_rate: pricing_gst,
+        gst_base: GST || 0,
+        pricing_id: id,
         pack_in_box,
       };
     });
 
-    try {
-      const data = {
-        id: orderId,
-        details: mergedCartItems,
-        shop: Store,
-      };
-      console.log(data, '--------------------------');
-      // console.log(data);
-      // const filter_data = details.filter(it => it.pricing_id);
-      // console.log(filter_data);
-      const response = await instance.put(
-        `/secondary_order/${orderId}`,
-        JSON.stringify(data),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${authToken}`,
-          },
-        },
-      );
+    const data = {
+      id: orderId, // Ensure orderId is available in context
+      details: mergedCartItems,
+      shop: Store, // Ensure Store is defined in your context
+    };
 
-      console.log(response.data, 'Put data');
-      console.log(response.status, 'status');
-      Alert.alert('Success', 'Order Edited successfully!', [{text: 'OK'}]);
+    try {
+      if (networkAvailable) {
+        // If network is available, update order via API
+        const response = await instance.put(
+          `/secondary_order/${orderId}`,
+          JSON.stringify(data),
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              Authorization: `Bearer ${authToken}`,
+            },
+          },
+        );
+
+        console.log(response.data, 'Put data');
+        console.log(response.status, 'status');
+        Alert.alert('Success', 'Order edited successfully!', [{text: 'OK'}]);
+      } else {
+        // If no network, save to offline edit storage (editOrders)
+        const offlineEditOrders = await AsyncStorage.getItem(
+          `offlineEditOrders_${userId}`,
+        );
+        const parsedOfflineEditOrders = offlineEditOrders
+          ? JSON.parse(offlineEditOrders)
+          : [];
+        parsedOfflineEditOrders.push(data); // Save the update data to edit orders
+        await AsyncStorage.setItem(
+          `offlineEditOrders_${userId}`,
+          JSON.stringify(parsedOfflineEditOrders),
+        );
+
+        console.log('Order saved for offline update.');
+        Alert.alert('Info', 'No network. Order saved for offline edit.', [
+          {text: 'OK'},
+        ]);
+      }
     } catch (error) {
       console.log(error);
-      const mergedCartItems = cartItems.map(item => {
-        const {
-          carton_ordered,
-          box_ordered,
-          pricing_id,
-          itemss: {
-            retail_price,
-            invoice_price,
-            trade_price,
-            pricing_gst,
-            fk_variant,
-            fk_product,
-            pieces,
-            box_in_carton,
-            product,
-            sku,
-            variant,
-            trade_offer,
-          },
-          pack_in_box,
-        } = item;
 
-        // Safely extract the name properties, ensuring the objects exist
-        const product_name = product ? product.name : null;
-        const sku_name = sku ? sku.name : null;
-        const variant_name = variant ? variant.name : null;
-
-        return {
-          // ...item, // Keep original cartItem data
-          carton_ordered,
-          box_ordered,
-          pricing_id,
-          retail_price,
-          invoice_price,
-          trade_price,
-          pricing_gst,
-          fk_variant,
-          fk_product,
-          pieces,
-          box_in_carton,
-          product: product_name, // Use product name directly
-          sku: sku_name, // Use SKU name directly
-          variant: variant_name, // Use variant name directly
-          trade_offer,
-          pack_in_box,
+      // Handle only saving to failed orders if the network is available but the API fails
+      if (networkAvailable) {
+        const failedOrder = {
+          id: orderId,
+          details: mergedCartItems,
+          shop: Store,
+          error: error.message || 'Order update failed',
         };
-      });
-
-      // Now, use mergedCartItems in the failedOrder
-      const failedOrder = {
-        date: formattedDate,
-        details: mergedCartItems, // Use mergedCartItems here
-        shop: Store,
-        location: currentLocation,
-        fk_distribution: parseInt(distributor_id),
-        fk_shop: Store.id,
-        fk_orderbooker_employee: parseInt(fk_employee),
-        discount: (GrossAmount - totalPrice).toFixed(2),
-        cartItems: cartItems,
-        orderId: orderId,
-        gst_amount: GST,
-        net_amount: (
-          totalPrice -
-          applySpecialDiscount -
-          FinalDistributiveDiscount
-        ).toFixed(2),
-        gross_amount: GrossAmount.toFixed(2),
-        error: error.message || 'Order creation failed',
-      };
-      await saveFailedOrder(userId, failedOrder);
-      Alert.alert('Error', 'An error occurred while updating the order.');
+        await saveFailedOrder(userId, failedOrder); // Save in failedOrders if API fails
+        Alert.alert('Error', 'An error occurred while updating the order.', [
+          {text: 'OK'},
+        ]);
+      } else {
+        // Do not save to failedOrders if offline; only save in editOrders
+        console.log(
+          'Order saved to offlineEditOrders, no entry in failedOrders.',
+        );
+      }
     }
   };
+
   // Helper function to save failed orders in AsyncStorage
   const saveFailedOrder = async (userId, failedOrder) => {
     try {

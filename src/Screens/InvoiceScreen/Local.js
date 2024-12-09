@@ -115,6 +115,7 @@ const Local = ({selectedDate}) => {
         <ActivityIndicator size={60} color={'#ccc'} />
       ) : (
         <FlatList
+          contentContainerStyle={{paddingBottom: 60}}
           data={LocalApi}
           showsVerticalScrollIndicator={false}
           renderItem={({item}) => (

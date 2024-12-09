@@ -42,6 +42,7 @@ const Home = ({navigation}) => {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('access_token');
     // await AsyncStorage.removeItem(`failedOrders_${userId}`);
+    // await AsyncStorage.removeItem(`offlineOrders_${userId}`);
     navigation.replace('Login');
   };
 
@@ -246,18 +247,55 @@ const Home = ({navigation}) => {
     }
   }, [userId]);
 
+  const getMondayToSundayWeek = date => {
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    const monday = 1;
+    let daysUntilMonday = dayOfWeek - monday;
+    if (daysUntilMonday < 0) {
+      daysUntilMonday += 7;
+    }
+    const startDate = new Date(dateObj);
+    startDate.setDate(dateObj.getDate() - daysUntilMonday);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    return {startDate, endDate};
+  };
+
+  const formatDateToYYYYMMDD = date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  useEffect(() => {
+    const currentDate = new Date();
+    if (currentDate) {
+      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      setWeekDates({
+        startDate: formatDateToYYYYMMDD(startDate),
+        endDate: formatDateToYYYYMMDD(endDate),
+      });
+    }
+  }, []);
+
   const syncOrders = async () => {
     setIsLoading(true);
     try {
+      // Fetching failed orders from AsyncStorage
       const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
       const parsedOrders = failedOrders ? JSON.parse(failedOrders) : [];
 
-      if (parsedOrders.length === 0) {
-        Alert.alert('Sync Complete', 'No orders to sync.');
-        return;
-      }
+      // Fetching offline orders from AsyncStorage
+      const offlinePostOrders = await AsyncStorage.getItem(
+        `offlineOrders_${userId}`,
+      );
+      const parsedOfflinePostOrders = offlinePostOrders
+        ? JSON.parse(offlinePostOrders)
+        : [];
 
-      // Iterate over the orders and process each one
+      // Sync failed orders first
       for (const order of parsedOrders) {
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -266,15 +304,38 @@ const Home = ({navigation}) => {
               Authorization: `Bearer ${authToken}`,
             },
           });
-          console.log('Order synced successfully:', response.data);
+          console.log('Failed order synced successfully:', response.data);
         } catch (error) {
-          console.log('Error syncing order:', error);
+          console.log('Error syncing failed order:', error);
         }
       }
 
-      // Clear the orders after successful sync
+      // Sync offline orders next
+      for (const order of parsedOfflinePostOrders) {
+        try {
+          const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+          const response = await instance.post('/secondary_order', order, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+          console.log('Offline order synced successfully:', response.data);
+        } catch (error) {
+          console.log('Error syncing offline order:', error);
+        }
+      }
+
+      // After syncing, clear both failed and offline orders
       await AsyncStorage.removeItem(`failedOrders_${userId}`);
-      Alert.alert('Sync Complete', 'All orders have been processed.');
+      await AsyncStorage.removeItem(`offlineOrders_${userId}`);
+
+      // Fetch and store other necessary data after syncing
+      await fetchAndStoreTerritorialData();
+      await fetchAndStoreDiscountSlabData();
+      await fetchAndStoreSpecialDiscountSlabData();
+      await fetchAndStorePricingData();
+
+      Alert.alert('Sync Complete', 'All orders synced and data retrieved.');
     } catch (error) {
       console.log('Error during sync:', error);
       Alert.alert('Sync Failed', 'An error occurred while syncing orders.');
@@ -282,6 +343,206 @@ const Home = ({navigation}) => {
       setIsLoading(false);
     }
   };
+
+  // Function to fetch and store Territorial data
+  const fetchAndStoreTerritorialData = async () => {
+    try {
+      const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+      const response = await instance.get(
+        `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      const rawTerritorialData = response.data;
+      const territorialDataKey = `territorialData_${userId}`;
+      await AsyncStorage.setItem(
+        territorialDataKey,
+        JSON.stringify(rawTerritorialData),
+      );
+      console.log(
+        'Territorial data saved to AsyncStorage:',
+        rawTerritorialData,
+      );
+    } catch (error) {
+      console.log('Error fetching territorial data:', error);
+    }
+  };
+
+  // Function to fetch and store Discount Slab data
+  const fetchAndStoreDiscountSlabData = async () => {
+    try {
+      const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+      const distributorId = await AsyncStorage.getItem('distribution_id');
+      const response = await instance.get(
+        `/discount_slab/all?distribution_id=${distributorId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      const discountSlabData = response.data;
+      const discountSlabKey = `discountSlabData_${userId}`;
+      await AsyncStorage.setItem(
+        discountSlabKey,
+        JSON.stringify(discountSlabData),
+      );
+      console.log(
+        'Discount Slab data saved to AsyncStorage:',
+        discountSlabData,
+      );
+    } catch (error) {
+      console.log('Error fetching Discount Slab data:', error);
+    }
+  };
+
+  // Function to fetch and store Special Discount Slab data
+  const fetchAndStoreSpecialDiscountSlabData = async () => {
+    try {
+      const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+      const distributorId = await AsyncStorage.getItem('distribution_id');
+      const response = await instance.get(
+        `/special_discount_slab/all?distribution_id=${distributorId}&include_detail=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      const specialDiscountSlabData = response.data;
+      const specialDiscountSlabKey = `specialDiscountSlabData_${userId}`;
+      await AsyncStorage.setItem(
+        specialDiscountSlabKey,
+        JSON.stringify(specialDiscountSlabData),
+      );
+      console.log(
+        'Special Discount Slab data saved to AsyncStorage:',
+        specialDiscountSlabData,
+      );
+    } catch (error) {
+      console.log('Error fetching Special Discount Slab data:', error);
+    }
+  };
+
+  // Function to fetch and store Pricing data
+  const fetchAndStorePricingData = async () => {
+    try {
+      const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+      const response = await instance.get(
+        '/pricing/all?sort_alphabetically=true&active=true',
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      const pricingData = response.data;
+      const pricingDataKey = `pricingData_${userId}`;
+      await AsyncStorage.setItem(pricingDataKey, JSON.stringify(pricingData));
+      console.log('Pricing data saved to AsyncStorage:', pricingData);
+    } catch (error) {
+      console.log('Error fetching Pricing data:', error);
+    }
+  };
+
+  // const syncOrders = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     // Retrieve failed, offline edit, and post orders from AsyncStorage
+  //     const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
+  //     const parsedFailedOrders = failedOrders ? JSON.parse(failedOrders) : [];
+
+  //     const offlineEditOrders = await AsyncStorage.getItem(
+  //       `offlineEditOrders_${userId}`,
+  //     );
+  //     const parsedOfflineEditOrders = offlineEditOrders
+  //       ? JSON.parse(offlineEditOrders)
+  //       : [];
+
+  //     const offlinePostOrders = await AsyncStorage.getItem(
+  //       `offlineOrders_${userId}`,
+  //     );
+  //     const parsedOfflinePostOrders = offlinePostOrders
+  //       ? JSON.parse(offlinePostOrders)
+  //       : [];
+
+  //     // Combine all orders (failed, offline edits, post orders) into one list
+  //     const ordersToSync = [
+  //       ...parsedFailedOrders,
+  //       ...parsedOfflineEditOrders,
+  //       ...parsedOfflinePostOrders,
+  //     ];
+
+  //     // If there are no orders to sync, show an alert and return
+  //     if (ordersToSync.length === 0) {
+  //       Alert.alert('Sync Complete', 'No orders to sync.');
+  //       return;
+  //     }
+
+  //     // Iterate over the orders and process each one
+  //     for (const order of ordersToSync) {
+  //       try {
+  //         const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+
+  //         let response;
+
+  //         if (order.error) {
+  //           // Failed orders - Retry creation (POST)
+  //           response = await instance.post('/secondary_order', order, {
+  //             headers: {
+  //               Authorization: `Bearer ${authToken}`,
+  //             },
+  //           });
+  //         } else if (order.id) {
+  //           // Offline edit orders - Use PUT API to update the order
+  //           console.log(order.id);
+  //           const data = {
+  //             id: order.id,
+  //             details: order.details,
+  //             shop: order.shop,
+  //           };
+  //           // Perform the PUT request for offline edit orders
+  //           response = await instance.put(
+  //             `/secondary_order/${order.id}`,
+  //             JSON.stringify(data),
+  //             {
+  //               headers: {
+  //                 'Content-Type': 'application/json',
+  //                 Accept: 'application/json',
+  //                 Authorization: `Bearer ${authToken}`,
+  //               },
+  //             },
+  //           );
+  //         } else {
+  //           // Post orders - Create order (POST)
+  //           response = await instance.post('/secondary_order', order, {
+  //             headers: {
+  //               Authorization: `Bearer ${authToken}`,
+  //             },
+  //           });
+  //         }
+
+  //         console.log('Order synced successfully:', response.data);
+  //       } catch (error) {
+  //         console.log('Error syncing order:', error);
+  //       }
+  //     }
+
+  //     // After successful sync, remove all orders from AsyncStorage
+  //     await AsyncStorage.removeItem(`failedOrders_${userId}`);
+  //     await AsyncStorage.removeItem(`offlineEditOrders_${userId}`);
+  //     await AsyncStorage.removeItem(`offlineOrders_${userId}`);
+  //     Alert.alert('Sync Complete', 'All orders have been processed.');
+  //   } catch (error) {
+  //     console.log('Error during sync:', error);
+  //     Alert.alert('Sync Failed', 'An error occurred while syncing orders.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   // useEffect(() => {
   //     if (isInitialDataLoaded) {

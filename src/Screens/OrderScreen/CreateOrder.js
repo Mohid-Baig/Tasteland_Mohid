@@ -11,6 +11,7 @@ import React, {useState, useEffect, useRef, useCallback} from 'react';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import AddProducts from '../../Components/CreateOrderComponent.js/AddProducts';
 import BottomSheet from '@gorhom/bottom-sheet';
+import NetInfo from '@react-native-community/netinfo';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ShowValues from '../../Components/CreateOrderComponent.js/ShowValues';
 import instance from '../../Components/BaseUrl';
@@ -74,7 +75,7 @@ const CreateOrder = ({navigation, route}) => {
   );
   // const cartItems = useSelector(state => state.reducer);
   const cartItems = route.params?.cItems || useSelector(state => state.reducer);
-  console.log(JSON.stringify(cartItems), 'cartItems');
+  console.log(JSON.stringify(cartItems), 'cartItems...');
   useEffect(() => {
     // console.log(cartItems, 'Item');
     if (cartItems.length > 0) {
@@ -126,87 +127,150 @@ const CreateOrder = ({navigation, route}) => {
   };
   const getProduct = async () => {
     setIsLoading(true);
+    const state = await NetInfo.fetch(); // Check network connectivity
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const userId = await AsyncStorage.getItem('userId');
     try {
-      const response = await instance.get(
-        '/pricing/all?sort_alphabetically=true&active=true',
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
+      if (state.isConnected) {
+        // If there's network, fetch data from API
+        const response = await instance.get(
+          '/pricing/all?sort_alphabetically=true&active=true',
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
           },
-        },
-      );
-      setAllProducts(response.data);
-      // console.log(JSON.stringify(response.data), 'All Products');
-      const filteredData = [];
-      const productNames = new Set();
-      response.data.forEach(item => {
-        if (!productNames.has(item.product.name)) {
-          filteredData.push(item.product.name);
-          productNames.add(item.product.name);
+        );
+
+        setAllProducts(response.data);
+        const filteredData = [];
+        const productNames = new Set();
+        response.data.forEach(item => {
+          if (!productNames.has(item.product.name)) {
+            filteredData.push(item.product.name);
+            productNames.add(item.product.name);
+          }
+        });
+        SetProductname(filteredData);
+
+        // Save the fetched data in AsyncStorage
+      } else {
+        // If no internet, fetch from AsyncStorage
+        const pricingDataKey = `pricingData_${userId}`;
+        const storedProducts = await AsyncStorage.getItem(pricingDataKey);
+        if (storedProducts) {
+          const parsedProducts = JSON.parse(storedProducts);
+          setAllProducts(parsedProducts);
+          const filteredData = [];
+          const productNames = new Set();
+          parsedProducts.forEach(item => {
+            if (!productNames.has(item.product.name)) {
+              filteredData.push(item.product.name);
+              productNames.add(item.product.name);
+            }
+          });
+          SetProductname(filteredData);
+        } else {
+          console.log('No products in AsyncStorage');
         }
-      });
-      SetProductname(filteredData);
-      // console.log(filteredData, '-=-=-=');
+      }
     } catch (error) {
       console.log('Error', error);
     } finally {
       setIsLoading(false);
     }
   };
+
   const getDistributionDiscount = async () => {
     setIsLoading(true);
+    const state = await NetInfo.fetch(); // Check network connectivity
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
+    const userId = await AsyncStorage.getItem('userId');
     try {
-      const response = await instance.get(
-        `/discount_slab/all?distribution_id=${distributor_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
+      if (state.isConnected) {
+        // If there's network, fetch data from API
+        const response = await instance.get(
+          `/discount_slab/all?distribution_id=${distributor_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
           },
-        },
-      );
-      response.data.forEach(item => {
-        if (item.shop_type.id === Store.shop_type.id) {
-          setDistributiveDiscount(item);
-          // return
+        );
+
+        console.log(response.data, 'distributerdiscount');
+        response.data.forEach(item => {
+          if (item.shop_type.id === Store.shop_type.id) {
+            setDistributiveDiscount(item);
+          }
+        });
+
+        // Save the fetched data in AsyncStorage
+      } else {
+        // If no internet, fetch from AsyncStorage
+        const discountSlabKey = `discountSlabData_${userId}`;
+        const storedDiscount = await AsyncStorage.getItem(discountSlabKey);
+        if (storedDiscount) {
+          const parsedDiscount = JSON.parse(storedDiscount);
+          parsedDiscount.forEach(item => {
+            if (item.shop_type.id === Store.shop_type.id) {
+              setDistributiveDiscount(item);
+            }
+          });
+        } else {
+          console.log('No distribution discount in AsyncStorage');
         }
-      });
+      }
     } catch (error) {
       console.log('Error', error);
     } finally {
       setIsLoading(false);
     }
   };
+
   const getSpecialDiscount = async () => {
     setIsLoading(true);
+    const state = await NetInfo.fetch(); // Check network connectivity
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
+    const userId = await AsyncStorage.getItem('userId');
     try {
-      const response = await instance.get(
-        `/special_discount_slab/all?distribution_id=${distributor_id}&include_detail=true`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
+      if (state.isConnected) {
+        // If there's network, fetch data from API
+        const response = await instance.get(
+          `/special_discount_slab/all?distribution_id=${distributor_id}&include_detail=true`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
           },
-        },
-      );
-      //   console.log(JSON.stringify(response.data), 'getSpecialDiscount');
-      setSpecialDiscount(response.data);
-      // response.data.forEach((item) => {
-      //     if (item.fk_shop_type === Store.shop_type.id) {
-      //         console.log("Special Discount", item, "Special Discount")
-      //         // setDistributiveDiscount(item);
-      //         // return
-      //     }
-      // })
+        );
+
+        console.log(response.data, 'getSpecialDiscount');
+        setSpecialDiscount(response.data);
+
+        // Save the fetched data in AsyncStorage
+      } else {
+        // If no internet, fetch from AsyncStorage
+        const specialDiscountSlabKey = `specialDiscountSlabData_${userId}`;
+        const storedSpecialDiscount = await AsyncStorage.getItem(
+          specialDiscountSlabKey,
+        );
+        if (storedSpecialDiscount) {
+          const parsedSpecialDiscount = JSON.parse(storedSpecialDiscount);
+          setSpecialDiscount(parsedSpecialDiscount);
+        } else {
+          console.log('No special discount in AsyncStorage');
+        }
+      }
     } catch (error) {
       console.log('Error', error);
     } finally {
       setIsLoading(false);
     }
   };
+
   useEffect(() => {
     getProduct();
     getDistributionDiscount();

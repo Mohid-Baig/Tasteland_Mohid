@@ -156,6 +156,9 @@ const Internet = ({selectedDate, orderBokerId}) => {
         },
       );
       // console.log(JSON.stringify(response.data), 'For Edit ');
+      console.log(
+        `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
+      );
       setInternetAPI(response.data); // Set API response here
       setFormattedDate(formattedDate); // Store formattedDate in state
       console.log('Data of InternetAPI successfully coming');
@@ -178,6 +181,7 @@ const Internet = ({selectedDate, orderBokerId}) => {
         </View>
       ) : (
         <FlatList
+          contentContainerStyle={{paddingBottom: 50}}
           data={internetAPI} // Bind correct state here
           showsVerticalScrollIndicator={false}
           renderItem={({item}) => (

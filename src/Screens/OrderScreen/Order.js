@@ -15,12 +15,11 @@ import NetInfo from '@react-native-community/netinfo'; // Import NetInfo
 import Loader from '../../Components/Loaders/Loader';
 import AddNewShop from '../ShopScreen/AddNewShop';
 
-const STORAGE_KEYS = {
-  DATES: 'ALL_DATES',
-  ROUTES: 'ALL_ROUTES',
-  SHOPS: 'ALL_SHOPS',
-};
-
+// const STORAGE_KEYS = {
+//   DATES: 'ALL_DATES',
+//   ROUTES: 'ALL_ROUTES',
+//   SHOPS: 'ALL_SHOPS',
+// };
 const Order = ({route, navigation}) => {
   const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
   const [isLoading, setIsLoading] = useState(false);
@@ -31,10 +30,40 @@ const Order = ({route, navigation}) => {
   const [pickerData, selectedPickerDate] = useState(null); // selected date string
   const [shops, setshops] = useState(null); // array of { date, route }
   const {orderBokerId} = route.params;
+  const [userId, setUserId] = useState(null); // Initialize userId state
 
   // Network status state
   const [isConnected, setIsConnected] = useState(true);
 
+  // useEffect(() => {
+  //   const fetchUserId = async () => {
+  //     const storedUserId = await AsyncStorage.getItem('userId');
+  //     console.log(storedUserId, 'userId');
+  //     setUserId(storedUserId); // Store the userId to use in AsyncStorage keys
+  //   };
+
+  //   fetchUserId();
+  // }, []);
+
+  const fetchOfflineRouteData = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const territorialDataKey = `territorialData_${userId}`;
+      const territorialDataJson = await AsyncStorage.getItem(
+        territorialDataKey,
+      );
+      if (territorialDataJson !== null) {
+        const territorialData = JSON.parse(territorialDataJson);
+        console.log('Offline Territorial Data:', territorialData);
+        return territorialData;
+      } else {
+        console.log('No offline data found for key:', territorialDataKey);
+      }
+    } catch (error) {
+      console.error('Error fetching offline territorial data:', error);
+    }
+    return null;
+  };
   const getMondayToSundayWeek = date => {
     const dateObj = new Date(date);
     const dayOfWeek = dateObj.getDay();
@@ -71,20 +100,24 @@ const Order = ({route, navigation}) => {
   }, []);
 
   // Function to save all data at once with timestamps
-  const saveAllDataToStorage = async (dates, routes, shops) => {
-    try {
-      const timestamp = new Date().toISOString();
-      const dataToStore = [
-        [STORAGE_KEYS.DATES, JSON.stringify({data: dates, timestamp})],
-        [STORAGE_KEYS.ROUTES, JSON.stringify({data: routes, timestamp})],
-        [STORAGE_KEYS.SHOPS, JSON.stringify({data: shops, timestamp})],
-      ];
-      await AsyncStorage.multiSet(dataToStore);
-      console.log('All data saved to AsyncStorage successfully.');
-    } catch (error) {
-      console.log('Error saving all data to AsyncStorage:', error);
-    }
-  };
+  // const saveAllDataToStorage = async (dates, routes, shops) => {
+  //   const userId = await AsyncStorage.getItem('userId');
+  //   try {
+  //     const timestamp = new Date().toISOString();
+  //     const dataToStore = [
+  //       [STORAGE_KEYS.DATES + userId, JSON.stringify({data: dates, timestamp})],
+  //       [
+  //         STORAGE_KEYS.ROUTES + userId,
+  //         JSON.stringify({data: routes, timestamp}),
+  //       ],
+  //       [STORAGE_KEYS.SHOPS + userId, JSON.stringify({data: shops, timestamp})],
+  //     ];
+  //     await AsyncStorage.multiSet(dataToStore);
+  //     console.log('All data saved to AsyncStorage successfully.');
+  //   } catch (error) {
+  //     console.log('Error saving all data to AsyncStorage:', error);
+  //   }
+  // };
 
   // Function to fetch data from API
   const getTerritorial = async () => {
@@ -138,7 +171,7 @@ const Order = ({route, navigation}) => {
       setTerritorialData(rawTerritorialData);
 
       // Save all data to AsyncStorage at once with timestamps
-      await saveAllDataToStorage(FilterDates, FilterRoute, FilterShops);
+      // await saveAllDataToStorage(FilterDates, FilterRoute, FilterShops);
     } catch (error) {
       console.log('Error fetching territorial data:', error);
       Alert.alert('Error', 'Failed to fetch data from the server.');
@@ -148,50 +181,88 @@ const Order = ({route, navigation}) => {
   };
 
   // Function to load data from AsyncStorage and check freshness
-  const loadDataFromStorage = async () => {
-    try {
-      const storedDates = await AsyncStorage.getItem(STORAGE_KEYS.DATES);
-      const storedRoutes = await AsyncStorage.getItem(STORAGE_KEYS.ROUTES);
-      const storedShops = await AsyncStorage.getItem(STORAGE_KEYS.SHOPS);
+  // const loadDataFromStorage = async () => {
+  //   const userId = await AsyncStorage.getItem('userId');
+  //   try {
+  //     const storedDates = await AsyncStorage.getItem(
+  //       STORAGE_KEYS.DATES + userId,
+  //     );
+  //     const storedRoutes = await AsyncStorage.getItem(
+  //       STORAGE_KEYS.ROUTES + userId,
+  //     );
+  //     const storedShops = await AsyncStorage.getItem(
+  //       STORAGE_KEYS.SHOPS + userId,
+  //     );
 
-      if (storedDates && storedRoutes && storedShops) {
-        const parsedDates = JSON.parse(storedDates);
-        const parsedRoutes = JSON.parse(storedRoutes);
-        const parsedShops = JSON.parse(storedShops);
+  //     if (storedDates && storedRoutes && storedShops) {
+  //       const parsedDates = JSON.parse(storedDates);
+  //       const parsedRoutes = JSON.parse(storedRoutes);
+  //       const parsedShops = JSON.parse(storedShops);
 
-        // Define data freshness (e.g., 24 hours)
-        const freshnessThreshold = 24 * 60 * 60 * 1000; // 24 hours in ms
-        const currentTime = new Date().getTime();
+  //       // Define data freshness (e.g., 24 hours)
+  //       const freshnessThreshold = 24 * 60 * 60 * 1000; // 24 hours in ms
+  //       const currentTime = new Date().getTime();
 
-        const isDataFresh =
-          currentTime - new Date(parsedDates.timestamp).getTime() <
-            freshnessThreshold &&
-          currentTime - new Date(parsedRoutes.timestamp).getTime() <
-            freshnessThreshold &&
-          currentTime - new Date(parsedShops.timestamp).getTime() <
-            freshnessThreshold;
+  //       const isDataFresh =
+  //         currentTime - new Date(parsedDates.timestamp).getTime() <
+  //           freshnessThreshold &&
+  //         currentTime - new Date(parsedRoutes.timestamp).getTime() <
+  //           freshnessThreshold &&
+  //         currentTime - new Date(parsedShops.timestamp).getTime() <
+  //           freshnessThreshold;
 
-        if (isDataFresh) {
-          setAllDates(parsedDates.data);
-          setAllRoute(parsedRoutes.data);
-          setAllShops(parsedShops.data);
-          console.log('Loaded fresh data from AsyncStorage.');
-          return true;
-        } else {
-          console.log('Stored data is stale.');
-          return false;
-        }
-      } else {
-        console.log('No data found in AsyncStorage.');
-        return false;
-      }
-    } catch (error) {
-      console.log('Error loading data from AsyncStorage:', error);
-      return false;
-    }
-  };
+  //       if (isDataFresh) {
+  //         setAllDates(parsedDates.data);
+  //         setAllRoute(parsedRoutes.data);
+  //         setAllShops(parsedShops.data);
+  //         console.log('Loaded fresh data from AsyncStorage.');
+  //         return true;
+  //       } else {
+  //         console.log('Stored data is stale.');
+  //         return false;
+  //       }
+  //     } else {
+  //       console.log('No data found in AsyncStorage.');
+  //       return false;
+  //     }
+  //   } catch (error) {
+  //     console.log('Error loading data from AsyncStorage:', error);
+  //     return false;
+  //   }
+  // };
 
   // Function to handle data loading based on network status
+  // const loadData = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     const state = await NetInfo.fetch();
+  //     setIsConnected(state.isConnected);
+
+  //     if (state.isConnected) {
+  //       console.log('Device is online. Fetching data from API.');
+  //       await getTerritorial();
+  //     } else {
+  //       console.log('Device is offline. Loading data from AsyncStorage.');
+  //       const dataLoaded = await loadDataFromStorage();
+  //       if (!dataLoaded) {
+  //         Alert.alert(
+  //           'No Data Available',
+  //           'You are offline and no cached data is available. Please connect to the internet.',
+  //         );
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.log('Error determining network status:', error);
+  //     // As a fallback, try loading from storage
+  //     const dataLoaded = await loadDataFromStorage();
+  //     if (!dataLoaded) {
+  //       Alert.alert('Error', 'Failed to load data.');
+  //     }
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const loadData = async () => {
     setIsLoading(true);
     try {
@@ -203,21 +274,47 @@ const Order = ({route, navigation}) => {
         await getTerritorial();
       } else {
         console.log('Device is offline. Loading data from AsyncStorage.');
-        const dataLoaded = await loadDataFromStorage();
-        if (!dataLoaded) {
+        const offlineData = await fetchOfflineRouteData(); // Use the offline function here
+        if (offlineData) {
+          setTerritorialData(offlineData);
+          // Process your data as required, e.g., setting allDates, allRoutes, etc.
+          const FilterDates = offlineData.pjp_shops.map(val => val.pjp_date);
+          setAllDates(FilterDates);
+
+          const FilterRoute = [];
+          offlineData.pjp_shops.forEach(val => {
+            if (val.pjp_shops.route_shops.length > 0) {
+              val.pjp_shops.route_shops.forEach(routeData => {
+                FilterRoute.push({date: val.pjp_date, route: routeData.route});
+              });
+            }
+          });
+          setAllRoute(FilterRoute);
+
+          const FilterShops = [];
+          offlineData.pjp_shops.forEach(val => {
+            if (val.pjp_shops.route_shops.length > 0) {
+              val.pjp_shops.route_shops.forEach(routeData => {
+                routeData.shops.forEach(shopItem => {
+                  FilterShops.push({
+                    date: val.pjp_date,
+                    route: routeData.route,
+                    shop: shopItem,
+                  });
+                });
+              });
+            }
+          });
+          setAllShops(FilterShops);
+        } else {
           Alert.alert(
-            'No Data Available',
-            'You are offline and no cached data is available. Please connect to the internet.',
+            'No offline data available',
+            'Please connect to the internet to fetch fresh data.',
           );
         }
       }
     } catch (error) {
-      console.log('Error determining network status:', error);
-      // As a fallback, try loading from storage
-      const dataLoaded = await loadDataFromStorage();
-      if (!dataLoaded) {
-        Alert.alert('Error', 'Failed to load data.');
-      }
+      console.error('Error loading data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -268,8 +365,7 @@ const Order = ({route, navigation}) => {
 
   return (
     <View style={{flex: 1}}>
-      <View
-        style={{flex: 1, backgroundColor: '#cccccc', paddingHorizontal: 10}}>
+      <View style={{flex: 1, backgroundColor: '#fff', paddingHorizontal: 10}}>
         <View style={[styles.pickerContainer, styles.borderPickBottom]}>
           <Picker
             selectedValue={pickerData}
@@ -358,6 +454,7 @@ const styles = StyleSheet.create({
   pickerContainer: {
     marginBottom: 16,
     paddingHorizontal: 16,
+    backgroundColor: '#cccccc',
   },
   borderPickBottom: {
     borderBottomColor: 'black',

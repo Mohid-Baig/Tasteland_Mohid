@@ -8,10 +8,20 @@ import {
 } from 'react-native';
 import React, {useState, useEffect} from 'react';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import {useSelector, useDispatch} from 'react-redux';
+import {Remove_All_Cart} from '../../Components/redux/constants';
 const ViewInvoice = ({route, navigation}) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
   const {cartItems, Gst, orderBokerId} = route.params;
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    return () => {
+      dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
+    };
+  }, [dispatch]);
+
   // console.log(Gst);
   console.log(cartItems, '-----');
   // console.log(singleDetail);
