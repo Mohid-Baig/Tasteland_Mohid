@@ -269,6 +269,30 @@ const ConfirmOrder = ({route, navigation}) => {
         },
       );
 
+      const currentOrderAmount = (
+        totalPrice -
+        applySpecialDiscount -
+        FinalDistributiveDiscount
+      ).toFixed(2);
+      console.log(currentOrderAmount, 'Total Order Price');
+
+      // Retrieve existing total amount from AsyncStorage
+      const storedTotalAmount = await AsyncStorage.getItem(
+        `totalAmount_${userId}`,
+      );
+      let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
+
+      // Add current order amount to the total
+      totalAmount += parseFloat(currentOrderAmount);
+
+      // Save updated total amount in AsyncStorage
+      await AsyncStorage.setItem(
+        `totalAmount_${userId}`,
+        totalAmount.toString(),
+      );
+
+      console.log(`Updated Total Amount: ${totalAmount}`);
+
       console.log('Post Data', response.data);
       Alert.alert('Success', 'Order Created successfully!', [
         {

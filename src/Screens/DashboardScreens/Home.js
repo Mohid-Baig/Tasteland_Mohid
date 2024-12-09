@@ -38,6 +38,7 @@ const Home = ({navigation}) => {
   const [userId, setUserId] = useState(null);
   const [checkAttandance, setCheckAttandance] = useState(false);
   const [id, setID] = useState(null);
+  const [totalAmount, setTotalAmount] = useState(0);
   const {totalVisits} = useContext(VisitContext);
   const handleLogout = async () => {
     await AsyncStorage.removeItem('access_token');
@@ -283,6 +284,12 @@ const Home = ({navigation}) => {
   const syncOrders = async () => {
     setIsLoading(true);
     try {
+      // Clear previous Territorial, Discount Slab, Special Discount Slab, and Pricing data
+      await AsyncStorage.removeItem(`territorialData_${userId}`);
+      await AsyncStorage.removeItem(`discountSlabData_${userId}`);
+      await AsyncStorage.removeItem(`specialDiscountSlabData_${userId}`);
+      await AsyncStorage.removeItem(`pricingData_${userId}`);
+
       // Fetching failed orders from AsyncStorage
       const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
       const parsedOrders = failedOrders ? JSON.parse(failedOrders) : [];
@@ -329,7 +336,7 @@ const Home = ({navigation}) => {
       await AsyncStorage.removeItem(`failedOrders_${userId}`);
       await AsyncStorage.removeItem(`offlineOrders_${userId}`);
 
-      // Fetch and store other necessary data after syncing
+      // Fetch and store other necessary data after clearing old data
       await fetchAndStoreTerritorialData();
       await fetchAndStoreDiscountSlabData();
       await fetchAndStoreSpecialDiscountSlabData();
@@ -582,7 +589,22 @@ const Home = ({navigation}) => {
     }
     return '';
   };
+  const fetchTotalAmount = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      const amount = await AsyncStorage.getItem(`totalAmount_${userId}`);
+      if (amount !== null) {
+        setTotalAmount(parseFloat(amount));
+      }
+    } catch (error) {
+      console.error('Error fetching total amount:', error);
+    }
+  };
 
+  // Fetch the total amount when the component is mounted
+  useEffect(() => {
+    fetchTotalAmount();
+  }, []);
   return (
     <ImageBackground
       style={styles.image}
@@ -653,7 +675,9 @@ const Home = ({navigation}) => {
               </View>
               <View style={{width: '50%'}}>
                 <Text style={styles.MiddleTXT}>AMOUNT</Text>
-                <Text style={styles.MiddleTXT}>RS.0</Text>
+                <Text style={styles.MiddleTXT}>
+                  Rs: {totalAmount.toFixed(2)}
+                </Text>
               </View>
             </View>
           </View>
