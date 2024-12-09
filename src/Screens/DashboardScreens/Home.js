@@ -26,6 +26,7 @@ import Loader from '../../Components/Loaders/Loader';
 import instance from '../../Components/BaseUrl';
 import GetLocation from 'react-native-get-location';
 import {VisitContext} from './VisitContext';
+import {useIsFocused} from '@react-navigation/native';
 
 const Home = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +47,7 @@ const Home = ({navigation}) => {
     // await AsyncStorage.removeItem(`offlineOrders_${userId}`);
     navigation.replace('Login');
   };
+  const isFocused = useIsFocused();
 
   const getHeadingData = async () => {
     // setIsLoading(true);
@@ -241,12 +243,12 @@ const Home = ({navigation}) => {
       setIsLoading(false);
     };
     loadInitialData();
-  }, []);
+  }, [isFocused]);
   useEffect(() => {
     if (userId) {
       getAttandanceStatus();
     }
-  }, [userId]);
+  }, [userId, isFocused]);
 
   const getMondayToSundayWeek = date => {
     const dateObj = new Date(date);
@@ -676,7 +678,7 @@ const Home = ({navigation}) => {
               <View style={{width: '50%'}}>
                 <Text style={styles.MiddleTXT}>AMOUNT</Text>
                 <Text style={styles.MiddleTXT}>
-                  Rs: {totalAmount.toFixed(2)}
+                  Rs:{totalAmount.toFixed(0)}
                 </Text>
               </View>
             </View>
