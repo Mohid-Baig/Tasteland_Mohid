@@ -8,94 +8,180 @@ import {
 import React, {useEffect, useState} from 'react';
 import instance from '../../Components/BaseUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const Local = ({selectedDate}) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [LocalApi, setLocalApi] = useState([]);
+import {TouchableOpacity} from 'react-native-gesture-handler';
+import {useNavigation} from '@react-navigation/native';
+import {Remove_All_Cart} from '../../Components/redux/constants';
+import {useSelector, useDispatch} from 'react-redux';
+import {AddToCart} from '../../Components/redux/action';
+import NetInfo from '@react-native-community/netinfo';
+const Local = ({selectedDate, orderBokerId}) => {
+  const [internetAPI, setInternetAPI] = useState([]);
+  const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
   const [formattedDate, setFormattedDate] = useState('');
-
-  // Helper function to format the date to 'YYYY-MM-DD'
-  const formatDateToYYYYMMDD = date => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  // Function to save both data and date to AsyncStorage
-  const saveDataToLocalStorage = async (data, date) => {
-    try {
-      const stringifyData = JSON.stringify({data, date});
-      const userId = await AsyncStorage.getItem('userId');
-      await AsyncStorage.setItem(`LocalApiData_${userId}`, stringifyData);
-      console.log('Data and date saved to local storage');
-    } catch (error) {
-      console.error('Error saving data to AsyncStorage', error);
+  const [isLoading, setIsLoading] = useState(false);
+  const [GrossAmount, setGrossAmount] = useState(0);
+  const [distributiveDiscount, setDistributiveDiscount] = useState(null);
+  const [FinalDistributiveDiscount, setFinalDistributiveDiscount] = useState(0);
+  const [SpecaialDiscount, setSpecialDiscount] = useState([]);
+  const [applySpecialDiscount, setApplySpecialDiscount] = useState(0);
+  const [gst, setGst] = useState(0);
+  const [allProducts, setAllProducts] = useState([]);
+  const [SelectedProductData, setSelectedProductData] = useState([]);
+  const [totalPrice, setTotalprice] = useState(0);
+  // console.log(orderBokerId);
+  const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const cartItems = useSelector(state => state.reducer);
+  useEffect(() => {
+    console.log(cartItems, 'Item');
+    if (cartItems.length > 0) {
+      // console.log(cartItems.length,'suh')
+      let Product_Count = 0;
+      let GrossAmount = 0;
+      let TO_Discount = 0;
+      let gst = 0;
+      // let count = 0;
+      cartItems.forEach(item => {
+        // console.log(item, "Item kkk");
+        Product_Count +=
+          item?.itemss?.trade_price *
+            (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
+          (item?.itemss?.trade_offer / 100) * item?.itemss?.trade_price;
+        GrossAmount +=
+          item?.itemss?.trade_price *
+          (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
+        // console.log(item?.itemss?.gst_base)
+        if (item?.itemss?.gst_base === 'Retail Price') {
+          gst =
+            gst +
+            item.itemss.retail_price *
+              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
+              (item?.itemss?.pricing_gst / 100);
+          console.log(gst, 'GST Price');
+        }
+      });
+      setTotalprice(Product_Count);
+      setGrossAmount(GrossAmount);
+      setSelectedProductData(cartItems);
+      setGst(gst);
+      // console.log(Product_Count,"Product Count");
+      // dispatch(AddToCart(filteredData));
+    } else {
+      setTotalprice(0);
+      setTotalprice(0);
+      setGrossAmount(0);
+      setGst(0);
     }
+  }, [cartItems]);
+  const goTOEdit = () => {
+    // navigation.navigate('ConfirmOrder', { Store: Store, "RouteDate": RouteDate,'applySpecialDiscount':applySpecialDiscount ,'FinalDistributiveDiscount':FinalDistributiveDiscount ,'GST':gst})
   };
-
-  // Function to load both data and date from AsyncStorage
-  const loadDataFromLocalStorage = async () => {
-    try {
-      const userId = await AsyncStorage.getItem('userId');
-      console.log(userId);
-      if (!userId) {
-        console.error('User ID not found');
-        return;
-      }
-
-      const savedData = await AsyncStorage.getItem(`LocalApiData_${userId}`);
-      if (savedData) {
-        const {data, date} = JSON.parse(savedData);
-        setLocalApi(data);
-        setFormattedDate(date);
-        console.log('Loaded data and date from local storage');
-      } else {
-        setLocalApi([]);
-        setFormattedDate('');
-        console.log('No data found in local storage');
-      }
-    } catch (error) {
-      console.error('Error loading data from AsyncStorage', error);
-    }
-  };
-
-  // Function to fetch data from the API
-  const getLocalData = async () => {
+  const getProduct = async () => {
     setIsLoading(true);
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     try {
-      const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-      const fkEmployee = await AsyncStorage.getItem('fk_employee');
-      const formattedDateStr = selectedDate
-        ? formatDateToYYYYMMDD(selectedDate)
-        : '';
-
-      if (!formattedDateStr) {
-        console.warn('Selected date is not provided');
-        setLocalApi([]);
-        return;
-      }
-
       const response = await instance.get(
-        `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDateStr}`,
+        '/pricing/all?sort_alphabetically=true&active=true',
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
         },
       );
+      setAllProducts(response.data);
+      // console.log(JSON.stringify(response.data), '---111----');
+    } catch (error) {
+      console.log('Error', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    getProduct();
+    setDistributiveDiscount(0);
+  }, []);
+  const getMondayToSundayWeek = date => {
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    const monday = 1;
+    let daysUntilMonday = dayOfWeek - monday;
+    if (daysUntilMonday < 0) {
+      daysUntilMonday += 7;
+    }
+    const startDate = new Date(dateObj);
+    startDate.setDate(dateObj.getDate() - daysUntilMonday);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    return {startDate, endDate};
+  };
+  const formatDateToYYYYMMDD = date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  useEffect(() => {
+    const currentDate = new Date();
+    if (currentDate) {
+      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      setWeekDates({
+        startDate: formatDateToYYYYMMDD(startDate),
+        endDate: formatDateToYYYYMMDD(endDate),
+      });
+    }
+  }, []);
 
-      if (response.status === 200) {
-        setLocalApi(response.data);
-        setFormattedDate(formattedDateStr);
-        await saveDataToLocalStorage(response.data, formattedDateStr); // Save data and date
-        console.log('Data fetched and saved successfully');
+  const getInternetAPi = async () => {
+    setIsLoading(true);
+    const userId = await AsyncStorage.getItem('userId');
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const formattedDate = selectedDate
+      ? formatDateToYYYYMMDD(selectedDate)
+      : '';
+
+    try {
+      // Check network connection status
+      const netInfo = await NetInfo.fetch();
+
+      const fkEmployee = await AsyncStorage.getItem('fk_employee');
+
+      if (netInfo.isConnected) {
+        // If network is connected, fetch data from API and store in AsyncStorage
+        const response = await instance.get(
+          `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          },
+        );
+
+        // Store API response in AsyncStorage with userId as part of the key
+        await AsyncStorage.setItem(
+          `internetAPI_${userId}`,
+          JSON.stringify(response.data),
+        );
+        setInternetAPI(response.data);
+        setFormattedDate(formattedDate);
       } else {
-        throw new Error(`API responded with status ${response.status}`);
+        // If network is not connected, load data from AsyncStorage
+        const storedData = await AsyncStorage.getItem(`internetAPI_${userId}`);
+        if (storedData) {
+          setInternetAPI(JSON.parse(storedData));
+        } else {
+          console.log('No data found in AsyncStorage');
+        }
       }
     } catch (error) {
-      console.error('Error fetching data from API in local screen:', error);
-      await loadDataFromLocalStorage();
+      console.log('Error Caught in LocalAPI -------', error);
+
+      // If there's an error, try to fetch data from AsyncStorage
+      const storedData = await AsyncStorage.getItem(`internetAPI_${userId}`);
+      if (storedData) {
+        setInternetAPI(JSON.parse(storedData));
+      } else {
+        console.log('No data found in AsyncStorage');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -103,23 +189,47 @@ const Local = ({selectedDate}) => {
 
   useEffect(() => {
     if (selectedDate) {
-      getLocalData();
-    } else {
-      loadDataFromLocalStorage();
+      getInternetAPi();
     }
   }, [selectedDate]);
-
   return (
     <View style={styles.main}>
       {isLoading ? (
-        <ActivityIndicator size={60} color={'#ccc'} />
+        <View style={{alignItems: 'center', flex: 1, marginTop: '60%'}}>
+          <ActivityIndicator size={50} color={'#16a4dd'} />
+        </View>
       ) : (
         <FlatList
-          contentContainerStyle={{paddingBottom: 60}}
-          data={LocalApi}
+          contentContainerStyle={{paddingBottom: 50}}
+          data={internetAPI} // Bind correct state here
           showsVerticalScrollIndicator={false}
           renderItem={({item}) => (
-            <View style={styles.flatlistbackground}>
+            <TouchableOpacity
+              style={styles.flatlistbackground}
+              onPress={() => {
+                item.details.forEach(val => {
+                  // console.log(allProducts, 'Product');
+                  let pro = allProducts.filter(
+                    valfil => valfil.id === val.pricing_id,
+                  );
+                  // console.log(pro, '----');
+                  let items = {
+                    carton_ordered: val.carton_ordered,
+                    box_ordered: val.box_ordered,
+                    pricing_id: val.id,
+                    itemss: pro[0],
+                    pack_in_box: val.box_ordered,
+                  };
+                  // console.log(items, '+++++');
+                  dispatch(AddToCart(items));
+                });
+                goTOEdit();
+                navigation.navigate('ViewInvoice', {
+                  cartItems: item,
+                  Gst: gst,
+                  orderBokerId: orderBokerId,
+                });
+              }}>
               <View style={styles.FlatList}>
                 <View style={styles.centre}>
                   <Text style={{color: 'black'}}>Invoice #</Text>
@@ -149,7 +259,7 @@ const Local = ({selectedDate}) => {
                   <Text style={{color: 'black'}}>{item.net_amount}</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
           keyExtractor={item => item.id.toString()}
         />
@@ -157,9 +267,7 @@ const Local = ({selectedDate}) => {
     </View>
   );
 };
-
 export default Local;
-
 const styles = StyleSheet.create({
   main: {
     flex: 1,
@@ -181,22 +289,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     borderBottomWidth: 0.5,
-    // marginBottom: 1,
+    // marginBottom: 1s
     marginVertical: 2,
   },
   centre: {
     justifyContent: 'center',
     alignItems: 'center',
-    flex: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
   },
 });
