@@ -14,11 +14,7 @@ const getTodayDateString = () => {
 export const VisitProvider = ({children}) => {
   const [totalVisits, setTotalVisits] = useState(0);
   const [lastVisitDate, setLastVisitDate] = useState(null);
-  const [userId, setUserId] = useState(null); // State for userId
   const [isDataLoaded, setIsDataLoaded] = useState(false); // State to track if data is fully loaded
-
-  // Helper function to get the storage key based on the user ID
-  const getStorageKey = key => `${userId}_${key}`; // Unique key for each user
 
   // Function to reset state for a fresh user context
   const resetState = () => {
@@ -29,15 +25,12 @@ export const VisitProvider = ({children}) => {
 
   // Function to load the last visit date and visits from AsyncStorage
   const loadVisitData = async () => {
-    if (!userId) return; // If userId is not set, don't load data
-
     try {
-      const savedDate = await AsyncStorage.getItem(
-        getStorageKey('lastVisitDate'),
-      );
-      const savedVisits = await AsyncStorage.getItem(
-        getStorageKey('totalVisits'),
-      );
+      const userId = await AsyncStorage.getItem('userId'); // Fetch userId
+      if (!userId) return; // If userId is not set, don't load data
+
+      const savedDate = await AsyncStorage.getItem(`${userId}_lastVisitDate`);
+      const savedVisits = await AsyncStorage.getItem(`${userId}_totalVisits`);
 
       if (savedDate) {
         setLastVisitDate(savedDate);
@@ -59,14 +52,15 @@ export const VisitProvider = ({children}) => {
 
   // Function to save the current visit count and date to AsyncStorage
   const saveVisitData = async (newTotalVisits, todayDate) => {
-    if (!userId) return; // If userId is not set, don't save data
-
     try {
+      const userId = await AsyncStorage.getItem('userId'); // Fetch userId
+      if (!userId) return; // If userId is not set, don't save data
+
       await AsyncStorage.setItem(
-        getStorageKey('totalVisits'),
+        `${userId}_totalVisits`,
         newTotalVisits.toString(),
       );
-      await AsyncStorage.setItem(getStorageKey('lastVisitDate'), todayDate);
+      await AsyncStorage.setItem(`${userId}_lastVisitDate`, todayDate);
     } catch (error) {
       console.error('Error saving visit data:', error);
     }
@@ -92,24 +86,15 @@ export const VisitProvider = ({children}) => {
     }
   };
 
-  // Load userId and initial visit data when the component mounts
+  // Reset state and load last visit data on mount
   useEffect(() => {
-    const getUserId = async () => {
-      const storedUserId = await AsyncStorage.getItem('userId'); // Retrieve userId from AsyncStorage
-      console.log('Fetched userId: ', storedUserId); // Log userId for debugging
-      setUserId(storedUserId);
+    const loadInitialData = async () => {
+      resetState(); // Reset state immediately
+      await loadVisitData(); // Load visit data once userId is fetched
     };
 
-    getUserId(); // Load userId on component mount
-  }, []);
-
-  // Reset state and load last visit data after userId is fetched or changes
-  useEffect(() => {
-    if (userId) {
-      resetState(); // Reset state immediately when userId changes
-      loadVisitData(); // Load data only after the userId is set
-    }
-  }, [userId]); // Run only when userId changes
+    loadInitialData();
+  }, []); // Run only on component mount
 
   return (
     <VisitContext.Provider value={{totalVisits, incrementVisits, isDataLoaded}}>

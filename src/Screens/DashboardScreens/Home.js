@@ -48,7 +48,6 @@ const Home = ({navigation}) => {
     // await AsyncStorage.removeItem(`offlineOrders_${userId}`);
     navigation.replace('Login');
   };
-  const isFocused = useIsFocused();
 
   const getHeadingData = async () => {
     // setIsLoading(true);
@@ -619,20 +618,37 @@ const Home = ({navigation}) => {
     try {
       const userId = await AsyncStorage.getItem('userId');
 
-      // Fetch the order count
-      const storedOrderCount = await AsyncStorage.getItem(
-        `orderCount_${userId}`,
-      );
-      if (storedOrderCount !== null) {
-        setOrderCount(parseInt(storedOrderCount)); // Set the order count if found
-      }
+      // Get today's date in a simple format (e.g., YYYY-MM-DD)
+      const today = new Date().toISOString().split('T')[0];
 
-      // Fetch the total amount
-      const storedTotalAmount = await AsyncStorage.getItem(
-        `totalAmount_${userId}`,
-      );
-      if (storedTotalAmount !== null) {
-        setTotalAmount(parseFloat(storedTotalAmount)); // Set the total amount if found
+      // Retrieve the last fetched date from AsyncStorage
+      const lastDate = await AsyncStorage.getItem(`lastOrderDate_${userId}`);
+
+      // Check if the last date is different from today
+      if (lastDate !== today) {
+        // If it's a new day, reset the order count and total amount
+        await AsyncStorage.setItem(`orderCount_${userId}`, '0');
+        await AsyncStorage.setItem(`totalAmount_${userId}`, '0');
+        await AsyncStorage.setItem(`lastOrderDate_${userId}`, today); // Store today's date
+
+        // Reset state values
+        setOrderCount(0);
+        setTotalAmount(0);
+      } else {
+        // If it's the same day, fetch the order count and total amount
+        const storedOrderCount = await AsyncStorage.getItem(
+          `orderCount_${userId}`,
+        );
+        if (storedOrderCount !== null) {
+          setOrderCount(parseInt(storedOrderCount)); // Set the order count if found
+        }
+
+        const storedTotalAmount = await AsyncStorage.getItem(
+          `totalAmount_${userId}`,
+        );
+        if (storedTotalAmount !== null) {
+          setTotalAmount(parseFloat(storedTotalAmount)); // Set the total amount if found
+        }
       }
     } catch (error) {
       console.error('Error fetching order data:', error);
