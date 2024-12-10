@@ -199,8 +199,12 @@ const AllShops = ({navigation, route}) => {
   const getTerritorial = async () => {
     setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-
+    const orderBokerId = await AsyncStorage.getItem('orderBokerId');
     try {
+      console.log(
+        `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
+        'hhhhh',
+      );
       const response = await instance.get(
         `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
         {

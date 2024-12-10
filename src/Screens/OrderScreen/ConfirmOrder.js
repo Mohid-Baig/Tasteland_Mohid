@@ -454,9 +454,9 @@ const ConfirmOrder = ({route, navigation}) => {
     });
 
     const data = {
-      id: orderId, // Ensure orderId is available in context
+      id: orderId,
       details: mergedCartItems,
-      shop: Store, // Ensure Store is defined in your context
+      shop: Store,
     };
 
     try {
@@ -505,6 +505,7 @@ const ConfirmOrder = ({route, navigation}) => {
           id: orderId,
           details: mergedCartItems,
           shop: Store,
+          cartItems: cartItems,
           error: error.message || 'Order update failed',
         };
         await saveFailedOrder(userId, failedOrder); // Save in failedOrders if API fails

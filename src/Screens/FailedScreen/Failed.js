@@ -15,6 +15,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Loader from '../../Components/Loaders/Loader';
 import instance from '../../Components/BaseUrl';
 import ViewInvoice from '../InvoiceScreen/ViewInvoice';
+import {Remove_All_Cart} from '../../Components/redux/constants';
+import {useSelector, useDispatch} from 'react-redux';
 const FailedOrdersScreen = ({route, navigation}) => {
   const {userId} = route.params;
   const [failedOrders, setFailedOrders] = useState([]);
@@ -23,6 +25,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
   const [cartItems, setcartItems] = useState();
   const [details, setDetails] = useState();
   const [location, setLocation] = useState();
+  const dispatch = useDispatch();
 
   const formatDate = dateString => {
     const date = new Date(dateString);
@@ -32,6 +35,11 @@ const FailedOrdersScreen = ({route, navigation}) => {
     return `${year}-${month}-${day}`;
   };
 
+  // useEffect(() => {
+  //   return () => {
+  //     dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
+  //   };
+  // }, [dispatch]);
   const loadFailedOrders = async () => {
     try {
       const storedFailedOrders = await AsyncStorage.getItem(
@@ -133,7 +141,6 @@ const FailedOrdersScreen = ({route, navigation}) => {
       {cancelable: true},
     );
   };
-
   const postOrder = async order => {
     setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -172,17 +179,72 @@ const FailedOrdersScreen = ({route, navigation}) => {
           },
         },
       );
+
       console.log('Post Data', response.data);
       console.log(response.status, 'status');
-      Alert.alert('Success', 'Order created successfully!', [{text: 'OK'}]);
 
-      const updatedOrders = failedOrders.filter(
-        failedOrder => failedOrder.shop.id !== order.shop.id,
-      );
-      saveFailedOrders(updatedOrders);
+      if (response.status === 200) {
+        Alert.alert('Success', 'Order created successfully!', [{text: 'OK'}]);
+
+        // Remove the order from failed orders after a successful post
+        const updatedOrders = failedOrders.filter(
+          failedOrder => failedOrder.shop.id !== order.shop.id,
+        );
+        saveFailedOrders(updatedOrders); // Save updated orders to AsyncStorage
+      } else {
+        Alert.alert(
+          'Error',
+          'An error occurred while processing your request.',
+        );
+      }
     } catch (error) {
       console.log(error);
       Alert.alert('Error', 'An error occurred while processing your request.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateOrder = async item => {
+    setIsLoading(true);
+    const userId = await AsyncStorage.getItem('userId');
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+
+    const data = {
+      id: item.id,
+      details: item.details,
+      shop: item.shop,
+    };
+
+    try {
+      const response = await instance.put(
+        `/secondary_order/${item.id}`,
+        JSON.stringify(data),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+
+      console.log(response.data, 'Put data');
+      console.log(response.status, 'status');
+
+      if (response.status === 200) {
+        Alert.alert('Success', 'Order updated successfully!');
+
+        // Remove the order from failed orders after a successful update
+        const updatedOrders = failedOrders.filter(
+          failedOrder => failedOrder.shop.id !== item.shop.id,
+        );
+        saveFailedOrders(updatedOrders); // Save updated orders to AsyncStorage
+      } else {
+        Alert.alert('Error', 'An error occurred while updating the order.');
+      }
+    } catch (error) {
+      console.log(error, 'error in updating fail edit data');
     } finally {
       setIsLoading(false);
     }
@@ -223,14 +285,29 @@ const FailedOrdersScreen = ({route, navigation}) => {
           <Text style={styles.errorText}>{orderDate}</Text>
         </View>
         <View style={styles.actionContainer}>
-          <TouchableOpacity onPress={() => postOrder(item)}>
+          <TouchableOpacity
+            onPress={() => {
+              if (item.id) {
+                updateOrder(item);
+              } else {
+                postOrder(item);
+              }
+            }}>
             <MaterialCommunityIcons name="reload" color={'#16a4dd'} size={25} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
               // console.log(JSON.stringify(item), 'Selected order');
+              console.log(
+                item.details.forEach(it => {
+                  it.id;
+                }),
+                'hello',
+              );
+              dispatch({type: Remove_All_Cart});
               navigation.navigate('CreateOrder', {
                 // cartItems: item,
+                existingOrderId: item.id,
                 Invoiceitems: item,
                 Store: item.shop,
                 RouteDate: orderDate,

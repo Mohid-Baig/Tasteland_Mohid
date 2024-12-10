@@ -232,12 +232,15 @@ const Internet = ({selectedDate, orderBokerId}) => {
                 </View>
                 <View style={styles.centre}>
                   <Text style={{color: 'black'}}>Gross Amount</Text>
-                  <Text
-                    style={{color: 'black'}}>{`${item.gross_amount}.00`}</Text>
+                  <Text style={{color: 'black'}}>{`${item.gross_amount.toFixed(
+                    1,
+                  )}`}</Text>
                 </View>
                 <View style={styles.centre}>
                   <Text style={{color: 'black'}}>Net Amount</Text>
-                  <Text style={{color: 'black'}}>{item.net_amount}</Text>
+                  <Text style={{color: 'black'}}>
+                    {item.net_amount.toFixed(1)}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
