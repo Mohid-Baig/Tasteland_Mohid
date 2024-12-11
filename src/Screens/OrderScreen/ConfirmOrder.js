@@ -161,7 +161,12 @@ const ConfirmOrder = ({route, navigation}) => {
       } else {
         postOrder(currentLocation); // POST request
       }
-      saveOrderOffline(currentLocation);
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        saveOrderOffline(currentLocation);
+      } else {
+        console.log('There is network');
+      }
     } catch (error) {
       if (error.code === 'CANCELLED') {
         console.log('Location request was cancelled by the user.');
@@ -239,78 +244,81 @@ const ConfirmOrder = ({route, navigation}) => {
     try {
       // Check for network connectivity
       const state = await NetInfo.fetch();
-
+      console.log(!state.isConnected);
       // If there's no network, save the order offline
       if (!state.isConnected) {
         await saveOrderOffline(currentLocation);
         return; // Exit the function as no further action is needed
-      }
+      } else {
+        // If there's network connectivity, proceed to post the order
+        const data = {
+          date: formattedDate,
+          lng: currentLocation.longitude,
+          lat: currentLocation.latitude,
+          fk_distribution: parseInt(distributor_id),
+          fk_shop: Store.id,
+          fk_orderbooker_employee: parseInt(fk_employee),
+          details: details,
+        };
 
-      // If there's network connectivity, proceed to post the order
-      const data = {
-        date: formattedDate,
-        lng: currentLocation.longitude,
-        lat: currentLocation.latitude,
-        fk_distribution: parseInt(distributor_id),
-        fk_shop: Store.id,
-        fk_orderbooker_employee: parseInt(fk_employee),
-        details: details,
-      };
-
-      const response = await instance.post(
-        '/secondary_order',
-        JSON.stringify(data),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${authToken}`,
+        const response = await instance.post(
+          '/secondary_order',
+          JSON.stringify(data),
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              Authorization: `Bearer ${authToken}`,
+            },
           },
-        },
-      );
+        );
 
-      const currentOrderAmount = (
-        totalPrice -
-        applySpecialDiscount -
-        FinalDistributiveDiscount
-      ).toFixed(2);
-      console.log(currentOrderAmount, 'Total Order Price');
+        const currentOrderAmount = (
+          totalPrice -
+          applySpecialDiscount -
+          FinalDistributiveDiscount
+        ).toFixed(2);
+        console.log(currentOrderAmount, 'Total Order Price');
 
-      // Retrieve existing total amount from AsyncStorage
-      const storedTotalAmount = await AsyncStorage.getItem(
-        `totalAmount_${userId}`,
-      );
-      let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
+        // Retrieve existing total amount from AsyncStorage
+        const storedTotalAmount = await AsyncStorage.getItem(
+          `totalAmount_${userId}`,
+        );
+        let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
 
-      // Add current order amount to the total
-      totalAmount += parseFloat(currentOrderAmount);
+        // Add current order amount to the total
+        totalAmount += parseFloat(currentOrderAmount);
 
-      // Save updated total amount in AsyncStorage
-      await AsyncStorage.setItem(
-        `totalAmount_${userId}`,
-        totalAmount.toString(),
-      );
+        // Save updated total amount in AsyncStorage
+        await AsyncStorage.setItem(
+          `totalAmount_${userId}`,
+          totalAmount.toString(),
+        );
 
-      console.log(`Updated Total Amount: ${totalAmount}`);
+        console.log(`Updated Total Amount: ${totalAmount}`);
 
-      // Retrieve existing order count from AsyncStorage
-      let orderCount = await AsyncStorage.getItem(`orderCount_${userId}`);
-      orderCount = parseInt(orderCount) || 0; // Initialize with 0 if not found
+        // Retrieve existing order count from AsyncStorage
+        let orderCount = await AsyncStorage.getItem(`orderCount_${userId}`);
+        orderCount = parseInt(orderCount) || 0; // Initialize with 0 if not found
 
-      // Increment the order count
-      orderCount++;
+        // Increment the order count
+        orderCount++;
 
-      // Save updated order count in AsyncStorage
-      await AsyncStorage.setItem(`orderCount_${userId}`, orderCount.toString());
+        // Save updated order count in AsyncStorage
+        await AsyncStorage.setItem(
+          `orderCount_${userId}`,
+          orderCount.toString(),
+        );
 
-      console.log(`Updated Order Count: ${orderCount}`);
+        console.log(`Updated Order Count: ${orderCount}`);
 
-      console.log('Post Data', response.data);
-      Alert.alert('Success', 'Order Created successfully!', [
-        {
-          text: 'OK',
-        },
-      ]);
+        console.log('Post Data', response.data);
+        Alert.alert('Success', 'Order Created successfully!', [
+          {
+            text: 'OK',
+          },
+        ]);
+      }
     } catch (error) {
       console.log(error);
 
