@@ -195,30 +195,36 @@ const ConfirmOrder = ({route, navigation}) => {
       pricing_id: item.pricing_id,
     }));
 
+    // Generate a unique ID for each order (combining timestamp and random string)
+    const uniqueOrderId = `order_${new Date().getTime()}_${Math.random()
+      .toString(36)
+      .substring(2, 15)}`;
+
     const offlineOrder = {
-      date: moment().toISOString(),
-      location: currentLocation,
+      id: uniqueOrderId, // Add unique order ID
+      date: formattedDate,
+      lng: currentLocation.longitude,
+      lat: currentLocation.latitude,
       fk_distribution: parseInt(distributor_id),
       fk_shop: Store.id,
       fk_orderbooker_employee: parseInt(fk_employee),
       details: orderDetails,
-      discounts: {
-        distributive: FinalDistributiveDiscount,
-        special: applySpecialDiscount,
-      },
-      grossAmount: GrossAmount,
-      totalPrice: totalPrice,
-      gstAmount: GST,
-      shop: Store,
     };
 
     try {
-      // Save the order locally since there's no internet connection
       const key = `offlineOrders_${userId}`;
       const existingOrders = await AsyncStorage.getItem(key);
       let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
-      offlineOrders.push(offlineOrder);
 
+      // Check if the order with the same ID already exists in offline storage
+      if (offlineOrders.some(order => order.id === offlineOrder.id)) {
+        console.log(
+          'Order with the same ID already exists in offline storage.',
+        );
+        return; // Prevent saving the same order again
+      }
+
+      offlineOrders.push(offlineOrder);
       await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
       Alert.alert('Order Saved', 'Order has been saved locally for syncing.');
     } catch (error) {
@@ -227,7 +233,6 @@ const ConfirmOrder = ({route, navigation}) => {
     }
   };
 
-  // Function to post the order to the server
   const postOrder = async currentLocation => {
     setIsLoading(true);
     const userId = await AsyncStorage.getItem('userId');
@@ -242,15 +247,14 @@ const ConfirmOrder = ({route, navigation}) => {
     }));
 
     try {
-      // Check for network connectivity
       const state = await NetInfo.fetch();
-      console.log(!state.isConnected);
+
       // If there's no network, save the order offline
       if (!state.isConnected) {
         await saveOrderOffline(currentLocation);
-        return; // Exit the function as no further action is needed
+        return; // Exit early to prevent further execution
       } else {
-        // If there's network connectivity, proceed to post the order
+        // Proceed with posting the order to the server
         const data = {
           date: formattedDate,
           lng: currentLocation.longitude,

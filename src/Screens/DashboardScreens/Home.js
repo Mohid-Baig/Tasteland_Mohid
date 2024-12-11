@@ -49,6 +49,32 @@ const Home = ({navigation}) => {
     navigation.replace('Login');
   };
 
+  useEffect(() => {
+    const fetchOfflineOrders = async () => {
+      try {
+        const offlinePostOrders = await AsyncStorage.getItem(
+          `offlineOrders_${userId}`,
+        );
+        const parsedOfflinePostOrders = offlinePostOrders
+          ? JSON.parse(offlinePostOrders)
+          : [];
+        console.log(
+          parsedOfflinePostOrders,
+          'Post newly order data to be synced',
+        );
+        console.log(JSON.stringify(parsedOfflinePostOrders));
+        // console.log(
+        //   JSON.stringify(offlinePostOrders),
+        //   'Post newly order data to be synced',
+        // );
+      } catch (error) {
+        console.error('Error fetching offline orders:', error);
+      }
+    };
+
+    fetchOfflineOrders();
+  }, []);
+
   const getHeadingData = async () => {
     // setIsLoading(true);
     const employeeId = await AsyncStorage.getItem('employeeId');

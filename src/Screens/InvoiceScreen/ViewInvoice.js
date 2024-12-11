@@ -149,7 +149,7 @@ const ViewInvoice = ({route, navigation}) => {
             <View style={{marginLeft: 15, justifyContent: 'center'}}>
               <Text style={styles.Text2}>---86.40 (17.0%)---</Text>
               <Text style={styles.Text2}>
-                {cartItems.gross_amount} (Inclusive of GST)
+                {cartItems.gross_amount.toFixed(2)} (Inclusive of GST)
               </Text>
               <Text style={styles.Text2}>{singleDetail?.trade_offer || 0}</Text>
               <Text style={styles.Text2}>{cartItems.discount}(0.0%)</Text>
@@ -164,7 +164,7 @@ const ViewInvoice = ({route, navigation}) => {
             <View style={{marginLeft: 10}}>
               <Text style={styles.Text2}>{singleDetail?.trade_offer || 0}</Text>
               <Text style={[styles.Text2, {fontWeight: 'bold'}]}>
-                {TO_amount}
+                {TO_amount.toFixed(2)}
               </Text>
             </View>
           </View>
