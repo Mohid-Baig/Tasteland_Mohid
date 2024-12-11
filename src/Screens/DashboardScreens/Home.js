@@ -63,10 +63,17 @@ const Home = ({navigation}) => {
           'Post newly order data to be synced',
         );
         console.log(JSON.stringify(parsedOfflinePostOrders));
-        // console.log(
-        //   JSON.stringify(offlinePostOrders),
-        //   'Post newly order data to be synced',
-        // );
+
+        const offlineEditOrders = await AsyncStorage.getItem(
+          `offlineEditOrders_${userId}`,
+        );
+        const parsedOfflineEditOrders = offlineEditOrders
+          ? JSON.parse(offlineEditOrders)
+          : [];
+        console.log(
+          JSON.stringify(parsedOfflineEditOrders),
+          'Data of offline edit orders',
+        );
       } catch (error) {
         console.error('Error fetching offline orders:', error);
       }
@@ -309,6 +316,78 @@ const Home = ({navigation}) => {
     }
   }, []);
 
+  // const syncOrders = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     // Clear previous Territorial, Discount Slab, Special Discount Slab, and Pricing data
+  //     await AsyncStorage.removeItem(`territorialData_${userId}`);
+  //     await AsyncStorage.removeItem(`discountSlabData_${userId}`);
+  //     await AsyncStorage.removeItem(`specialDiscountSlabData_${userId}`);
+  //     await AsyncStorage.removeItem(`pricingData_${userId}`);
+
+  //     // Fetching failed orders from AsyncStorage
+  //     const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
+  //     const parsedOrders = failedOrders ? JSON.parse(failedOrders) : [];
+
+  //     // Fetching offline orders from AsyncStorage
+  //     const offlinePostOrders = await AsyncStorage.getItem(
+  //       `offlineOrders_${userId}`,
+  //     );
+  //     const parsedOfflinePostOrders = offlinePostOrders
+  //       ? JSON.parse(offlinePostOrders)
+  //       : [];
+
+  //     // Sync failed orders first
+  //     for (const order of parsedOrders) {
+  //       try {
+  //         const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+  //         const response = await instance.post('/secondary_order', order, {
+  //           headers: {
+  //             Authorization: `Bearer ${authToken}`,
+  //           },
+  //         });
+  //         console.log('Failed order synced successfully:', response.data);
+  //       } catch (error) {
+  //         console.log('Error syncing failed order:', error);
+  //       }
+  //     }
+
+  //     // Sync offline orders next
+  //     for (const order of parsedOfflinePostOrders) {
+  //       try {
+  //         const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+  //         const response = await instance.post('/secondary_order', order, {
+  //           headers: {
+  //             Authorization: `Bearer ${authToken}`,
+  //           },
+  //         });
+  //         console.log('Offline order synced successfully:', response.data);
+  //       } catch (error) {
+  //         console.log('Error syncing offline order:', error);
+  //       }
+  //     }
+
+  //     // After syncing, clear both failed and offline orders
+  //     await AsyncStorage.removeItem(`failedOrders_${userId}`);
+  //     await AsyncStorage.removeItem(`offlineOrders_${userId}`);
+
+  //     // Fetch and store other necessary data after clearing old data
+  //     await fetchAndStoreTerritorialData();
+  //     await fetchAndStoreDiscountSlabData();
+  //     await fetchAndStoreSpecialDiscountSlabData();
+  //     await fetchAndStorePricingData();
+
+  //     Alert.alert('Sync Complete', 'All orders synced and data retrieved.');
+  //   } catch (error) {
+  //     console.log('Error during sync:', error);
+  //     Alert.alert('Sync Failed', 'An error occurred while syncing orders.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  // Function to fetch and store Territorial data
+
   const syncOrders = async () => {
     setIsLoading(true);
     try {
@@ -328,6 +407,14 @@ const Home = ({navigation}) => {
       );
       const parsedOfflinePostOrders = offlinePostOrders
         ? JSON.parse(offlinePostOrders)
+        : [];
+
+      // Fetching offline edit orders from AsyncStorage
+      const offlineEditOrders = await AsyncStorage.getItem(
+        `offlineEditOrders_${userId}`,
+      );
+      const parsedOfflineEditOrders = offlineEditOrders
+        ? JSON.parse(offlineEditOrders)
         : [];
 
       // Sync failed orders first
@@ -360,9 +447,39 @@ const Home = ({navigation}) => {
         }
       }
 
-      // After syncing, clear both failed and offline orders
+      // Sync offline edit orders
+      for (const order of parsedOfflineEditOrders) {
+        try {
+          const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+          const data = {
+            id: order.orderId, // Assuming `orderId` is present in the `order` object
+            details: order.mergedCartItems,
+            shop: order.Store,
+            date: new Date().toISOString(), // Ensure the date is unique for every request
+          };
+
+          const response = await instance.put(
+            `/secondary_order/${order.orderId}`,
+            JSON.stringify(data),
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                Authorization: `Bearer ${authToken}`,
+              },
+            },
+          );
+          console.log(`/secondary_order/${order.orderId}`);
+          console.log('Offline edit order synced successfully:', response.data);
+        } catch (error) {
+          console.log('Error syncing offline edit order:', error);
+        }
+      }
+
+      // After syncing, clear both failed, offline, and offline edit orders
       await AsyncStorage.removeItem(`failedOrders_${userId}`);
       await AsyncStorage.removeItem(`offlineOrders_${userId}`);
+      await AsyncStorage.removeItem(`offlineEditOrders_${userId}`);
 
       // Fetch and store other necessary data after clearing old data
       await fetchAndStoreTerritorialData();
@@ -379,7 +496,6 @@ const Home = ({navigation}) => {
     }
   };
 
-  // Function to fetch and store Territorial data
   const fetchAndStoreTerritorialData = async () => {
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -482,131 +598,6 @@ const Home = ({navigation}) => {
       console.log('Error fetching Pricing data:', error);
     }
   };
-
-  // const syncOrders = async () => {
-  //   setIsLoading(true);
-  //   try {
-  //     // Retrieve failed, offline edit, and post orders from AsyncStorage
-  //     const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
-  //     const parsedFailedOrders = failedOrders ? JSON.parse(failedOrders) : [];
-
-  //     const offlineEditOrders = await AsyncStorage.getItem(
-  //       `offlineEditOrders_${userId}`,
-  //     );
-  //     const parsedOfflineEditOrders = offlineEditOrders
-  //       ? JSON.parse(offlineEditOrders)
-  //       : [];
-
-  //     const offlinePostOrders = await AsyncStorage.getItem(
-  //       `offlineOrders_${userId}`,
-  //     );
-  //     const parsedOfflinePostOrders = offlinePostOrders
-  //       ? JSON.parse(offlinePostOrders)
-  //       : [];
-
-  //     // Combine all orders (failed, offline edits, post orders) into one list
-  //     const ordersToSync = [
-  //       ...parsedFailedOrders,
-  //       ...parsedOfflineEditOrders,
-  //       ...parsedOfflinePostOrders,
-  //     ];
-
-  //     // If there are no orders to sync, show an alert and return
-  //     if (ordersToSync.length === 0) {
-  //       Alert.alert('Sync Complete', 'No orders to sync.');
-  //       return;
-  //     }
-
-  //     // Iterate over the orders and process each one
-  //     for (const order of ordersToSync) {
-  //       try {
-  //         const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-
-  //         let response;
-
-  //         if (order.error) {
-  //           // Failed orders - Retry creation (POST)
-  //           response = await instance.post('/secondary_order', order, {
-  //             headers: {
-  //               Authorization: `Bearer ${authToken}`,
-  //             },
-  //           });
-  //         } else if (order.id) {
-  //           // Offline edit orders - Use PUT API to update the order
-  //           console.log(order.id);
-  //           const data = {
-  //             id: order.id,
-  //             details: order.details,
-  //             shop: order.shop,
-  //           };
-  //           // Perform the PUT request for offline edit orders
-  //           response = await instance.put(
-  //             `/secondary_order/${order.id}`,
-  //             JSON.stringify(data),
-  //             {
-  //               headers: {
-  //                 'Content-Type': 'application/json',
-  //                 Accept: 'application/json',
-  //                 Authorization: `Bearer ${authToken}`,
-  //               },
-  //             },
-  //           );
-  //         } else {
-  //           // Post orders - Create order (POST)
-  //           response = await instance.post('/secondary_order', order, {
-  //             headers: {
-  //               Authorization: `Bearer ${authToken}`,
-  //             },
-  //           });
-  //         }
-
-  //         console.log('Order synced successfully:', response.data);
-  //       } catch (error) {
-  //         console.log('Error syncing order:', error);
-  //       }
-  //     }
-
-  //     // After successful sync, remove all orders from AsyncStorage
-  //     await AsyncStorage.removeItem(`failedOrders_${userId}`);
-  //     await AsyncStorage.removeItem(`offlineEditOrders_${userId}`);
-  //     await AsyncStorage.removeItem(`offlineOrders_${userId}`);
-  //     Alert.alert('Sync Complete', 'All orders have been processed.');
-  //   } catch (error) {
-  //     console.log('Error during sync:', error);
-  //     Alert.alert('Sync Failed', 'An error occurred while syncing orders.');
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //     if (isInitialDataLoaded) {
-  //         const getMondayToSundayWeek = (date) => {
-  //             const dateObj = new Date(date);
-  //             const dayOfWeek = dateObj.getDay();
-  //             const monday = 1;
-  //             let daysUntilMonday = dayOfWeek - monday;
-  //             if (daysUntilMonday < 0) {
-  //                 daysUntilMonday += 7;
-  //             }
-  //             const startDate = new Date(dateObj);
-  //             startDate.setDate(dateObj.getDate() - daysUntilMonday);
-
-  //             const endDate = new Date(startDate);
-  //             endDate.setDate(startDate.getDate() + 6);
-
-  //             return { startDate, endDate };
-  //         };
-  //         const { startDate, endDate } = getMondayToSundayWeek(currentDate);
-  //         setWeekDates({ startDate, endDate });
-  //     }
-  // }, [currentDate, isInitialDataLoaded]);
-
-  // useEffect(() => {
-  //     if (weekDates.startDate && weekDates.endDate) {
-  //         getNameData();
-  //     }
-  // }, [weekDates]);
 
   const formatDate = date => {
     if (date) {

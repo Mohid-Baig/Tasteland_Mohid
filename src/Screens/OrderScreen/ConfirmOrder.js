@@ -437,7 +437,7 @@ const ConfirmOrder = ({route, navigation}) => {
       const variant_name = variant ? variant.name : null;
 
       return {
-        id: product.id,
+        id: product.id, // Using product.id as unique identifier
         product: product_name,
         variant: variant_name,
         sku: sku_name,
@@ -466,10 +466,16 @@ const ConfirmOrder = ({route, navigation}) => {
     });
 
     const data = {
-      id: orderId,
+      id: orderId, // Use orderId to uniquely identify the order
       details: mergedCartItems,
       shop: Store,
+      date: new Date().toISOString(), // Adding the date to ensure uniqueness
     };
+
+    // Create a unique identifier based on product.id and other key details
+    const uniqueKey = `${orderId}_${Store.id}_${data.details
+      .map(item => item.id)
+      .join('_')}`;
 
     try {
       if (networkAvailable) {
@@ -497,16 +503,32 @@ const ConfirmOrder = ({route, navigation}) => {
         const parsedOfflineEditOrders = offlineEditOrders
           ? JSON.parse(offlineEditOrders)
           : [];
-        parsedOfflineEditOrders.push(data); // Save the update data to edit orders
-        await AsyncStorage.setItem(
-          `offlineEditOrders_${userId}`,
-          JSON.stringify(parsedOfflineEditOrders),
+
+        // Check if the order with the same uniqueKey already exists
+        const existingOrderIndex = parsedOfflineEditOrders.findIndex(
+          order => order.uniqueKey === uniqueKey,
         );
 
-        console.log('Order saved for offline update.');
-        Alert.alert('Info', 'No network. Order saved for offline edit.', [
-          {text: 'OK'},
-        ]);
+        if (existingOrderIndex === -1) {
+          // If the order doesn't exist (not saved before), push it to offline storage
+          const orderWithUniqueKey = {...data, uniqueKey};
+          parsedOfflineEditOrders.push(orderWithUniqueKey);
+
+          // Save the updated offline edit orders list
+          await AsyncStorage.setItem(
+            `offlineEditOrders_${userId}`,
+            JSON.stringify(parsedOfflineEditOrders),
+          );
+
+          console.log('Order saved for offline update.');
+          Alert.alert('Info', 'No network. Order saved for offline edit.', [
+            {text: 'OK'},
+          ]);
+        } else {
+          console.log(
+            'Order with this unique key already exists in offline storage. Skipping save.',
+          );
+        }
       }
     } catch (error) {
       console.log(error);
