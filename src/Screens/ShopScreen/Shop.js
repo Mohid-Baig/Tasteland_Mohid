@@ -36,6 +36,7 @@ import GetLocation from 'react-native-get-location';
 import Loader from '../../Components/Loaders/Loader';
 import {VisitContext} from '../DashboardScreens/VisitContext';
 import {useIsFocused} from '@react-navigation/native';
+import NetInfo from '@react-native-community/netinfo';
 let StockAlreadyExist = [];
 const Add_Left_Stock = payload => {
   if (payload) {
@@ -225,12 +226,12 @@ const AllShops = ({navigation, route}) => {
           });
         }
       });
-
+      //This is where i need to correct things Problem is that the route date is not going correct it sending both dates
       rawTerritorialData?.pjp_shops?.forEach(value => {
         value?.pjp_shops?.route_shops?.forEach(val => {
           if (val.route) {
             setRouteDate(value.pjp_date);
-            console.log(value.pjp_date);
+            console.log(value.pjp_date, 'Selected shop route date');
           }
         });
       });
@@ -842,7 +843,7 @@ const AllShops = ({navigation, route}) => {
                 <TouchableOpacity
                   style={styles.createOrderButton}
                   onPress={() => {
-                    incrementVisits(); // Call the function properly
+                    incrementVisits();
                     navigation.navigate('CreateOrder', {
                       Store: selectedStore,
                       RouteDate: routeDate,

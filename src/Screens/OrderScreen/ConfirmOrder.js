@@ -165,7 +165,7 @@ const ConfirmOrder = ({route, navigation}) => {
       if (!state.isConnected) {
         saveOrderOffline(currentLocation);
       } else {
-        console.log('There is network');
+        console.log('------ There is network connected ------');
       }
     } catch (error) {
       if (error.code === 'CANCELLED') {
@@ -264,7 +264,7 @@ const ConfirmOrder = ({route, navigation}) => {
           fk_orderbooker_employee: parseInt(fk_employee),
           details: details,
         };
-
+        console.log(data, 'Payload data');
         const response = await instance.post(
           '/secondary_order',
           JSON.stringify(data),
