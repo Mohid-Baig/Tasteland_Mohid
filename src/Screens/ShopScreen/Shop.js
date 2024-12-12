@@ -34,7 +34,6 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 
 import GetLocation from 'react-native-get-location';
 import Loader from '../../Components/Loaders/Loader';
-import {VisitContext} from '../DashboardScreens/VisitContext';
 import {useIsFocused} from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 let StockAlreadyExist = [];
@@ -103,7 +102,6 @@ const AllShops = ({navigation, route}) => {
   const [singleId, setSingleId] = useState(null);
   const [confirmBtn, setconfirmBtn] = useState(false);
   const [item, setitem] = useState([]);
-  // const {incrementVisits} = useContext(VisitContext);
   const isFocused = useIsFocused();
 
   const incrementTotalVisits = async () => {

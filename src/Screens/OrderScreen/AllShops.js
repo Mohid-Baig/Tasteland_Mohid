@@ -34,7 +34,6 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 
 import GetLocation from 'react-native-get-location';
 import Loader from '../../Components/Loaders/Loader';
-import {VisitContext} from '../DashboardScreens/VisitContext';
 let StockAlreadyExist = [];
 const Add_Left_Stock = payload => {
   if (payload) {
@@ -99,7 +98,6 @@ const AllShops = ({navigation, route}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [singleId, setSingleId] = useState(null);
   const [confirmBtn, setconfirmBtn] = useState(false);
-  // const {incrementVisits} = useContext(VisitContext);
 
   const incrementTotalVisits = async () => {
     const userId = await AsyncStorage.getItem('userId');

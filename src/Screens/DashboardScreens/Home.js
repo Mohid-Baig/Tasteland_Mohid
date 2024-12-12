@@ -25,7 +25,6 @@ import {
 import Loader from '../../Components/Loaders/Loader';
 import instance from '../../Components/BaseUrl';
 import GetLocation from 'react-native-get-location';
-import {VisitContext} from './VisitContext';
 import {useIsFocused, useFocusEffect} from '@react-navigation/native';
 
 const Home = ({navigation}) => {
@@ -41,7 +40,6 @@ const Home = ({navigation}) => {
   const [id, setID] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
   const [orderCount, setOrderCount] = useState(0);
-  // const {totalVisits} = useContext(VisitContext);
   const [totalVisits, setTotalVisits] = useState(0);
   const handleLogout = async () => {
     await AsyncStorage.removeItem('access_token');
