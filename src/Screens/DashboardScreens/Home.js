@@ -567,12 +567,10 @@ const Home = ({navigation}) => {
         }
       }
 
-      // After syncing, clear both failed, offline, and offline edit orders
       await AsyncStorage.removeItem(`failedOrders_${userId}`);
       await AsyncStorage.removeItem(`offlineOrders_${userId}`);
       await AsyncStorage.removeItem(`offlineEditOrders_${userId}`);
 
-      // Fetch and store other necessary data after clearing old data
       await fetchAndStoreTerritorialData();
       await fetchAndStoreDiscountSlabData();
       await fetchAndStoreSpecialDiscountSlabData();
