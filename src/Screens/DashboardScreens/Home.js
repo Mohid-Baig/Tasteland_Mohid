@@ -477,7 +477,6 @@ const Home = ({navigation}) => {
         }
       }
 
-      // Sync offline orders next
       for (const order of parsedOfflinePostOrders) {
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -514,12 +513,17 @@ const Home = ({navigation}) => {
           );
 
           console.log(`Updated Order Count: ${orderCount}`);
+          await AsyncStorage.setItem(
+            `totalCartons_${userId}`,
+            updatedTotalCartons.toFixed(1),
+          );
+
+          console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
         } catch (error) {
           console.log('Error syncing offline order:', error);
         }
       }
 
-      // Sync offline edit orders
       for (const order of parsedOfflineEditOrders) {
         console.log(order);
         try {
