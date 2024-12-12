@@ -84,9 +84,16 @@ const Home = ({navigation}) => {
   useEffect(() => {
     const fetchOfflineOrders = async () => {
       try {
+        const userId = await AsyncStorage.getItem('userId'); // Make sure userId is retrieved correctly
+        if (!userId) {
+          console.error('User ID not found');
+          return;
+        }
+
         const offlinePostOrders = await AsyncStorage.getItem(
           `offlineOrders_${userId}`,
         );
+        console.log(`Key used for offline orders: offlineOrders_${userId}`);
         const parsedOfflinePostOrders = offlinePostOrders
           ? JSON.parse(offlinePostOrders)
           : [];
@@ -481,17 +488,18 @@ const Home = ({navigation}) => {
 
       // Sync offline edit orders
       for (const order of parsedOfflineEditOrders) {
+        console.log(order);
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
           const data = {
-            id: order.orderId, // Assuming `orderId` is present in the `order` object
-            details: order.mergedCartItems,
-            shop: order.Store,
+            id: order.id, // Assuming `orderId` is present in the `order` object
+            details: order.details,
+            shop: order.shop,
             date: new Date().toISOString(), // Ensure the date is unique for every request
           };
-
+          console.log(data);
           const response = await instance.put(
-            `/secondary_order/${order.orderId}`,
+            `/secondary_order/${order.id}`,
             JSON.stringify(data),
             {
               headers: {

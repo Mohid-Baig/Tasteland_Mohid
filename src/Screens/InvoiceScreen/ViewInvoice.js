@@ -107,7 +107,8 @@ const ViewInvoice = ({route, navigation}) => {
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Trade Offer</Text>
                       <Text style={styles.C1_text2}>
-                        {it.trade_offer} ({cartItems.trade_discount}%)
+                        {it.trade_offer} ({cartItems.trade_discount.toFixed(2)}
+                        %)
                       </Text>
                     </View>
                   </View>
@@ -152,7 +153,9 @@ const ViewInvoice = ({route, navigation}) => {
                 {cartItems.gross_amount.toFixed(2)} (Inclusive of GST)
               </Text>
               <Text style={styles.Text2}>{singleDetail?.trade_offer || 0}</Text>
-              <Text style={styles.Text2}>{cartItems.discount}(0.0%)</Text>
+              <Text style={styles.Text2}>
+                {cartItems.discount.toFixed(2)}(0.0%)
+              </Text>
               <Text style={styles.Text2}>{cartItems.special_discount}</Text>
             </View>
           </View>

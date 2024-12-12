@@ -162,11 +162,11 @@ const ConfirmOrder = ({route, navigation}) => {
         postOrder(currentLocation); // POST request
       }
       const state = await NetInfo.fetch();
-      if (!state.isConnected) {
-        saveOrderOffline(currentLocation);
-      } else {
-        console.log('------ There is network connected ------');
-      }
+      // if (!state.isConnected) {
+      //   saveOrderOffline(currentLocation);
+      // } else {
+      //   console.log('------ There is network connected ------');
+      // }
     } catch (error) {
       if (error.code === 'CANCELLED') {
         console.log('Location request was cancelled by the user.');
@@ -245,7 +245,15 @@ const ConfirmOrder = ({route, navigation}) => {
       box_ordered: item.box_ordered,
       pricing_id: item.pricing_id,
     }));
-
+    const data = {
+      date: formattedDate,
+      lng: currentLocation.longitude,
+      lat: currentLocation.latitude,
+      fk_distribution: parseInt(distributor_id),
+      fk_shop: Store.id,
+      fk_orderbooker_employee: parseInt(fk_employee),
+      details: details,
+    };
     try {
       const state = await NetInfo.fetch();
 
@@ -255,15 +263,7 @@ const ConfirmOrder = ({route, navigation}) => {
         return; // Exit early to prevent further execution
       } else {
         // Proceed with posting the order to the server
-        const data = {
-          date: formattedDate,
-          lng: currentLocation.longitude,
-          lat: currentLocation.latitude,
-          fk_distribution: parseInt(distributor_id),
-          fk_shop: Store.id,
-          fk_orderbooker_employee: parseInt(fk_employee),
-          details: details,
-        };
+
         console.log(data, 'Payload data');
         const response = await instance.post(
           '/secondary_order',
