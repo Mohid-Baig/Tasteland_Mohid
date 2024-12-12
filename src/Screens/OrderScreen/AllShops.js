@@ -99,7 +99,23 @@ const AllShops = ({navigation, route}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [singleId, setSingleId] = useState(null);
   const [confirmBtn, setconfirmBtn] = useState(false);
-  const {incrementVisits} = useContext(VisitContext);
+  // const {incrementVisits} = useContext(VisitContext);
+
+  const incrementTotalVisits = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) return; // Ensure userId is available
+
+    const totalVisitsKey = `totalVisits_${userId}`;
+    const visits = await AsyncStorage.getItem(totalVisitsKey);
+    const totalVisits = parseInt(visits) || 0;
+    const newTotal = totalVisits + 1;
+
+    // Update the total visits in AsyncStorage
+    await AsyncStorage.setItem(totalVisitsKey, newTotal.toString());
+
+    // Show success message or do something else
+  };
+
   useEffect(() => {
     console.log(selectedProduct, 'selected product');
   });
@@ -793,7 +809,7 @@ const AllShops = ({navigation, route}) => {
                 <TouchableOpacity
                   style={styles.createOrderButton}
                   onPress={() => {
-                    incrementVisits(); // Call the function properly
+                    incrementTotalVisits();
                     navigation.navigate('CreateOrder', {
                       Store: selectedStore,
                       RouteDate: routeDate,

@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useContext} from 'react';
+import React, {useEffect, useState, useContext, useCallback} from 'react';
 import {
   ImageBackground,
   StatusBar,
@@ -41,13 +41,47 @@ const Home = ({navigation}) => {
   const [id, setID] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
   const [orderCount, setOrderCount] = useState(0);
-  const {totalVisits} = useContext(VisitContext);
+  // const {totalVisits} = useContext(VisitContext);
+  const [totalVisits, setTotalVisits] = useState(0);
   const handleLogout = async () => {
     await AsyncStorage.removeItem('access_token');
     // await AsyncStorage.removeItem(`failedOrders_${userId}`);
     // await AsyncStorage.removeItem(`offlineOrders_${userId}`);
     navigation.replace('Login');
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkNewDay = async () => {
+        const userId = await AsyncStorage.getItem('userId');
+        if (!userId) return; // Ensure userId is available
+
+        const today = new Date().toDateString();
+        const lastVisitDateKey = `lastVisitDate_${userId}`;
+        const totalVisitsKey = `totalVisits_${userId}`;
+
+        const savedDate = await AsyncStorage.getItem(lastVisitDateKey);
+
+        if (savedDate !== today) {
+          // New day, reset the total visits
+          await AsyncStorage.setItem(totalVisitsKey, '0');
+          await AsyncStorage.setItem(lastVisitDateKey, today);
+          setTotalVisits(0);
+        } else {
+          // Get total visits for this user
+          const visits = await AsyncStorage.getItem(totalVisitsKey);
+          setTotalVisits(parseInt(visits) || 0);
+        }
+      };
+
+      checkNewDay();
+
+      // Optionally, return a cleanup function if necessary
+      return () => {
+        // Cleanup logic if needed
+      };
+    }, []),
+  );
 
   useEffect(() => {
     const fetchOfflineOrders = async () => {
