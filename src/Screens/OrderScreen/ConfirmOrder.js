@@ -39,25 +39,13 @@ const ConfirmOrder = ({route, navigation}) => {
   } = route.params;
   const [GrossAmount, setGrossAmount] = useState(0);
   const [totalPrice, setTotalprice] = useState(0);
+  const [TotalCarton, setTotalCartons] = useState(0);
   const isEditingOrder = !!orderId;
   const dispatch = useDispatch();
-  // console.log(RouteDate, 'RouteDate');
-  console.log(GST, 'gst');
-  // console.log(Store, 'Store');
-  // useEffect(() => {
-  //   return () => {
-  //     dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
-  //   };
-  // }, [dispatch]);
-  // useEffect(() => {
-  //   if (!isEditingOrder) {
-  //     dispatch({type: Remove_All_Cart}); // Clear cart if it's a new order
-  //   }
-  // }, [isEditingOrder, dispatch]);
-  // const cartItems = useSelector(state => state.reducer);
+
   const cartItems = route.params?.cItems || useSelector(state => state.reducer);
   // const cartItems = route.params.cartItems;
-  console.log(JSON.stringify(cartItems), 'hello motherfather--');
+  // console.log(JSON.stringify(cartItems), 'hello motherfather--');
 
   useEffect(() => {
     // Reset state when the component mounts or receives new cartItems
@@ -183,7 +171,14 @@ const ConfirmOrder = ({route, navigation}) => {
   const formattedDate = moment(
     `${route.params.RouteDate}T${currentTime}`,
   ).toISOString();
-  // Function to save the order offline when there is no network
+
+  const currentOrderAmount = (
+    totalPrice -
+    applySpecialDiscount -
+    FinalDistributiveDiscount
+  ).toFixed(2);
+  // console.log(currentOrderAmount, 'Total Order Price');
+
   const saveOrderOffline = async currentLocation => {
     const userId = await AsyncStorage.getItem('userId');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
@@ -209,6 +204,8 @@ const ConfirmOrder = ({route, navigation}) => {
       fk_shop: Store.id,
       fk_orderbooker_employee: parseInt(fk_employee),
       details: orderDetails,
+      totalPrice: currentOrderAmount,
+      totalCarton: TotalCarton,
     };
 
     try {
@@ -231,6 +228,27 @@ const ConfirmOrder = ({route, navigation}) => {
       console.error('Failed to save order offline:', error);
       Alert.alert('Error', 'Failed to save the order locally.');
     }
+  };
+
+  const calculateOrderForMultipleItems = async orderItems => {
+    const userId = await AsyncStorage.getItem('userId');
+    let totalCartons = 0;
+
+    orderItems.forEach(item => {
+      const {box_in_carton} = item.itemss; // Number of boxes in a carton
+      const boxOrdered = item.box_ordered; // Number of boxes ordered by the user
+
+      // Calculate the value (number of cartons) for the item
+      const cartonsForItem = boxOrdered / box_in_carton;
+
+      // Add this item's carton value to the total carton value
+      totalCartons += cartonsForItem;
+    });
+    await AsyncStorage.setItem(
+      `totalCartons_${userId}`,
+      totalCartons.toFixed(1),
+    );
+    return totalCartons; // Return the total number of cartons for all items
   };
 
   const postOrder = async currentLocation => {
@@ -277,13 +295,6 @@ const ConfirmOrder = ({route, navigation}) => {
           },
         );
 
-        const currentOrderAmount = (
-          totalPrice -
-          applySpecialDiscount -
-          FinalDistributiveDiscount
-        ).toFixed(2);
-        console.log(currentOrderAmount, 'Total Order Price');
-
         // Retrieve existing total amount from AsyncStorage
         const storedTotalAmount = await AsyncStorage.getItem(
           `totalAmount_${userId}`,
@@ -315,6 +326,25 @@ const ConfirmOrder = ({route, navigation}) => {
         );
 
         console.log(`Updated Order Count: ${orderCount}`);
+
+        const storedTotalCartons = await AsyncStorage.getItem(
+          `totalCartons_${userId}`,
+        );
+        let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
+
+        // Retrieve the new calculated cartons
+        const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
+
+        // Add the previous total to the new total
+        const updatedTotalCartons = previousTotalCartons + newTotalCartons;
+        setTotalCartons(updatedTotalCartons);
+        // Save the updated total cartons back to AsyncStorage
+        await AsyncStorage.setItem(
+          `totalCartons_${userId}`,
+          updatedTotalCartons.toFixed(1),
+        );
+
+        console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
 
         console.log('Post Data', response.data);
         Alert.alert('Success', 'Order Created successfully!', [
@@ -469,7 +499,9 @@ const ConfirmOrder = ({route, navigation}) => {
       id: orderId, // Use orderId to uniquely identify the order
       details: mergedCartItems,
       shop: Store,
-      date: new Date().toISOString(), // Adding the date to ensure uniqueness
+      date: new Date().toISOString(),
+      totalPrice: currentOrderAmount,
+      totalCarton: TotalCarton,
     };
 
     // Create a unique identifier based on product.id and other key details
@@ -491,6 +523,41 @@ const ConfirmOrder = ({route, navigation}) => {
             },
           },
         );
+
+        const storedTotalAmount = await AsyncStorage.getItem(
+          `totalAmount_${userId}`,
+        );
+        let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
+
+        // Add current order amount to the total
+        totalAmount += parseFloat(currentOrderAmount);
+
+        // Save updated total amount in AsyncStorage
+        await AsyncStorage.setItem(
+          `totalAmount_${userId}`,
+          totalAmount.toString(),
+        );
+
+        console.log(`Updated Total Amount: ${totalAmount}`);
+
+        const storedTotalCartons = await AsyncStorage.getItem(
+          `totalCartons_${userId}`,
+        );
+        let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
+
+        // Retrieve the new calculated cartons
+        const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
+
+        // Add the previous total to the new total
+        const updatedTotalCartons = previousTotalCartons + newTotalCartons;
+        setTotalCartons(updatedTotalCartons);
+        // Save the updated total cartons back to AsyncStorage
+        await AsyncStorage.setItem(
+          `totalCartons_${userId}`,
+          updatedTotalCartons.toFixed(1),
+        );
+
+        console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
 
         console.log(response.data, 'Put data');
         console.log(response.status, 'status');

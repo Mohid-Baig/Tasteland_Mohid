@@ -10,6 +10,7 @@ import {
   PermissionsAndroid,
   Platform,
   ToastAndroid,
+  DevSettings,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -41,11 +42,16 @@ const Home = ({navigation}) => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [orderCount, setOrderCount] = useState(0);
   const [totalVisits, setTotalVisits] = useState(0);
+  const [totalCartons, setTotalCartons] = useState(0);
   const handleLogout = async () => {
     await AsyncStorage.removeItem('access_token');
     // await AsyncStorage.removeItem(`failedOrders_${userId}`);
     // await AsyncStorage.removeItem(`offlineOrders_${userId}`);
     navigation.replace('Login');
+  };
+
+  const refreshApp = () => {
+    DevSettings.reload();
   };
 
   useFocusEffect(
@@ -481,6 +487,33 @@ const Home = ({navigation}) => {
             },
           });
           console.log('Offline order synced successfully:', response.data);
+          const storedTotalAmount = await AsyncStorage.getItem(
+            `totalAmount_${userId}`,
+          );
+          let totalAmount = parseFloat(storedTotalAmount) || 0;
+
+          // Add current order amount to the total
+          totalAmount += parseFloat(order.totalPrice);
+
+          // Save updated total amount in AsyncStorage
+          await AsyncStorage.setItem(
+            `totalAmount_${userId}`,
+            totalAmount.toString(),
+          );
+
+          console.log(`Updated Total Amount: ${totalAmount}`);
+
+          let orderCount = await AsyncStorage.getItem(`orderCount_${userId}`);
+          orderCount = parseInt(orderCount) || 0;
+
+          orderCount++;
+
+          await AsyncStorage.setItem(
+            `orderCount_${userId}`,
+            orderCount.toString(),
+          );
+
+          console.log(`Updated Order Count: ${orderCount}`);
         } catch (error) {
           console.log('Error syncing offline order:', error);
         }
@@ -509,7 +542,21 @@ const Home = ({navigation}) => {
               },
             },
           );
-          console.log(`/secondary_order/${order.orderId}`);
+          const storedTotalAmount = await AsyncStorage.getItem(
+            `totalAmount_${userId}`,
+          );
+          let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
+
+          // Add current order amount to the total
+          totalAmount += parseFloat(order.totalPrice);
+
+          // Save updated total amount in AsyncStorage
+          await AsyncStorage.setItem(
+            `totalAmount_${userId}`,
+            totalAmount.toString(),
+          );
+
+          console.log(`Updated Total Amount: ${totalAmount}`);
           console.log('Offline edit order synced successfully:', response.data);
         } catch (error) {
           console.log('Error syncing offline edit order:', error);
@@ -526,7 +573,7 @@ const Home = ({navigation}) => {
       await fetchAndStoreDiscountSlabData();
       await fetchAndStoreSpecialDiscountSlabData();
       await fetchAndStorePricingData();
-
+      refreshApp();
       Alert.alert('Sync Complete', 'All orders synced and data retrieved.');
     } catch (error) {
       console.log('Error during sync:', error);
@@ -711,11 +758,42 @@ const Home = ({navigation}) => {
       console.error('Error fetching order data:', error);
     }
   };
-  // Fetch the total amount when the component is mounted
+  const fetchTotalCartons = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId'); // Retrieve the userId from AsyncStorage
+      if (!userId) {
+        console.error('User ID not found');
+        return;
+      }
+
+      const storageKey = `totalCartons_${userId}`; // Create the unique key using userId
+      const storedValue = await AsyncStorage.getItem(storageKey);
+      const cartonsValue = storedValue ? parseFloat(storedValue) : 0;
+
+      // Check if it's a new day
+      const currentDate = new Date().toDateString();
+      const storedDate = await AsyncStorage.getItem('lastOrderDate');
+
+      // If it's a new day, reset the total cartons
+      if (storedDate !== currentDate) {
+        await AsyncStorage.setItem(storageKey, '0'); // Reset cartons count
+        await AsyncStorage.setItem('lastOrderDate', currentDate); // Update stored date
+        setTotalCartons(0); // Update the state with the reset value
+        console.log('New day detected. Total cartons reset.');
+      } else {
+        // If it's the same day, set the total cartons from AsyncStorage
+        setTotalCartons(cartonsValue);
+      }
+    } catch (e) {
+      console.error('Failed to fetch total cartons:', e);
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       fetchOrderData();
       fetchTotalAmount();
+      fetchTotalCartons();
     }, []), // Empty dependency array ensures it runs on screen focus only
   );
   return (
@@ -784,7 +862,7 @@ const Home = ({navigation}) => {
             <View style={{flexDirection: 'row'}}>
               <View style={{width: '50%'}}>
                 <Text style={styles.MiddleTXT}>BOOKING</Text>
-                <Text style={styles.MiddleTXT}>0.0</Text>
+                <Text style={styles.MiddleTXT}>{totalCartons.toFixed(1)}</Text>
               </View>
               <View style={{width: '50%'}}>
                 <Text style={styles.MiddleTXT}>AMOUNT</Text>
