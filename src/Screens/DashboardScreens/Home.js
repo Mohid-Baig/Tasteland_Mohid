@@ -361,78 +361,6 @@ const Home = ({navigation}) => {
     }
   }, []);
 
-  // const syncOrders = async () => {
-  //   setIsLoading(true);
-  //   try {
-  //     // Clear previous Territorial, Discount Slab, Special Discount Slab, and Pricing data
-  //     await AsyncStorage.removeItem(`territorialData_${userId}`);
-  //     await AsyncStorage.removeItem(`discountSlabData_${userId}`);
-  //     await AsyncStorage.removeItem(`specialDiscountSlabData_${userId}`);
-  //     await AsyncStorage.removeItem(`pricingData_${userId}`);
-
-  //     // Fetching failed orders from AsyncStorage
-  //     const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
-  //     const parsedOrders = failedOrders ? JSON.parse(failedOrders) : [];
-
-  //     // Fetching offline orders from AsyncStorage
-  //     const offlinePostOrders = await AsyncStorage.getItem(
-  //       `offlineOrders_${userId}`,
-  //     );
-  //     const parsedOfflinePostOrders = offlinePostOrders
-  //       ? JSON.parse(offlinePostOrders)
-  //       : [];
-
-  //     // Sync failed orders first
-  //     for (const order of parsedOrders) {
-  //       try {
-  //         const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-  //         const response = await instance.post('/secondary_order', order, {
-  //           headers: {
-  //             Authorization: `Bearer ${authToken}`,
-  //           },
-  //         });
-  //         console.log('Failed order synced successfully:', response.data);
-  //       } catch (error) {
-  //         console.log('Error syncing failed order:', error);
-  //       }
-  //     }
-
-  //     // Sync offline orders next
-  //     for (const order of parsedOfflinePostOrders) {
-  //       try {
-  //         const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-  //         const response = await instance.post('/secondary_order', order, {
-  //           headers: {
-  //             Authorization: `Bearer ${authToken}`,
-  //           },
-  //         });
-  //         console.log('Offline order synced successfully:', response.data);
-  //       } catch (error) {
-  //         console.log('Error syncing offline order:', error);
-  //       }
-  //     }
-
-  //     // After syncing, clear both failed and offline orders
-  //     await AsyncStorage.removeItem(`failedOrders_${userId}`);
-  //     await AsyncStorage.removeItem(`offlineOrders_${userId}`);
-
-  //     // Fetch and store other necessary data after clearing old data
-  //     await fetchAndStoreTerritorialData();
-  //     await fetchAndStoreDiscountSlabData();
-  //     await fetchAndStoreSpecialDiscountSlabData();
-  //     await fetchAndStorePricingData();
-
-  //     Alert.alert('Sync Complete', 'All orders synced and data retrieved.');
-  //   } catch (error) {
-  //     console.log('Error during sync:', error);
-  //     Alert.alert('Sync Failed', 'An error occurred while syncing orders.');
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
-  // Function to fetch and store Territorial data
-
   const syncOrders = async () => {
     setIsLoading(true);
     try {
@@ -462,7 +390,6 @@ const Home = ({navigation}) => {
         ? JSON.parse(offlineEditOrders)
         : [];
 
-      // Sync failed orders first
       for (const order of parsedOrders) {
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -513,12 +440,7 @@ const Home = ({navigation}) => {
           );
 
           console.log(`Updated Order Count: ${orderCount}`);
-          await AsyncStorage.setItem(
-            `totalCartons_${userId}`,
-            updatedTotalCartons.toFixed(1),
-          );
-
-          console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
+          addCartonValueToStorage(order.totalCarton);
         } catch (error) {
           console.log('Error syncing offline order:', error);
         }
@@ -561,6 +483,7 @@ const Home = ({navigation}) => {
           );
 
           console.log(`Updated Total Amount: ${totalAmount}`);
+          addCartonValueToStorage(order.totalCarton);
           console.log('Offline edit order synced successfully:', response.data);
         } catch (error) {
           console.log('Error syncing offline edit order:', error);
@@ -582,6 +505,31 @@ const Home = ({navigation}) => {
       Alert.alert('Sync Failed', 'An error occurred while syncing orders.');
     } finally {
       setIsLoading(false);
+    }
+  };
+  const addCartonValueToStorage = async newCartonValue => {
+    try {
+      const userId = await AsyncStorage.getItem('userId'); // Retrieve the userId from AsyncStorage
+      if (!userId) {
+        console.error('User ID not found');
+        return;
+      }
+
+      const storageKey = `totalCartons_${userId}`; // Create the unique key using userId
+
+      // Fetch the existing total cartons value from AsyncStorage
+      const storedValue = await AsyncStorage.getItem(storageKey);
+      const previousCartonsValue = storedValue ? parseFloat(storedValue) : 0;
+
+      // Add the new carton value from home screen to the previous total
+      const updatedTotalCartons = previousCartonsValue + newCartonValue;
+
+      // Save the updated total back into AsyncStorage
+      await AsyncStorage.setItem(storageKey, updatedTotalCartons.toString());
+
+      console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
+    } catch (e) {
+      console.error('Failed to add carton value to storage:', e);
     }
   };
 
@@ -611,7 +559,6 @@ const Home = ({navigation}) => {
     }
   };
 
-  // Function to fetch and store Discount Slab data
   const fetchAndStoreDiscountSlabData = async () => {
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -639,7 +586,6 @@ const Home = ({navigation}) => {
     }
   };
 
-  // Function to fetch and store Special Discount Slab data
   const fetchAndStoreSpecialDiscountSlabData = async () => {
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -667,7 +613,6 @@ const Home = ({navigation}) => {
     }
   };
 
-  // Function to fetch and store Pricing data
   const fetchAndStorePricingData = async () => {
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
