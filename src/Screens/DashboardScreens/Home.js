@@ -360,6 +360,21 @@ const Home = ({navigation}) => {
       });
     }
   }, []);
+  const calculateOrderForMultipleItems = async orderItems => {
+    const userId = await AsyncStorage.getItem('userId');
+    let totalCartons = 0;
+
+    orderItems.details.forEach(item => {
+      const cartonsForItem = item.box_ordered / item.box_in_carton;
+
+      totalCartons += cartonsForItem;
+    });
+    await AsyncStorage.setItem(
+      `totalCartons_${userId}`,
+      totalCartons.toFixed(1),
+    );
+    return totalCartons; // Return the total number of cartons for all items
+  };
 
   const syncOrders = async () => {
     setIsLoading(true);
@@ -447,7 +462,7 @@ const Home = ({navigation}) => {
       }
 
       for (const order of parsedOfflineEditOrders) {
-        console.log(order);
+        console.log('Total Carton:', order.totalCarton);
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
           const data = {
@@ -483,7 +498,22 @@ const Home = ({navigation}) => {
           );
 
           console.log(`Updated Total Amount: ${totalAmount}`);
-          addCartonValueToStorage(order.totalCarton);
+          const storedTotalCartons = await AsyncStorage.getItem(
+            `totalCartons_${userId}`,
+          );
+          let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
+
+          // Retrieve the new calculated cartons
+          const newTotalCartons = await calculateOrderForMultipleItems(order);
+
+          // Add the previous total to the new total
+          const updatedTotalCartons = previousTotalCartons + newTotalCartons;
+          setTotalCartons(updatedTotalCartons);
+          // Save the updated total cartons back to AsyncStorage
+          await AsyncStorage.setItem(
+            `totalCartons_${userId}`,
+            updatedTotalCartons.toFixed(1),
+          );
           console.log('Offline edit order synced successfully:', response.data);
         } catch (error) {
           console.log('Error syncing offline edit order:', error);
@@ -508,6 +538,11 @@ const Home = ({navigation}) => {
     }
   };
   const addCartonValueToStorage = async newCartonValue => {
+    if (!newCartonValue || newCartonValue <= 0) {
+      console.log('Invalid carton value:', newCartonValue); // Debug statement
+      return; // Exit if the value is invalid
+    }
+
     try {
       const userId = await AsyncStorage.getItem('userId'); // Retrieve the userId from AsyncStorage
       if (!userId) {
@@ -516,17 +551,11 @@ const Home = ({navigation}) => {
       }
 
       const storageKey = `totalCartons_${userId}`; // Create the unique key using userId
-
-      // Fetch the existing total cartons value from AsyncStorage
       const storedValue = await AsyncStorage.getItem(storageKey);
       const previousCartonsValue = storedValue ? parseFloat(storedValue) : 0;
 
-      // Add the new carton value from home screen to the previous total
       const updatedTotalCartons = previousCartonsValue + newCartonValue;
-
-      // Save the updated total back into AsyncStorage
       await AsyncStorage.setItem(storageKey, updatedTotalCartons.toString());
-
       console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
     } catch (e) {
       console.error('Failed to add carton value to storage:', e);
