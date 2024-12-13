@@ -384,6 +384,7 @@ const Home = ({navigation}) => {
       await AsyncStorage.removeItem(`discountSlabData_${userId}`);
       await AsyncStorage.removeItem(`specialDiscountSlabData_${userId}`);
       await AsyncStorage.removeItem(`pricingData_${userId}`);
+      await AsyncStorage.removeItem(`ShopTypeData_${userId}`);
 
       // Fetching failed orders from AsyncStorage
       const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
@@ -528,6 +529,7 @@ const Home = ({navigation}) => {
       await fetchAndStoreDiscountSlabData();
       await fetchAndStoreSpecialDiscountSlabData();
       await fetchAndStorePricingData();
+      await fetchShopType();
       refreshApp();
       Alert.alert('Sync Complete', 'All orders synced and data retrieved.');
     } catch (error) {
@@ -657,6 +659,25 @@ const Home = ({navigation}) => {
       const pricingDataKey = `pricingData_${userId}`;
       await AsyncStorage.setItem(pricingDataKey, JSON.stringify(pricingData));
       console.log('Pricing data saved to AsyncStorage:', pricingData);
+    } catch (error) {
+      console.log('Error fetching Pricing data:', error);
+    }
+  };
+  const fetchShopType = async () => {
+    try {
+      const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+      const response = await instance.get(
+        '/shop_type/all?sort_alphabetically=true',
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      const ShopTypeData = response.data;
+      const shopTypeDataKey = `ShopTypeData_${userId}`;
+      await AsyncStorage.setItem(shopTypeDataKey, JSON.stringify(ShopTypeData));
+      console.log('ShopType data saved to AsyncStorage:', ShopTypeData);
     } catch (error) {
       console.log('Error fetching Pricing data:', error);
     }

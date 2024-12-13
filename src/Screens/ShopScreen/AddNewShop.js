@@ -91,29 +91,62 @@ const AddNewShop = ({route}) => {
     'Phototstate',
   ];
 
+  const fetchShopType = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const shopTypeDataKey = `ShopTypeData_${userId}`;
+      const ShopTypeDataJson = await AsyncStorage.getItem(shopTypeDataKey);
+
+      if (ShopTypeDataJson !== null) {
+        const ShopTypeData = JSON.parse(ShopTypeDataJson);
+        console.log('Offline shop type Data:', ShopTypeData);
+        return ShopTypeData;
+      } else {
+        console.log('No offline data found for key:', shopTypeDataKey);
+      }
+    } catch (error) {
+      console.error('Error fetching offline shop type data:', error);
+    }
+    return null;
+  };
+
   const getAllShops = async () => {
     setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-    // console.log('Auth Token:', authToken);
-    try {
-      const response = await instance.get(
-        '/shop_type/all?sort_alphabetically=true',
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        },
-      );
 
-      setAllShops(response.data);
-      await saveShopTypesToAsyncStorage(response.data);
-      console.log(JSON.stringify(response.data));
+    try {
+      const state = await NetInfo.fetch();
+      setIsConnected(state.isConnected);
+
+      if (state.isConnected) {
+        // Fetching data online
+        const response = await instance.get(
+          '/shop_type/all?sort_alphabetically=true',
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          },
+        );
+        setAllShops(response.data);
+        await saveShopTypesToAsyncStorage(response.data);
+        console.log(JSON.stringify(response.data));
+      } else {
+        // Fetching offline data
+        const shoptypeD = await fetchShopType();
+        if (shoptypeD) {
+          setAllShops(shoptypeD);
+        } else {
+          console.log('No offline shop type data found.');
+        }
+      }
     } catch (error) {
       console.log('Error', error);
     } finally {
       setIsLoading(false);
     }
   };
+
   useEffect(() => {
     getAllShops();
   }, []);
@@ -309,71 +342,97 @@ const AddNewShop = ({route}) => {
       setOfflineShops([]);
     }
   };
+  const fetchOfflineRouteData = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const territorialDataKey = `territorialData_${userId}`;
+      const territorialDataJson = await AsyncStorage.getItem(
+        territorialDataKey,
+      );
+      if (territorialDataJson !== null) {
+        const territorialData = JSON.parse(territorialDataJson);
+        console.log('Offline Territorial Data:', territorialData);
+        return territorialData;
+      } else {
+        console.log('No offline data found for key:', territorialDataKey);
+      }
+    } catch (error) {
+      console.error('Error fetching offline territorial data:', error);
+    }
+    return null;
+  };
 
   const getTerritorial = async () => {
     setIsLoading(true);
-    // if (!weekDates.startDate || !weekDates.endDate || !orderBokerId) return;
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-    // console.log(
-    //   'Request URL:',
-    //   `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
-    // );
-    // console.log('Auth Token:', authToken);
 
     try {
-      const response = await instance.get(
-        `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
+      const state = await NetInfo.fetch();
+      setIsConnected(state.isConnected);
+
+      if (state.isConnected) {
+        const response = await instance.get(
+          `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
           },
-        },
-      );
-      // console.log(JSON.stringify(response.data), 'AllTeretory');
+        );
+        setTerritorialData(response.data);
+      } else {
+        const offlineData = await fetchOfflineRouteData();
+        if (offlineData) {
+          setTerritorialData(offlineData);
+        } else {
+          console.log('No offline data available.');
+        }
+      }
+    } catch (error) {
+      console.log('Error in route territorial data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle the processing of territorial data in a separate useEffect
+  useEffect(() => {
+    if (territorialData) {
+      // Filtering routes
       let FilterRoute = [];
-      response.data.pjp_shops.forEach(val => {
-        if (val.pjp_shops.route_shops.length > 0) {
-          // FilterRoute.push(val.pjp_shops.route_shops);
-          val.pjp_shops.route_shops.forEach(val_2 => {
-            FilterRoute.push(val_2.route);
+      territorialData?.pjp_shops?.forEach(val => {
+        if (val?.pjp_shops?.route_shops?.length > 0) {
+          val?.pjp_shops?.route_shops?.forEach(val_2 => {
+            FilterRoute.push(val_2?.route);
           });
         }
       });
       setAllRoute(FilterRoute);
-      await saveRoutesToAsyncStorage(FilterRoute);
-      // console.log(FilterRoute, 'Filter Route');
+      saveRoutesToAsyncStorage(FilterRoute);
 
+      // Saving shops data
       let exsistingShopsSaving = [];
-      response.data.pjp_shops.forEach(val => {
-        if (val.pjp_shops.route_shops.length > 0) {
-          // FilterRoute.push(val.pjp_shops.route_shops);
-          val.pjp_shops.route_shops.forEach(val_2 => {
-            val_2.shops.forEach(val_3 => {
+      territorialData?.pjp_shops?.forEach(val => {
+        if (val?.pjp_shops?.route_shops?.length > 0) {
+          val?.pjp_shops?.route_shops?.forEach(val_2 => {
+            val_2?.shops?.forEach(val_3 => {
               exsistingShopsSaving.push(val_3);
             });
           });
         }
       });
-      await saveMultipleShopsToAsyncStorage(exsistingShopsSaving);
-
-      setTerritorialData(response.data);
-      // console.log(JSON.stringify(response.data), 'Data');
-      console.log(
-        `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
-      );
-      // console.log(response.data, 'territorial data');
-    } catch (error) {
-      console.log('Error in route territorial Data:', error);
-    } finally {
-      setIsLoading(false);
+      saveMultipleShopsToAsyncStorage(exsistingShopsSaving);
     }
-  };
+  }, [territorialData]); // This useEffect triggers when territorialData is updated
+
+  // Fetch territorial data based on weekDates and orderBokerId
   useEffect(() => {
     if (weekDates.startDate && weekDates.endDate && orderBokerId) {
       console.log('Fetching territorial data...');
       getTerritorial();
     }
-  }, [weekDates, orderBokerId]); // Remove extra logs
+  }, [weekDates, orderBokerId]);
+  // Remove extra logs
 
   const loadShopTypesAndRoutes = async () => {
     setIsLoading(true);
@@ -383,7 +442,7 @@ const AddNewShop = ({route}) => {
       if (storedShopTypes.length === 0) {
         // If not found, fetch from API
         const fetchedShopTypes = await getAllShops();
-        await saveShopTypesToAsyncStorage(fetchedShopTypes);
+        // await saveShopTypesToAsyncStorage(fetchedShopTypes);
         storedShopTypes = fetchedShopTypes;
       }
       setAllShops(storedShopTypes);
@@ -393,7 +452,7 @@ const AddNewShop = ({route}) => {
       if (storedRoutes.length === 0) {
         // If not found, fetch from API
         const fetchedRoutes = await getTerritorial();
-        await saveRoutesToAsyncStorage(fetchedRoutes);
+        // await saveRoutesToAsyncStorage(fetchedRoutes);
         storedRoutes = fetchedRoutes;
       }
       setAllRoute(storedRoutes);
@@ -784,7 +843,7 @@ const AddNewShop = ({route}) => {
               style={{color: '#000'}}
               value=""
             />
-            {allroute.map((data, index) => (
+            {allroute?.map((data, index) => (
               <Picker.Item
                 key={index}
                 style={{color: 'grey'}}
