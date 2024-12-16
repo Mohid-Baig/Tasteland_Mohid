@@ -30,6 +30,7 @@ const InvoiceScreen = ({route}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showRouteCrossCircle, setShowRouteCrossCircle] = useState(false);
   const [showShopCrossCircle, setShowShopCrossCircle] = useState(false);
+  const [routeID, setRouteID] = useState();
   const {orderBokerId} = route.params;
   const sevenDaysFromToday = new Date();
   sevenDaysFromToday.setDate(sevenDaysFromToday.getDate() + 7);
@@ -139,6 +140,7 @@ const InvoiceScreen = ({route}) => {
     console.log('Selected Route:', itemValue);
     setShopRoute(itemValue);
     const routeId = itemValue.id;
+    setRouteID(routeID);
 
     let FilterShops = [];
     territorialData.pjp_shops.forEach(val => {
@@ -146,6 +148,7 @@ const InvoiceScreen = ({route}) => {
         val.pjp_shops.route_shops.forEach(routeData => {
           if (routeData.route.id === routeId) {
             console.log('Route Matched:', routeData.route.id);
+            setRouteID(routeData.route.id);
             routeData.shops.forEach(shop => {
               FilterShops.push(shop);
             });
@@ -189,8 +192,9 @@ const InvoiceScreen = ({route}) => {
               {showRouteCrossCircle && (
                 <TouchableOpacity
                   onPress={() => {
-                    setShopRoute(null); // Reset the selected route
-                    setShowRouteCrossCircle(false); // Hide the cross icon
+                    setShopRoute(null);
+                    setShowRouteCrossCircle(false);
+                    setRouteID();
                   }}>
                   <AntDesign name="closecircle" size={24} color={'#fff'} />
                 </TouchableOpacity>
@@ -275,15 +279,24 @@ const InvoiceScreen = ({route}) => {
           </TouchableWithoutFeedback>
         </Modal>
 
-        <BottomSheet
+        {/* <BottomSheet
           ref={bottomSheetRef}
           index={0}
           snapPoints={snapPoints}
           onChange={handleSheetChanges}
           enableOverDrag={false}
           handleComponent={null}>
-          <MyTabs selectedDate={selectedDate} orderBokerId={orderBokerId} />
-        </BottomSheet>
+          <MyTabs
+            selectedDate={selectedDate}
+            orderBokerId={orderBokerId}
+            routeID={routeID}
+          />
+        </BottomSheet> */}
+        <MyTabs
+          selectedDate={selectedDate}
+          orderBokerId={orderBokerId}
+          routeID={routeID}
+        />
         {isLoading ? <Loader /> : null}
       </View>
     </TouchableWithoutFeedback>

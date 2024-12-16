@@ -23,7 +23,7 @@ const ViewInvoice = ({route, navigation}) => {
   }, [dispatch]);
 
   // console.log(Gst);
-  console.log(cartItems, '-----');
+  // console.log(cartItems, '-----');
   // console.log(singleDetail);
   // console.log(singleDetail.trade_offer);
   // console.log(orderBokerId);

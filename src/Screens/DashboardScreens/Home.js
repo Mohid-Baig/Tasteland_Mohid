@@ -421,6 +421,7 @@ const Home = ({navigation}) => {
       }
 
       for (const order of parsedOfflinePostOrders) {
+        // console.log(order.totalCarton, 'Totsl Carton');
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
           const response = await instance.post('/secondary_order', order, {
@@ -459,6 +460,7 @@ const Home = ({navigation}) => {
           addCartonValueToStorage(order.totalCarton);
         } catch (error) {
           console.log('Error syncing offline order:', error);
+          await saveFailedOrder(userId, order);
         }
       }
 
@@ -518,10 +520,11 @@ const Home = ({navigation}) => {
           console.log('Offline edit order synced successfully:', response.data);
         } catch (error) {
           console.log('Error syncing offline edit order:', error);
+          await saveFailedOrder(userId, order);
         }
       }
 
-      await AsyncStorage.removeItem(`failedOrders_${userId}`);
+      // await AsyncStorage.removeItem(`failedOrders_${userId}`);
       await AsyncStorage.removeItem(`offlineOrders_${userId}`);
       await AsyncStorage.removeItem(`offlineEditOrders_${userId}`);
 
@@ -539,6 +542,24 @@ const Home = ({navigation}) => {
       setIsLoading(false);
     }
   };
+  const saveFailedOrder = async (userId, failedOrder) => {
+    try {
+      const key = `failedOrders_${userId}`;
+      const existingFailedOrders = await AsyncStorage.getItem(key);
+      let failedOrders = existingFailedOrders
+        ? JSON.parse(existingFailedOrders)
+        : [];
+
+      // Add the new failed order
+      failedOrders.push(failedOrder);
+
+      // Save back to AsyncStorage
+      await AsyncStorage.setItem(key, JSON.stringify(failedOrders));
+      console.log('Failed order saved successfully');
+    } catch (error) {
+      console.error('Error saving failed order:', error);
+    }
+  };
   const addCartonValueToStorage = async newCartonValue => {
     if (!newCartonValue || newCartonValue <= 0) {
       console.log('Invalid carton value:', newCartonValue); // Debug statement
@@ -552,13 +573,17 @@ const Home = ({navigation}) => {
         return;
       }
 
-      const storageKey = `totalCartons_${userId}`; // Create the unique key using userId
+      const storageKey = `totalCartons_${userId}`;
       const storedValue = await AsyncStorage.getItem(storageKey);
+      console.log('Stored Carton Value:', storedValue); // Debug statement
       const previousCartonsValue = storedValue ? parseFloat(storedValue) : 0;
+      console.log('Previous Cartons Value:', previousCartonsValue); // Debug statement
 
       const updatedTotalCartons = previousCartonsValue + newCartonValue;
+      console.log('Updated Cartons Value:', updatedTotalCartons); // Debug statement
+
       await AsyncStorage.setItem(storageKey, updatedTotalCartons.toString());
-      console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
+      console.log(`Updated Total Cartons in Storage: ${updatedTotalCartons}`); // Confirmation statement
     } catch (e) {
       console.error('Failed to add carton value to storage:', e);
     }
@@ -785,7 +810,6 @@ const Home = ({navigation}) => {
       console.error('Failed to fetch total cartons:', e);
     }
   };
-
   useFocusEffect(
     React.useCallback(() => {
       fetchOrderData();

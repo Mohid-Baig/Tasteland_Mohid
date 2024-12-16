@@ -99,11 +99,13 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                 <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
                   <Text style={styles.label}>After T.O Amount</Text>
                   <Text style={styles.value}>
-                    {item?.itemss?.trade_price *
-                      (item?.pack_in_box * item?.carton_ordered +
-                        item?.box_ordered) -
+                    {(
+                      item?.itemss?.trade_price *
+                        (item?.pack_in_box * item?.carton_ordered +
+                          item?.box_ordered) -
                       (item?.itemss?.trade_offer / 100) *
-                        item?.itemss?.trade_price}
+                        item?.itemss?.trade_price
+                    ).toFixed(2)}
                   </Text>
                 </View>
               </View>

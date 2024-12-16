@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Pressable,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
 import instance from '../../Components/BaseUrl';
@@ -204,7 +205,7 @@ const Local = ({selectedDate, orderBokerId}) => {
           data={internetAPI} // Bind correct state here
           showsVerticalScrollIndicator={false}
           renderItem={({item}) => (
-            <TouchableOpacity
+            <Pressable
               style={styles.flatlistbackground}
               onPress={() => {
                 item.details.forEach(val => {
@@ -262,11 +263,15 @@ const Local = ({selectedDate, orderBokerId}) => {
                   </Text>
                 </View>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           )}
           keyExtractor={item => item.id.toString()}
         />
       )}
+
+      {/* <TouchableOpacity style={styles.button}>
+          <Icon name="search" size={24} color="#fff" />
+        </TouchableOpacity> */}
     </View>
   );
 };

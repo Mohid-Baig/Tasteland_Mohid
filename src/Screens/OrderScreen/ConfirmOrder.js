@@ -178,7 +178,26 @@ const ConfirmOrder = ({route, navigation}) => {
     FinalDistributiveDiscount
   ).toFixed(2);
   // console.log(currentOrderAmount, 'Total Order Price');
+  const calculateOrderForMultipleItems = async orderItems => {
+    const userId = await AsyncStorage.getItem('userId');
+    let totalCartons = 0;
 
+    orderItems.forEach(item => {
+      const {box_in_carton} = item.itemss; // Number of boxes in a carton
+      const boxOrdered = item.box_ordered; // Number of boxes ordered by the user
+
+      // Calculate the value (number of cartons) for the item
+      const cartonsForItem = boxOrdered / box_in_carton;
+
+      // Add this item's carton value to the total carton value
+      totalCartons += cartonsForItem;
+    });
+    await AsyncStorage.setItem(
+      `totalCartons_${userId}`,
+      totalCartons.toFixed(1),
+    );
+    return totalCartons; // Return the total number of cartons for all items
+  };
   const saveOrderOffline = async currentLocation => {
     const userId = await AsyncStorage.getItem('userId');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
@@ -190,22 +209,37 @@ const ConfirmOrder = ({route, navigation}) => {
       pricing_id: item.pricing_id,
     }));
 
+    // Calculate the total cartons here
+    const totalCarton = await calculateOrderForMultipleItems(cartItems);
+
     // Generate a unique ID for each order (combining timestamp and random string)
     const uniqueOrderId = `order_${new Date().getTime()}_${Math.random()
       .toString(36)
       .substring(2, 15)}`;
 
     const offlineOrder = {
-      id: uniqueOrderId, // Add unique order ID
-      date: formattedDate,
+      id: uniqueOrderId,
       lng: currentLocation.longitude,
       lat: currentLocation.latitude,
+      detailss: orderDetails,
+      totalPrice: currentOrderAmount,
+      totalCarton: totalCarton, // <-- Set the calculated totalCarton here
+      date: formattedDate,
+      details: mergedCartItems,
+      shop: Store,
+      location: currentLocation,
       fk_distribution: parseInt(distributor_id),
       fk_shop: Store.id,
       fk_orderbooker_employee: parseInt(fk_employee),
-      details: orderDetails,
-      totalPrice: currentOrderAmount,
-      totalCarton: TotalCarton,
+      discount: (GrossAmount - totalPrice).toFixed(2),
+      cartItems: cartItems,
+      gst_amount: GST,
+      net_amount: (
+        totalPrice -
+        applySpecialDiscount -
+        FinalDistributiveDiscount
+      ).toFixed(2),
+      gross_amount: GrossAmount.toFixed(2),
     };
 
     try {
@@ -230,26 +264,51 @@ const ConfirmOrder = ({route, navigation}) => {
     }
   };
 
-  const calculateOrderForMultipleItems = async orderItems => {
-    const userId = await AsyncStorage.getItem('userId');
-    let totalCartons = 0;
+  const mergedCartItems = cartItems.map(item => {
+    const {
+      carton_ordered,
+      box_ordered,
+      pricing_id,
+      itemss: {
+        retail_price,
+        invoice_price,
+        trade_price,
+        pricing_gst,
+        fk_variant,
+        fk_product,
+        pieces,
+        box_in_carton,
+        product,
+        sku,
+        variant,
+        trade_offer,
+      },
+      pack_in_box,
+    } = item;
 
-    orderItems.forEach(item => {
-      const {box_in_carton} = item.itemss; // Number of boxes in a carton
-      const boxOrdered = item.box_ordered; // Number of boxes ordered by the user
+    const product_name = product ? product.name : null;
+    const sku_name = sku ? sku.name : null;
+    const variant_name = variant ? variant.name : null;
 
-      // Calculate the value (number of cartons) for the item
-      const cartonsForItem = boxOrdered / box_in_carton;
-
-      // Add this item's carton value to the total carton value
-      totalCartons += cartonsForItem;
-    });
-    await AsyncStorage.setItem(
-      `totalCartons_${userId}`,
-      totalCartons.toFixed(1),
-    );
-    return totalCartons; // Return the total number of cartons for all items
-  };
+    return {
+      carton_ordered,
+      box_ordered,
+      pricing_id,
+      retail_price,
+      invoice_price,
+      trade_price,
+      pricing_gst,
+      fk_variant,
+      fk_product,
+      pieces,
+      box_in_carton,
+      product: product_name,
+      sku: sku_name,
+      variant: variant_name,
+      trade_offer,
+      pack_in_box,
+    };
+  });
 
   const postOrder = async currentLocation => {
     setIsLoading(true);
@@ -278,6 +337,7 @@ const ConfirmOrder = ({route, navigation}) => {
       // If there's no network, save the order offline
       if (!state.isConnected) {
         await saveOrderOffline(currentLocation);
+        const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
         return; // Exit early to prevent further execution
       } else {
         // Proceed with posting the order to the server
@@ -332,13 +392,10 @@ const ConfirmOrder = ({route, navigation}) => {
         );
         let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
 
-        // Retrieve the new calculated cartons
         const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
 
-        // Add the previous total to the new total
         const updatedTotalCartons = previousTotalCartons + newTotalCartons;
         setTotalCartons(updatedTotalCartons);
-        // Save the updated total cartons back to AsyncStorage
         await AsyncStorage.setItem(
           `totalCartons_${userId}`,
           updatedTotalCartons.toFixed(1),
@@ -355,53 +412,6 @@ const ConfirmOrder = ({route, navigation}) => {
       }
     } catch (error) {
       console.log(error);
-
-      // Save failed order data when posting fails
-      const mergedCartItems = cartItems.map(item => {
-        const {
-          carton_ordered,
-          box_ordered,
-          pricing_id,
-          itemss: {
-            retail_price,
-            invoice_price,
-            trade_price,
-            pricing_gst,
-            fk_variant,
-            fk_product,
-            pieces,
-            box_in_carton,
-            product,
-            sku,
-            variant,
-            trade_offer,
-          },
-          pack_in_box,
-        } = item;
-
-        const product_name = product ? product.name : null;
-        const sku_name = sku ? sku.name : null;
-        const variant_name = variant ? variant.name : null;
-
-        return {
-          carton_ordered,
-          box_ordered,
-          pricing_id,
-          retail_price,
-          invoice_price,
-          trade_price,
-          pricing_gst,
-          fk_variant,
-          fk_product,
-          pieces,
-          box_in_carton,
-          product: product_name,
-          sku: sku_name,
-          variant: variant_name,
-          trade_offer,
-          pack_in_box,
-        };
-      });
 
       const failedOrder = {
         date: formattedDate,
@@ -622,7 +632,6 @@ const ConfirmOrder = ({route, navigation}) => {
     }
   };
 
-  // Helper function to save failed orders in AsyncStorage
   const saveFailedOrder = async (userId, failedOrder) => {
     try {
       const key = `failedOrders_${userId}`;
@@ -673,7 +682,7 @@ const ConfirmOrder = ({route, navigation}) => {
             Lefttxt={'Special Discount:'}
             RightText={applySpecialDiscount.toFixed(2)}
           />
-          <ShowValues Lefttxt={'Total GST:'} RightText={GST} />
+          <ShowValues Lefttxt={'Total GST:'} RightText={GST.toFixed(2)} />
         </View>
         <View style={{padding: '2%'}}>
           <View

@@ -4,7 +4,7 @@ import Local from '../../Screens/InvoiceScreen/Local';
 
 const Tab = createMaterialTopTabNavigator();
 
-function MyTabs({selectedDate, orderBokerId}) {
+function MyTabs({selectedDate, orderBokerId, routeID}) {
   return (
     <Tab.Navigator>
       <Tab.Screen name="Local">
@@ -13,6 +13,7 @@ function MyTabs({selectedDate, orderBokerId}) {
             {...props}
             selectedDate={selectedDate}
             orderBokerId={orderBokerId}
+            routeID={routeID}
           />
         )}
       </Tab.Screen>
@@ -22,6 +23,7 @@ function MyTabs({selectedDate, orderBokerId}) {
             {...props}
             selectedDate={selectedDate}
             orderBokerId={orderBokerId}
+            routeID={routeID}
           />
         )}
       </Tab.Screen>

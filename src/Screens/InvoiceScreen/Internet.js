@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -12,8 +13,9 @@ import {TouchableOpacity} from 'react-native-gesture-handler';
 import {useNavigation} from '@react-navigation/native';
 import {Remove_All_Cart} from '../../Components/redux/constants';
 import {useSelector, useDispatch} from 'react-redux';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import {AddToCart} from '../../Components/redux/action';
-const Internet = ({selectedDate, orderBokerId}) => {
+const Internet = ({selectedDate, orderBokerId, routeID}) => {
   const [internetAPI, setInternetAPI] = useState([]);
   const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
   const [formattedDate, setFormattedDate] = useState('');
@@ -27,7 +29,7 @@ const Internet = ({selectedDate, orderBokerId}) => {
   const [allProducts, setAllProducts] = useState([]);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
-  // console.log(orderBokerId);
+  console.log(routeID, 'routeID');
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const cartItems = useSelector(state => state.reducer);
@@ -146,16 +148,20 @@ const Internet = ({selectedDate, orderBokerId}) => {
         // Handle case when there is no value for 'fk_employee'
         console.log('No fk_employee found in AsyncStorage');
       }
-      const response = await instance.get(
-        // `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
-        `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
+      let apiUrl = `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`;
+
+      // Conditionally add the routeID if it's available
+      if (routeID) {
+        apiUrl += `&route_id=${routeID}`;
+      }
+
+      const response = await instance.get(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
         },
-      );
-      // console.log(JSON.stringify(response.data), 'For Edit ');
+      });
+
+      console.log(JSON.stringify(response.data), 'For Edit ');
       console.log(
         `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
       );
@@ -172,7 +178,7 @@ const Internet = ({selectedDate, orderBokerId}) => {
     if (selectedDate) {
       getInternetAPi();
     }
-  }, [selectedDate]);
+  }, [selectedDate, routeID]);
   return (
     <View style={styles.main}>
       {isLoading ? (
@@ -185,7 +191,7 @@ const Internet = ({selectedDate, orderBokerId}) => {
           data={internetAPI} // Bind correct state here
           showsVerticalScrollIndicator={false}
           renderItem={({item}) => (
-            <TouchableOpacity
+            <Pressable
               style={styles.flatlistbackground}
               onPress={() => {
                 item.details.forEach(val => {
@@ -243,11 +249,15 @@ const Internet = ({selectedDate, orderBokerId}) => {
                   </Text>
                 </View>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           )}
           keyExtractor={item => item.id.toString()}
         />
       )}
+
+      {/* <TouchableOpacity style={styles.button}>
+        <Icon name="search" size={24} color="#fff" />
+      </TouchableOpacity> */}
     </View>
   );
 };
@@ -279,5 +289,19 @@ const styles = StyleSheet.create({
   centre: {
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  button: {
+    backgroundColor: 'blue',
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 60,
+    height: 60,
+    position: 'absolute', // Fixes the button's position
+    bottom: 20, // Adjust the distance from the bottom of the screen
+    right: 20, // Adjust the distance from the right of the screen
+    zIndex: 1000, // Ensures it's above other content
+    elevation: 5, // Shadow effect for Android
   },
 });
