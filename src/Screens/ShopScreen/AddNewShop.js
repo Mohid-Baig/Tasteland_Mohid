@@ -99,7 +99,8 @@ const AddNewShop = ({route}) => {
 
       if (ShopTypeDataJson !== null) {
         const ShopTypeData = JSON.parse(ShopTypeDataJson);
-        console.log('Offline shop type Data:', ShopTypeData);
+        setAllShops(ShopTypeData);
+        console.log('Offline shop type Data retrieved:', ShopTypeData);
         return ShopTypeData;
       } else {
         console.log('No offline data found for key:', shopTypeDataKey);
@@ -129,19 +130,20 @@ const AddNewShop = ({route}) => {
           },
         );
         setAllShops(response.data);
-        await saveShopTypesToAsyncStorage(response.data);
-        console.log(JSON.stringify(response.data));
+        await saveShopTypesToAsyncStorage(response.data); // Save when online
+        console.log('Online shop data:', response.data);
       } else {
         // Fetching offline data
         const shoptypeD = await fetchShopType();
         if (shoptypeD) {
           setAllShops(shoptypeD);
+          console.log('Offline data set to state:', shoptypeD);
         } else {
-          console.log('No offline shop type data found.');
+          console.log('No offline data found to set.');
         }
       }
     } catch (error) {
-      console.log('Error', error);
+      console.log('Error fetching shop data:', error);
     } finally {
       setIsLoading(false);
     }
