@@ -29,7 +29,7 @@ const Local = ({selectedDate, orderBokerId}) => {
   const [allProducts, setAllProducts] = useState([]);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
-  // console.log(orderBokerId);
+  // console.log(selectedDate, 'rr');
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const cartItems = useSelector(state => state.reducer);
@@ -77,122 +77,43 @@ const Local = ({selectedDate, orderBokerId}) => {
   const goTOEdit = () => {
     // navigation.navigate('ConfirmOrder', { Store: Store, "RouteDate": RouteDate,'applySpecialDiscount':applySpecialDiscount ,'FinalDistributiveDiscount':FinalDistributiveDiscount ,'GST':gst})
   };
-  const getProduct = async () => {
-    setIsLoading(true);
-    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+  const FetchProduct = async () => {
+    const userId = await AsyncStorage.getItem('userId');
     try {
-      const response = await instance.get(
-        '/pricing/all?sort_alphabetically=true&active=true',
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        },
-      );
-      setAllProducts(response.data);
-      // console.log(JSON.stringify(response.data), '---111----');
+      const ProductDatakey = `ProductData_${userId}`;
+      const ProductDataJSON = await AsyncStorage.getItem(ProductDatakey);
+      const ProductData = JSON.parse(ProductDataJSON);
+      setAllProducts(ProductData);
     } catch (error) {
-      console.log('Error', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error getting data of all product', error);
     }
   };
   useEffect(() => {
-    getProduct();
+    FetchProduct();
     setDistributiveDiscount(0);
   }, []);
-  const getMondayToSundayWeek = date => {
-    const dateObj = new Date(date);
-    const dayOfWeek = dateObj.getDay();
-    const monday = 1;
-    let daysUntilMonday = dayOfWeek - monday;
-    if (daysUntilMonday < 0) {
-      daysUntilMonday += 7;
-    }
-    const startDate = new Date(dateObj);
-    startDate.setDate(dateObj.getDate() - daysUntilMonday);
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
-    return {startDate, endDate};
-  };
-  const formatDateToYYYYMMDD = date => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+  const getCurrentDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+
     return `${year}-${month}-${day}`;
   };
-  useEffect(() => {
-    const currentDate = new Date();
-    if (currentDate) {
-      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
-      setWeekDates({
-        startDate: formatDateToYYYYMMDD(startDate),
-        endDate: formatDateToYYYYMMDD(endDate),
-      });
-    }
-  }, []);
-
-  const getInternetAPi = async () => {
-    setIsLoading(true);
+  const FetchLocalAPi = async () => {
     const userId = await AsyncStorage.getItem('userId');
-    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-    const formattedDate = selectedDate
-      ? formatDateToYYYYMMDD(selectedDate)
-      : '';
-
     try {
-      // Check network connection status
-      const netInfo = await NetInfo.fetch();
-
-      const fkEmployee = await AsyncStorage.getItem('fk_employee');
-
-      if (netInfo.isConnected) {
-        // If network is connected, fetch data from API and store in AsyncStorage
-        const response = await instance.get(
-          `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
-          {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          },
-        );
-
-        // Store API response in AsyncStorage with userId as part of the key
-        await AsyncStorage.setItem(
-          `internetAPI_${userId}`,
-          JSON.stringify(response.data),
-        );
-        setInternetAPI(response.data);
-        setFormattedDate(formattedDate);
-      } else {
-        // If network is not connected, load data from AsyncStorage
-        const storedData = await AsyncStorage.getItem(`internetAPI_${userId}`);
-        if (storedData) {
-          setInternetAPI(JSON.parse(storedData));
-        } else {
-          console.log('No data found in AsyncStorage');
-        }
-      }
+      const LocalAPIkey = `LocalAPI_${userId}`;
+      const LocalAPIDataJSON = await AsyncStorage.getItem(LocalAPIkey);
+      const LocalAPIData = JSON.parse(LocalAPIDataJSON);
+      setInternetAPI(LocalAPIData);
     } catch (error) {
-      console.log('Error Caught in LocalAPI -------', error);
-
-      // If there's an error, try to fetch data from AsyncStorage
-      const storedData = await AsyncStorage.getItem(`internetAPI_${userId}`);
-      if (storedData) {
-        setInternetAPI(JSON.parse(storedData));
-      } else {
-        console.log('No data found in AsyncStorage');
-      }
-    } finally {
-      setIsLoading(false);
+      console.error('Error getting data of all product', error);
     }
   };
-
   useEffect(() => {
-    if (selectedDate) {
-      getInternetAPi();
-    }
-  }, [selectedDate]);
+    FetchLocalAPi();
+  }, []);
   return (
     <View style={styles.main}>
       {isLoading ? (
@@ -242,7 +163,7 @@ const Local = ({selectedDate, orderBokerId}) => {
                 </View>
                 <View style={styles.centre}>
                   <Text style={{color: 'black'}}>Order Date</Text>
-                  <Text style={{color: 'black'}}>{formattedDate}</Text>
+                  <Text style={{color: 'black'}}>{getCurrentDate()}</Text>
                 </View>
               </View>
               <View style={styles.FlatList}>

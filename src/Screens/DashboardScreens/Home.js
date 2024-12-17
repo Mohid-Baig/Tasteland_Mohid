@@ -533,6 +533,8 @@ const Home = ({navigation}) => {
       await fetchAndStoreSpecialDiscountSlabData();
       await fetchAndStorePricingData();
       await fetchShopType();
+      await FetchAllProductdata();
+      await FetchLocalAPIdata();
       refreshApp();
       Alert.alert('Sync Complete', 'All orders synced and data retrieved.');
     } catch (error) {
@@ -588,7 +590,6 @@ const Home = ({navigation}) => {
       console.error('Failed to add carton value to storage:', e);
     }
   };
-
   const fetchAndStoreTerritorialData = async () => {
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -614,7 +615,6 @@ const Home = ({navigation}) => {
       console.log('Error fetching territorial data:', error);
     }
   };
-
   const fetchAndStoreDiscountSlabData = async () => {
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -641,7 +641,6 @@ const Home = ({navigation}) => {
       console.log('Error fetching Discount Slab data:', error);
     }
   };
-
   const fetchAndStoreSpecialDiscountSlabData = async () => {
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -668,7 +667,6 @@ const Home = ({navigation}) => {
       console.log('Error fetching Special Discount Slab data:', error);
     }
   };
-
   const fetchAndStorePricingData = async () => {
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -705,6 +703,56 @@ const Home = ({navigation}) => {
       console.log('ShopType data saved to AsyncStorage:', ShopTypeData);
     } catch (error) {
       console.log('Error fetching Pricing data:', error);
+    }
+  };
+  const FetchAllProductdata = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    try {
+      const response = await instance.get(
+        '/pricing/all?sort_alphabetically=true&active=true',
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      const ProductData = response.data;
+      const ProductDatakey = `ProductData_${userId}`;
+      await AsyncStorage.setItem(ProductDatakey, JSON.stringify(ProductData));
+      console.log('Product data saved in Asyncstorage:', ProductData);
+    } catch (error) {
+      console.log('Error Fetching Product data', error);
+    }
+  };
+  const FetchLocalAPIdata = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const fkEmployee = await AsyncStorage.getItem('fk_employee');
+    const getCurrentDate = () => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+      const day = String(today.getDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
+    };
+
+    console.log(getCurrentDate()); // Output: 2024-12-17 (or current date)
+    try {
+      const formattedDate = getCurrentDate();
+      const response = await instance.get(
+        `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      const LocalAPIData = response.data;
+      const LocalAPIkey = `LocalAPI_${userId}`;
+      await AsyncStorage.setItem(LocalAPIkey, JSON.stringify(LocalAPIData));
+      console.log('LocalAPI data saved in Asyncstorage:', LocalAPIData);
+    } catch (error) {
+      console.log('Error Fetching LocalAPI data', error);
     }
   };
 
