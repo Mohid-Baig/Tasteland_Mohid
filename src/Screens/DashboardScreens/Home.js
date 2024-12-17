@@ -27,7 +27,6 @@ import Loader from '../../Components/Loaders/Loader';
 import instance from '../../Components/BaseUrl';
 import GetLocation from 'react-native-get-location';
 import {useIsFocused, useFocusEffect} from '@react-navigation/native';
-
 const Home = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [headingData, setHeadingData] = useState({});
@@ -43,17 +42,51 @@ const Home = ({navigation}) => {
   const [orderCount, setOrderCount] = useState(0);
   const [totalVisits, setTotalVisits] = useState(0);
   const [totalCartons, setTotalCartons] = useState(0);
+  const getAllStoredOrderIds = async userId => {
+    try {
+      const storedOrderIds = await AsyncStorage.getItem(
+        `postorderId_${userId}`,
+      );
+      if (storedOrderIds) {
+        try {
+          const parsedOrderIds = JSON.parse(storedOrderIds);
+          if (Array.isArray(parsedOrderIds)) {
+            console.log('All stored Order Ids:', parsedOrderIds);
+            return parsedOrderIds;
+          } else {
+            console.warn('Stored order IDs is not a valid array.');
+            return [];
+          }
+        } catch (parseError) {
+          console.error('Error parsing stored order IDs:', parseError);
+          return [];
+        }
+      } else {
+        console.log('No order IDs found in storage.');
+        return [];
+      }
+    } catch (error) {
+      console.error('Error getting stored order IDs:', error);
+      return [];
+    }
+  };
+  useEffect(() => {
+    const fetchStoredIds = async () => {
+      const userId = await AsyncStorage.getItem('userId');
+      await getAllStoredOrderIds(userId);
+    };
+
+    fetchStoredIds();
+  }, []);
   const handleLogout = async () => {
     await AsyncStorage.removeItem('access_token');
     // await AsyncStorage.removeItem(`failedOrders_${userId}`);
     // await AsyncStorage.removeItem(`offlineOrders_${userId}`);
     navigation.replace('Login');
   };
-
   const refreshApp = () => {
     DevSettings.reload();
   };
-
   useFocusEffect(
     useCallback(() => {
       const checkNewDay = async () => {
@@ -86,7 +119,6 @@ const Home = ({navigation}) => {
       };
     }, []),
   );
-
   useEffect(() => {
     const fetchOfflineOrders = async () => {
       try {
@@ -126,7 +158,6 @@ const Home = ({navigation}) => {
 
     fetchOfflineOrders();
   }, []);
-
   const getHeadingData = async () => {
     // setIsLoading(true);
     const employeeId = await AsyncStorage.getItem('employeeId');
@@ -161,7 +192,6 @@ const Home = ({navigation}) => {
       // setIsLoading(false);
     }
   };
-
   const getOrderBookerID = async () => {
     // setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -198,7 +228,6 @@ const Home = ({navigation}) => {
       // setIsLoading(false);
     }
   };
-
   const getNameData = async () => {
     // setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -220,7 +249,6 @@ const Home = ({navigation}) => {
       // setIsLoading(false);
     }
   };
-
   const getAttandanceStatus = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const currentDate = new Date();
@@ -275,7 +303,6 @@ const Home = ({navigation}) => {
       return false;
     }
   };
-
   const getLocation = async () => {
     const hasPermission = await requestLocationPermission();
     if (!hasPermission) return;
@@ -305,7 +332,6 @@ const Home = ({navigation}) => {
       console.warn(code, message);
     }
   };
-
   useEffect(() => {
     const getUserId = async () => {
       const userId = await AsyncStorage.getItem('userId');
@@ -327,7 +353,6 @@ const Home = ({navigation}) => {
       getAttandanceStatus();
     }
   }, [userId]);
-
   const getMondayToSundayWeek = date => {
     const dateObj = new Date(date);
     const dayOfWeek = dateObj.getDay();
@@ -342,14 +367,12 @@ const Home = ({navigation}) => {
     endDate.setDate(startDate.getDate() + 6);
     return {startDate, endDate};
   };
-
   const formatDateToYYYYMMDD = date => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-
   useEffect(() => {
     const currentDate = new Date();
     if (currentDate) {
@@ -375,7 +398,6 @@ const Home = ({navigation}) => {
     );
     return totalCartons; // Return the total number of cartons for all items
   };
-
   const syncOrders = async () => {
     setIsLoading(true);
     try {
@@ -385,6 +407,8 @@ const Home = ({navigation}) => {
       await AsyncStorage.removeItem(`specialDiscountSlabData_${userId}`);
       await AsyncStorage.removeItem(`pricingData_${userId}`);
       await AsyncStorage.removeItem(`ShopTypeData_${userId}`);
+      await AsyncStorage.removeItem(`LocalAPI_${userId}`);
+      await AsyncStorage.removeItem(`ProductData_${userId}`);
 
       // Fetching failed orders from AsyncStorage
       const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
@@ -421,29 +445,37 @@ const Home = ({navigation}) => {
       }
 
       for (const order of parsedOfflinePostOrders) {
-        // console.log(order.totalCarton, 'Totsl Carton');
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+          if (!authToken) {
+            console.warn('Auth token is missing. Skipping order sync.');
+            await saveFailedOrder(userId, order); // Important: save failed order
+            continue; // Skip to the next order
+          }
+
           const response = await instance.post('/secondary_order', order, {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },
           });
+
           console.log('Offline order synced successfully:', response.data);
+
+          const postorderId = response.data.id;
+
+          await updateStoredOrderIds(userId, postorderId);
+
           const storedTotalAmount = await AsyncStorage.getItem(
             `totalAmount_${userId}`,
           );
           let totalAmount = parseFloat(storedTotalAmount) || 0;
 
-          // Add current order amount to the total
           totalAmount += parseFloat(order.totalPrice);
 
-          // Save updated total amount in AsyncStorage
           await AsyncStorage.setItem(
             `totalAmount_${userId}`,
             totalAmount.toString(),
           );
-
           console.log(`Updated Total Amount: ${totalAmount}`);
 
           let orderCount = await AsyncStorage.getItem(`orderCount_${userId}`);
@@ -455,11 +487,11 @@ const Home = ({navigation}) => {
             `orderCount_${userId}`,
             orderCount.toString(),
           );
-
           console.log(`Updated Order Count: ${orderCount}`);
-          addCartonValueToStorage(order.totalCarton);
+
+          // addCartonValueToStorage(order.totalCarton);
         } catch (error) {
-          console.log('Error syncing offline order:', error);
+          console.error('Error syncing offline order:', error);
           await saveFailedOrder(userId, order);
         }
       }
@@ -542,6 +574,36 @@ const Home = ({navigation}) => {
       Alert.alert('Sync Failed', 'An error occurred while syncing orders.');
     } finally {
       setIsLoading(false);
+    }
+  };
+  const updateStoredOrderIds = async (userId, newOrderId) => {
+    try {
+      // Use a transaction to ensure atomicity
+      await AsyncStorage.setItem(
+        `postorderId_${userId}`,
+        JSON.stringify(
+          await AsyncStorage.getItem(`postorderId_${userId}`).then(
+            storedOrderIds => {
+              let postorderIds = [];
+              if (storedOrderIds) {
+                try {
+                  postorderIds = JSON.parse(storedOrderIds);
+                  if (!Array.isArray(postorderIds)) {
+                    postorderIds = [];
+                  }
+                } catch (e) {
+                  console.error('error in parsing', e);
+                }
+              }
+              postorderIds.push(newOrderId);
+              return postorderIds;
+            },
+          ),
+        ),
+      );
+      console.log(`Order ID ${newOrderId} added successfully.`);
+    } catch (error) {
+      console.error('Error updating stored order IDs:', error);
     }
   };
   const saveFailedOrder = async (userId, failedOrder) => {
@@ -755,7 +817,6 @@ const Home = ({navigation}) => {
       console.log('Error Fetching LocalAPI data', error);
     }
   };
-
   const formatDate = date => {
     if (date) {
       const year = date.getFullYear();
@@ -1008,9 +1069,7 @@ const Home = ({navigation}) => {
     </ImageBackground>
   );
 };
-
 export default Home;
-
 const styles = StyleSheet.create({
   image: {
     flex: 1,

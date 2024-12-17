@@ -116,83 +116,73 @@ const Local = ({selectedDate, orderBokerId}) => {
   }, []);
   return (
     <View style={styles.main}>
-      {isLoading ? (
-        <View style={{alignItems: 'center', flex: 1, marginTop: '60%'}}>
-          <ActivityIndicator size={50} color={'#16a4dd'} />
-        </View>
-      ) : (
-        <FlatList
-          contentContainerStyle={{paddingBottom: 50}}
-          data={internetAPI} // Bind correct state here
-          showsVerticalScrollIndicator={false}
-          renderItem={({item}) => (
-            <Pressable
-              style={styles.flatlistbackground}
-              onPress={() => {
-                item.details.forEach(val => {
-                  // console.log(allProducts, 'Product');
-                  let pro = allProducts.filter(
-                    valfil => valfil.id === val.pricing_id,
-                  );
-                  // console.log(pro, '----');
-                  let items = {
-                    carton_ordered: val.carton_ordered,
-                    box_ordered: val.box_ordered,
-                    pricing_id: val.id,
-                    itemss: pro[0],
-                    pack_in_box: val.box_ordered,
-                  };
-                  // console.log(items, '+++++');
-                  dispatch(AddToCart(items));
-                });
-                goTOEdit();
-                navigation.navigate('ViewInvoice', {
-                  cartItems: item,
-                  Gst: gst,
-                  orderBokerId: orderBokerId,
-                });
-              }}>
-              <View style={styles.FlatList}>
-                <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Invoice #</Text>
-                  <Text style={{color: 'black'}}>{item.id}</Text>
-                </View>
-                <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Shop</Text>
-                  <Text style={{color: 'black'}}>{item.shop.name}</Text>
-                </View>
-                <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Order Date</Text>
-                  <Text style={{color: 'black'}}>{getCurrentDate()}</Text>
-                </View>
+      <FlatList
+        contentContainerStyle={{paddingBottom: 50}}
+        data={internetAPI} // Bind correct state here
+        showsVerticalScrollIndicator={false}
+        renderItem={({item}) => (
+          <Pressable
+            style={styles.flatlistbackground}
+            onPress={() => {
+              item.details.forEach(val => {
+                // console.log(allProducts, 'Product');
+                let pro = allProducts.filter(
+                  valfil => valfil.id === val.pricing_id,
+                );
+                // console.log(pro, '----');
+                let items = {
+                  carton_ordered: val.carton_ordered,
+                  box_ordered: val.box_ordered,
+                  pricing_id: val.id,
+                  itemss: pro[0],
+                  pack_in_box: val.box_ordered,
+                };
+                // console.log(items, '+++++');
+                dispatch(AddToCart(items));
+              });
+              goTOEdit();
+              navigation.navigate('ViewInvoice', {
+                cartItems: item,
+                Gst: gst,
+                orderBokerId: orderBokerId,
+              });
+            }}>
+            <View style={styles.FlatList}>
+              <View style={styles.centre}>
+                <Text style={{color: 'black'}}>Invoice #</Text>
+                <Text style={{color: 'black'}}>{item.id}</Text>
               </View>
-              <View style={styles.FlatList}>
-                <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Status</Text>
-                  <Text style={{color: 'black'}}>{item.status}</Text>
-                </View>
-                <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Gross Amount</Text>
-                  <Text style={{color: 'black'}}>{`${item.gross_amount.toFixed(
-                    1,
-                  )}`}</Text>
-                </View>
-                <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Net Amount</Text>
-                  <Text style={{color: 'black'}}>
-                    {item.net_amount.toFixed(1)}
-                  </Text>
-                </View>
+              <View style={styles.centre}>
+                <Text style={{color: 'black'}}>Shop</Text>
+                <Text style={{color: 'black'}}>{item.shop.name}</Text>
               </View>
-            </Pressable>
-          )}
-          keyExtractor={item => item.id.toString()}
-        />
-      )}
-
-      {/* <TouchableOpacity style={styles.button}>
-          <Icon name="search" size={24} color="#fff" />
-        </TouchableOpacity> */}
+              <View style={styles.centre}>
+                <Text style={{color: 'black'}}>Order Date</Text>
+                <Text style={{color: 'black'}}>{getCurrentDate()}</Text>
+              </View>
+            </View>
+            <View style={styles.FlatList}>
+              <View style={styles.centre}>
+                <Text style={{color: 'black'}}>Status</Text>
+                <Text style={{color: 'black'}}>{item.status}</Text>
+              </View>
+              <View style={styles.centre}>
+                <Text style={{color: 'black'}}>Gross Amount</Text>
+                <Text style={{color: 'black'}}>{`${item.gross_amount.toFixed(
+                  1,
+                )}`}</Text>
+              </View>
+              <View style={styles.centre}>
+                <Text style={{color: 'black'}}>Net Amount</Text>
+                <Text style={{color: 'black'}}>
+                  {item.net_amount.toFixed(1)}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        )}
+        keyExtractor={item => item.id.toString()}
+      />
     </View>
   );
 };

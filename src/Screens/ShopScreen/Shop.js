@@ -101,6 +101,7 @@ const AllShops = ({navigation, route}) => {
   const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
   const [singleId, setSingleId] = useState(null);
   const [confirmBtn, setconfirmBtn] = useState(false);
+  const [territorial, setTerritorial] = useState();
   const [item, setitem] = useState([]);
   const isFocused = useIsFocused();
 
@@ -229,6 +230,7 @@ const AllShops = ({navigation, route}) => {
       );
 
       const rawTerritorialData = await response.data;
+      setTerritorial(rawTerritorialData);
       // console.log(JSON.stringify(rawTerritorialData));
 
       rawTerritorialData?.pjp_shops?.forEach(val => {
@@ -240,15 +242,22 @@ const AllShops = ({navigation, route}) => {
         }
       });
       //This is where i need to correct things Problem is that the route date is not going correct it sending both dates
-      rawTerritorialData?.pjp_shops?.forEach(value => {
-        value?.pjp_shops?.route_shops?.forEach(val => {
-          if (val.route) {
-            setRouteDate(value.pjp_date);
-            console.log(value.pjp_date, 'Selected shop route date');
-          }
-        });
-      });
+      // rawTerritorialData?.pjp_shops?.forEach(value => {
+      //   value?.pjp_shops?.route_shops?.forEach(val => {
+      //     if (val.route) {
+      //       setRouteDate(value.pjp_date);
+      //       console.log(value.pjp_date, 'Selected shop route date');
+      //     }
+      //   });
+      // });
 
+      // rawTerritorialData?.pjp_shops?.forEach(value => {
+      //   value.pjp_shops?.route_shops?.forEach(val => {
+      //     if (val.route) {
+      //       ComparingShop.push(val);
+      //     }
+      //   });
+      // });
       let allShops = [];
       if (rawTerritorialData && rawTerritorialData.pjp_shops) {
         rawTerritorialData.pjp_shops.forEach(pjpItem => {
@@ -294,6 +303,22 @@ const AllShops = ({navigation, route}) => {
       setIsLoading(false);
     }
   };
+
+  const Idmatching = () => {
+    territorial?.pjp_shops?.forEach(value => {
+      value.pjp_shops?.route_shops?.forEach(route => {
+        const shopFound = route.shops?.find(shop => shop.id === singleId);
+        if (shopFound) {
+          console.log(value.pjp_date, 'Date to be sent');
+          setRouteDate(value.pjp_date);
+        }
+      });
+    });
+  };
+
+  useEffect(() => {
+    Idmatching();
+  }, [singleId]);
 
   useEffect(() => {
     if (isFocused && weekDates.startDate && weekDates.endDate && orderBokerId) {
@@ -497,6 +522,7 @@ const AllShops = ({navigation, route}) => {
           onPress={() => {
             handleVisit(item);
             setSingleId(item.id);
+            console.log(item.id, 'Selected Shop id');
           }}>
           <Text style={styles.buttonText}>VISIT</Text>
         </TouchableOpacity>

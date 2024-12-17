@@ -209,21 +209,14 @@ const ConfirmOrder = ({route, navigation}) => {
       pricing_id: item.pricing_id,
     }));
 
-    // Calculate the total cartons here
-    const totalCarton = await calculateOrderForMultipleItems(cartItems);
-
-    // Generate a unique ID for each order (combining timestamp and random string)
-    const uniqueOrderId = `order_${new Date().getTime()}_${Math.random()
-      .toString(36)
-      .substring(2, 15)}`;
+    // const totalCarton = await calculateOrderForMultipleItems(cartItems);
 
     const offlineOrder = {
-      id: uniqueOrderId,
       lng: currentLocation.longitude,
       lat: currentLocation.latitude,
       detailss: orderDetails,
       totalPrice: currentOrderAmount,
-      totalCarton: totalCarton, // <-- Set the calculated totalCarton here
+      totalCarton: TotalCarton,
       date: formattedDate,
       details: mergedCartItems,
       shop: Store,
@@ -247,12 +240,11 @@ const ConfirmOrder = ({route, navigation}) => {
       const existingOrders = await AsyncStorage.getItem(key);
       let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
 
-      // Check if the order with the same ID already exists in offline storage
       if (offlineOrders.some(order => order.id === offlineOrder.id)) {
         console.log(
           'Order with the same ID already exists in offline storage.',
         );
-        return; // Prevent saving the same order again
+        return;
       }
 
       offlineOrders.push(offlineOrder);
@@ -337,8 +329,23 @@ const ConfirmOrder = ({route, navigation}) => {
       // If there's no network, save the order offline
       if (!state.isConnected) {
         await saveOrderOffline(currentLocation);
+        const storedTotalCartons = await AsyncStorage.getItem(
+          `totalCartons_${userId}`,
+        );
+        let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
+
         const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
-        return; // Exit early to prevent further execution
+
+        const updatedTotalCartons = previousTotalCartons + newTotalCartons;
+        setTotalCartons(updatedTotalCartons);
+        await AsyncStorage.setItem(
+          `totalCartons_${userId}`,
+          updatedTotalCartons.toFixed(1),
+        );
+
+        console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
+
+        return;
       } else {
         // Proceed with posting the order to the server
 
@@ -355,16 +362,13 @@ const ConfirmOrder = ({route, navigation}) => {
           },
         );
 
-        // Retrieve existing total amount from AsyncStorage
         const storedTotalAmount = await AsyncStorage.getItem(
           `totalAmount_${userId}`,
         );
         let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
 
-        // Add current order amount to the total
         totalAmount += parseFloat(currentOrderAmount);
 
-        // Save updated total amount in AsyncStorage
         await AsyncStorage.setItem(
           `totalAmount_${userId}`,
           totalAmount.toString(),
@@ -372,14 +376,11 @@ const ConfirmOrder = ({route, navigation}) => {
 
         console.log(`Updated Total Amount: ${totalAmount}`);
 
-        // Retrieve existing order count from AsyncStorage
         let orderCount = await AsyncStorage.getItem(`orderCount_${userId}`);
         orderCount = parseInt(orderCount) || 0; // Initialize with 0 if not found
 
-        // Increment the order count
         orderCount++;
 
-        // Save updated order count in AsyncStorage
         await AsyncStorage.setItem(
           `orderCount_${userId}`,
           orderCount.toString(),
