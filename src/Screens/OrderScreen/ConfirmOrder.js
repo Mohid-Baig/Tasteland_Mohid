@@ -512,6 +512,7 @@ const ConfirmOrder = ({route, navigation}) => {
       date: new Date().toISOString(),
       totalPrice: currentOrderAmount,
       totalCarton: TotalCarton,
+      cartItems: cartItems,
     };
 
     // Create a unique identifier based on product.id and other key details
@@ -617,7 +618,6 @@ const ConfirmOrder = ({route, navigation}) => {
           details: mergedCartItems,
           shop: Store,
           cartItems: cartItems,
-          error: error.message || 'Order update failed',
         };
         await saveFailedOrder(userId, failedOrder); // Save in failedOrders if API fails
         Alert.alert('Error', 'An error occurred while updating the order.', [

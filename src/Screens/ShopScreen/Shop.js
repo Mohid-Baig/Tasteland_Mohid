@@ -260,7 +260,6 @@ const AllShops = ({navigation, route}) => {
         });
       }
       if (allShops.length > 0) {
-        // Sort shops by register_date first, and by shop.id as a secondary sorting criterion
         const sortedShops = allShops.sort((a, b) => {
           const dateA = new Date(a.register_date).getTime();
           const dateB = new Date(b.register_date).getTime();

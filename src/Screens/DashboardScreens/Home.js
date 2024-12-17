@@ -469,7 +469,7 @@ const Home = ({navigation}) => {
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
           const data = {
-            id: order.id, // Assuming `orderId` is present in the `order` object
+            id: order.id,
             details: order.details,
             shop: order.shop,
             date: new Date().toISOString(), // Ensure the date is unique for every request

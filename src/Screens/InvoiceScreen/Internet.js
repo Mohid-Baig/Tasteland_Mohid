@@ -15,7 +15,7 @@ import {Remove_All_Cart} from '../../Components/redux/constants';
 import {useSelector, useDispatch} from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {AddToCart} from '../../Components/redux/action';
-const Internet = ({selectedDate, orderBokerId, routeID}) => {
+const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   const [internetAPI, setInternetAPI] = useState([]);
   const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
   const [formattedDate, setFormattedDate] = useState('');
@@ -29,7 +29,6 @@ const Internet = ({selectedDate, orderBokerId, routeID}) => {
   const [allProducts, setAllProducts] = useState([]);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
-  console.log(routeID, 'routeID');
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const cartItems = useSelector(state => state.reducer);
@@ -141,18 +140,14 @@ const Internet = ({selectedDate, orderBokerId, routeID}) => {
     console.log(orderBokerId);
     try {
       const fkEmployee = await AsyncStorage.getItem('fk_employee');
-      if (fkEmployee !== null) {
-        // The value exists in AsyncStorage, now you can use it
-        console.log('fk_employee:', fkEmployee);
-      } else {
-        // Handle case when there is no value for 'fk_employee'
-        console.log('No fk_employee found in AsyncStorage');
-      }
       let apiUrl = `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`;
 
       // Conditionally add the routeID if it's available
       if (routeID) {
         apiUrl += `&route_id=${routeID}`;
+      }
+      if (shopID) {
+        apiUrl += `&shop_id=${shopID}`;
       }
 
       const response = await instance.get(apiUrl, {
@@ -161,7 +156,7 @@ const Internet = ({selectedDate, orderBokerId, routeID}) => {
         },
       });
 
-      console.log(JSON.stringify(response.data), 'For Edit ');
+      // console.log(JSON.stringify(response.data), 'For Edit ');
       console.log(
         `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
       );
@@ -178,7 +173,7 @@ const Internet = ({selectedDate, orderBokerId, routeID}) => {
     if (selectedDate) {
       getInternetAPi();
     }
-  }, [selectedDate, routeID]);
+  }, [selectedDate, routeID, shopID]);
   return (
     <View style={styles.main}>
       {isLoading ? (

@@ -31,6 +31,7 @@ const InvoiceScreen = ({route}) => {
   const [showRouteCrossCircle, setShowRouteCrossCircle] = useState(false);
   const [showShopCrossCircle, setShowShopCrossCircle] = useState(false);
   const [routeID, setRouteID] = useState();
+  const [shopID, setShopID] = useState();
   const {orderBokerId} = route.params;
   const sevenDaysFromToday = new Date();
   sevenDaysFromToday.setDate(sevenDaysFromToday.getDate() + 7);
@@ -140,7 +141,7 @@ const InvoiceScreen = ({route}) => {
     console.log('Selected Route:', itemValue);
     setShopRoute(itemValue);
     const routeId = itemValue.id;
-    setRouteID(routeID);
+    // setRouteID(routeID);
 
     let FilterShops = [];
     territorialData.pjp_shops.forEach(val => {
@@ -165,6 +166,7 @@ const InvoiceScreen = ({route}) => {
   const handleShopChange = itemValue => {
     console.log('Selected Shop:', itemValue);
     setSelectedShop(itemValue);
+    setShopID(itemValue.id);
     setShowShopCrossCircle(true); // Show the cross icon for the shop picker
   };
   return (
@@ -223,8 +225,9 @@ const InvoiceScreen = ({route}) => {
               {showShopCrossCircle && (
                 <TouchableOpacity
                   onPress={() => {
-                    setSelectedShop(null); // Reset the selected shop
-                    setShowShopCrossCircle(false); // Hide the cross icon
+                    setSelectedShop(null);
+                    setShowShopCrossCircle(false);
+                    setShopID();
                   }}>
                   <AntDesign name="closecircle" size={24} color={'#fff'} />
                 </TouchableOpacity>
@@ -296,6 +299,7 @@ const InvoiceScreen = ({route}) => {
           selectedDate={selectedDate}
           orderBokerId={orderBokerId}
           routeID={routeID}
+          shopID={shopID}
         />
         {isLoading ? <Loader /> : null}
       </View>
