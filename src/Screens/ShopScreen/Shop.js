@@ -241,23 +241,6 @@ const AllShops = ({navigation, route}) => {
           });
         }
       });
-      //This is where i need to correct things Problem is that the route date is not going correct it sending both dates
-      // rawTerritorialData?.pjp_shops?.forEach(value => {
-      //   value?.pjp_shops?.route_shops?.forEach(val => {
-      //     if (val.route) {
-      //       setRouteDate(value.pjp_date);
-      //       console.log(value.pjp_date, 'Selected shop route date');
-      //     }
-      //   });
-      // });
-
-      // rawTerritorialData?.pjp_shops?.forEach(value => {
-      //   value.pjp_shops?.route_shops?.forEach(val => {
-      //     if (val.route) {
-      //       ComparingShop.push(val);
-      //     }
-      //   });
-      // });
       let allShops = [];
       if (rawTerritorialData && rawTerritorialData.pjp_shops) {
         rawTerritorialData.pjp_shops.forEach(pjpItem => {
@@ -275,12 +258,6 @@ const AllShops = ({navigation, route}) => {
           return dateB - dateA || b.id - a.id;
         });
 
-        // Prepend new shops to the existing list and limit to top 10 shops
-        // setitem(prevItems => {
-        //   const updatedItems = [...sortedShops, ...prevItems];
-        //   // If the list exceeds 10 items, remove the last one
-        //   return updatedItems.slice(0, 10);
-        // });
         setStores(prevItems => {
           const updatedItems = [...sortedShops, ...(prevItems || [])];
           return updatedItems.slice(0, 10);
