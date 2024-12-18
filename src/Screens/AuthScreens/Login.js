@@ -42,8 +42,10 @@ const Login = ({navigation}) => {
         const authToken = response.data.access_token;
         const employeeId = response.data.employee.id;
         const userId = response.data.user.id;
+        const refreshToken = response.data.refresh_token;
 
         await AsyncStorage.setItem('AUTH_TOKEN', authToken);
+        await AsyncStorage.setItem('refresh_token', refreshToken);
         await AsyncStorage.setItem('employeeId', employeeId.toString());
         await AsyncStorage.setItem('userId', userId.toString());
 

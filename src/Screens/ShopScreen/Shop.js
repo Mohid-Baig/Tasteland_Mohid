@@ -105,6 +105,29 @@ const AllShops = ({navigation, route}) => {
   const [item, setitem] = useState([]);
   const isFocused = useIsFocused();
 
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      // await AsyncStorage.removeItem('AUTH_TOKEN');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      console.error('Error Replacing auth Token', error);
+    }
+  };
+
   const incrementTotalVisits = async () => {
     const userId = await AsyncStorage.getItem('userId');
     if (!userId) return; // Ensure userId is available
@@ -700,8 +723,7 @@ const AllShops = ({navigation, route}) => {
             {
               text: 'OK',
               onPress: async () => {
-                await AsyncStorage.removeItem('access_token');
-                navigation.replace('Login');
+                TokenRenew();
               },
             },
           ]);
@@ -753,8 +775,7 @@ const AllShops = ({navigation, route}) => {
             {
               text: 'OK',
               onPress: async () => {
-                await AsyncStorage.removeItem('access_token');
-                navigation.replace('Login');
+                TokenRenew();
               },
             },
           ]);
@@ -810,8 +831,7 @@ const AllShops = ({navigation, route}) => {
             {
               text: 'OK',
               onPress: async () => {
-                await AsyncStorage.removeItem('access_token');
-                navigation.replace('Login');
+                TokenRenew();
               },
             },
           ]);
