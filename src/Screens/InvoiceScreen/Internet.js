@@ -59,18 +59,20 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
               (item?.itemss?.pricing_gst / 100);
           console.log(gst, 'GST Price');
         }
+        const gstt = gst;
+        setGst(gstt.toFixed(1));
       });
       setTotalprice(Product_Count);
       setGrossAmount(GrossAmount);
       setSelectedProductData(cartItems);
-      setGst(gst);
+      // setGst(gst);
       // console.log(Product_Count,"Product Count");
       // dispatch(AddToCart(filteredData));
     } else {
       setTotalprice(0);
       setTotalprice(0);
       setGrossAmount(0);
-      setGst(0);
+      // setGst(0);
     }
   }, [cartItems]);
   const goTOEdit = () => {

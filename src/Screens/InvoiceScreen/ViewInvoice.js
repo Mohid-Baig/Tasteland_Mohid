@@ -13,6 +13,7 @@ import {Remove_All_Cart} from '../../Components/redux/constants';
 const ViewInvoice = ({route, navigation}) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
+  const [gstRate, setGSTrate] = useState();
   const {cartItems, Gst, orderBokerId} = route.params;
   const dispatch = useDispatch();
 
@@ -22,7 +23,7 @@ const ViewInvoice = ({route, navigation}) => {
     };
   }, [dispatch]);
 
-  // console.log(Gst);
+  // console.log(Gst, 'On local screen gst');
   // console.log(cartItems, '-----');
   // console.log(singleDetail);
   // console.log(singleDetail.trade_offer);
@@ -148,7 +149,9 @@ const ViewInvoice = ({route, navigation}) => {
               <Text style={styles.gstText}>Special Discount:</Text>
             </View>
             <View style={{marginLeft: 15, justifyContent: 'center'}}>
-              <Text style={styles.Text2}>---86.40 (17.0%)---</Text>
+              <Text style={styles.Text2}>
+                {Gst} ({singleDetail?.gst_rate}.0)%
+              </Text>
               <Text style={styles.Text2}>
                 {cartItems.gross_amount.toFixed(2)} (Inclusive of GST)
               </Text>
