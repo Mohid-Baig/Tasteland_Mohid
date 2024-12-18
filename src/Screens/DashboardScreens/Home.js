@@ -119,45 +119,45 @@ const Home = ({navigation}) => {
       };
     }, []),
   );
-  useEffect(() => {
-    const fetchOfflineOrders = async () => {
-      try {
-        const userId = await AsyncStorage.getItem('userId'); // Make sure userId is retrieved correctly
-        if (!userId) {
-          console.error('User ID not found');
-          return;
-        }
+  // useEffect(() => {
+  //   const fetchOfflineOrders = async () => {
+  //     try {
+  //       const userId = await AsyncStorage.getItem('userId'); // Make sure userId is retrieved correctly
+  //       if (!userId) {
+  //         console.error('User ID not found');
+  //         return;
+  //       }
 
-        const offlinePostOrders = await AsyncStorage.getItem(
-          `offlineOrders_${userId}`,
-        );
-        console.log(`Key used for offline orders: offlineOrders_${userId}`);
-        const parsedOfflinePostOrders = offlinePostOrders
-          ? JSON.parse(offlinePostOrders)
-          : [];
-        console.log(
-          parsedOfflinePostOrders,
-          'Post newly order data to be synced',
-        );
-        console.log(JSON.stringify(parsedOfflinePostOrders));
+  //       const offlinePostOrders = await AsyncStorage.getItem(
+  //         `offlineOrders_${userId}`,
+  //       );
+  //       console.log(`Key used for offline orders: offlineOrders_${userId}`);
+  //       const parsedOfflinePostOrders = offlinePostOrders
+  //         ? JSON.parse(offlinePostOrders)
+  //         : [];
+  //       console.log(
+  //         parsedOfflinePostOrders,
+  //         'Post newly order data to be synced',
+  //       );
+  //       console.log(JSON.stringify(parsedOfflinePostOrders));
 
-        const offlineEditOrders = await AsyncStorage.getItem(
-          `offlineEditOrders_${userId}`,
-        );
-        const parsedOfflineEditOrders = offlineEditOrders
-          ? JSON.parse(offlineEditOrders)
-          : [];
-        console.log(
-          JSON.stringify(parsedOfflineEditOrders),
-          'Data of offline edit orders',
-        );
-      } catch (error) {
-        console.error('Error fetching offline orders:', error);
-      }
-    };
+  //       const offlineEditOrders = await AsyncStorage.getItem(
+  //         `offlineEditOrders_${userId}`,
+  //       );
+  //       const parsedOfflineEditOrders = offlineEditOrders
+  //         ? JSON.parse(offlineEditOrders)
+  //         : [];
+  //       console.log(
+  //         JSON.stringify(parsedOfflineEditOrders),
+  //         'Data of offline edit orders',
+  //       );
+  //     } catch (error) {
+  //       console.error('Error fetching offline orders:', error);
+  //     }
+  //   };
 
-    fetchOfflineOrders();
-  }, []);
+  //   fetchOfflineOrders();
+  // }, []);
   const getHeadingData = async () => {
     // setIsLoading(true);
     const employeeId = await AsyncStorage.getItem('employeeId');
@@ -489,7 +489,7 @@ const Home = ({navigation}) => {
           );
           console.log(`Updated Order Count: ${orderCount}`);
 
-          // addCartonValueToStorage(order.totalCarton);
+          addCartonValueToStorage(order.totalCarton);
         } catch (error) {
           console.error('Error syncing offline order:', error);
           await saveFailedOrder(userId, order);

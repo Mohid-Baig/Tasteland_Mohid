@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   View,
   StyleSheet,
@@ -130,7 +130,7 @@ const AddNewShop = ({route}) => {
           },
         );
         setAllShops(response.data);
-        await saveShopTypesToAsyncStorage(response.data); // Save when online
+        // await saveShopTypesToAsyncStorage(response.data);
         console.log('Online shop data:', response.data);
       } else {
         // Fetching offline data
@@ -148,10 +148,14 @@ const AddNewShop = ({route}) => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    getAllShops();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getAllShops();
+    }, []),
+  );
+  // useEffect(() => {
+  //   getAllShops();
+  // }, []);
 
   const handleDateChange = selectedDate => {
     console.log(selectedDate, 'selectedDate');
@@ -447,7 +451,7 @@ const AddNewShop = ({route}) => {
         // await saveShopTypesToAsyncStorage(fetchedShopTypes);
         storedShopTypes = fetchedShopTypes;
       }
-      setAllShops(storedShopTypes);
+      // setAllShops(storedShopTypes);
 
       // Attempt to retrieve Routes from AsyncStorage
       let storedRoutes = await getRoutesFromAsyncStorage();

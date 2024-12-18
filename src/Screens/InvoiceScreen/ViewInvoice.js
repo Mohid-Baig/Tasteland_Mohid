@@ -173,13 +173,10 @@ const ViewInvoice = ({route, navigation}) => {
           </View>
         </View>
       </ScrollView>
-      {cartItems.status === 'pending' && (
+      {cartItems.status.toLowerCase() === 'pending' && (
         <TouchableHighlight
           style={styles.EditButton}
           onPress={() => {
-            // console.log('Button clicked');
-            // console.log(cartItems.shop.id);
-            // console.log(cartItems.shop.name);
             navigation.navigate('CreateOrder', {
               shopData: {
                 Shopid: cartItems.shop.id,
@@ -187,7 +184,6 @@ const ViewInvoice = ({route, navigation}) => {
               },
               Invoiceitems: {
                 ...cartItems,
-                // You can also include any other relevant order information you need for editing
               },
               Store: cartItems.shop,
               existingOrderId: cartItems.id,

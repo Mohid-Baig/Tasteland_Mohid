@@ -177,7 +177,22 @@ const ConfirmOrder = ({route, navigation}) => {
     applySpecialDiscount -
     FinalDistributiveDiscount
   ).toFixed(2);
-  // console.log(currentOrderAmount, 'Total Order Price');
+  const calculateOrderForMultipleOfflineItems = async orderItems => {
+    const userId = await AsyncStorage.getItem('userId');
+    let totalCartons = 0;
+
+    orderItems.forEach(item => {
+      const {box_in_carton} = item.itemss; // Number of boxes in a carton
+      const boxOrdered = item.box_ordered; // Number of boxes ordered by the user
+
+      // Calculate the value (number of cartons) for the item
+      const cartonsForItem = boxOrdered / box_in_carton;
+
+      // Add this item's carton value to the total carton value
+      totalCartons += cartonsForItem;
+    });
+    return totalCartons;
+  };
   const calculateOrderForMultipleItems = async orderItems => {
     const userId = await AsyncStorage.getItem('userId');
     let totalCartons = 0;
@@ -196,9 +211,9 @@ const ConfirmOrder = ({route, navigation}) => {
       `totalCartons_${userId}`,
       totalCartons.toFixed(1),
     );
-    return totalCartons; // Return the total number of cartons for all items
+    return totalCartons;
   };
-  const saveOrderOffline = async currentLocation => {
+  const saveOrderOffline = async (currentLocation, totalCarton) => {
     const userId = await AsyncStorage.getItem('userId');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
     const fk_employee = await AsyncStorage.getItem('fk_employee');
@@ -209,14 +224,12 @@ const ConfirmOrder = ({route, navigation}) => {
       pricing_id: item.pricing_id,
     }));
 
-    // const totalCarton = await calculateOrderForMultipleItems(cartItems);
-
     const offlineOrder = {
       lng: currentLocation.longitude,
       lat: currentLocation.latitude,
       detailss: orderDetails,
       totalPrice: currentOrderAmount,
-      totalCarton: TotalCarton,
+      totalCarton: totalCarton,
       date: formattedDate,
       details: mergedCartItems,
       shop: Store,
@@ -325,30 +338,14 @@ const ConfirmOrder = ({route, navigation}) => {
     };
     try {
       const state = await NetInfo.fetch();
-
-      // If there's no network, save the order offline
+      const totalCarton = await calculateOrderForMultipleOfflineItems(
+        cartItems,
+      );
+      setTotalCartons(totalCarton);
       if (!state.isConnected) {
-        await saveOrderOffline(currentLocation);
-        const storedTotalCartons = await AsyncStorage.getItem(
-          `totalCartons_${userId}`,
-        );
-        let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
-
-        const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
-
-        const updatedTotalCartons = previousTotalCartons + newTotalCartons;
-        setTotalCartons(updatedTotalCartons);
-        await AsyncStorage.setItem(
-          `totalCartons_${userId}`,
-          updatedTotalCartons.toFixed(1),
-        );
-
-        console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
-
+        await saveOrderOffline(currentLocation, totalCarton);
         return;
       } else {
-        // Proceed with posting the order to the server
-
         console.log(data, 'Payload data');
         const response = await instance.post(
           '/secondary_order',
