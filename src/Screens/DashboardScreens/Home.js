@@ -70,6 +70,7 @@ const Home = ({navigation}) => {
       return [];
     }
   };
+
   const TokenRenew = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const refreshToken = await AsyncStorage.getItem('refresh_token');
@@ -89,7 +90,26 @@ const Home = ({navigation}) => {
       const AuthToken = response.data.access_token;
       await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
     } catch (error) {
-      console.error('Error Replacing auth Token', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+              // console.log('ok token newnew');
+              // TokenRenew();
+            },
+          },
+        ]);
+      } else {
+        console.log('Error', error);
+      }
     }
   };
   useEffect(() => {
@@ -198,12 +218,13 @@ const Home = ({navigation}) => {
           ToastAndroid.LONG,
           ToastAndroid.CENTER,
         );
-        Alert.alert('Session Expired', 'Please log in again.', [
+        Alert.alert('Session Expired', [
           {
             text: 'OK',
             onPress: async () => {
               // await AsyncStorage.removeItem('access_token');
               // navigation.replace('Login');
+              // console.log('ok token newnew');
               TokenRenew();
             },
           },
