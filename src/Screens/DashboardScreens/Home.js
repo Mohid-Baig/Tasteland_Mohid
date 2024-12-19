@@ -92,7 +92,7 @@ const Home = ({navigation}) => {
     } catch (error) {
       if (error.response && error.response.status === 401) {
         ToastAndroid.showWithGravity(
-          'Please Log in again',
+          'Please Log in again refreash',
           ToastAndroid.LONG,
           ToastAndroid.CENTER,
         );
@@ -112,6 +112,9 @@ const Home = ({navigation}) => {
       }
     }
   };
+  // useEffect(() => {
+  //   TokenRenew();
+  // }, []);
   useEffect(() => {
     const fetchStoredIds = async () => {
       const userId = await AsyncStorage.getItem('userId');
@@ -214,21 +217,22 @@ const Home = ({navigation}) => {
     } catch (error) {
       if (error.response && error.response.status === 401) {
         ToastAndroid.showWithGravity(
-          'Please Log in again',
+          'Please Log in again auth',
           ToastAndroid.LONG,
           ToastAndroid.CENTER,
         );
-        Alert.alert('Session Expired', [
-          {
-            text: 'OK',
-            onPress: async () => {
-              // await AsyncStorage.removeItem('access_token');
-              // navigation.replace('Login');
-              // console.log('ok token newnew');
-              TokenRenew();
-            },
-          },
-        ]);
+        TokenRenew();
+        // Alert.alert('Session Expired', [
+        //   {
+        //     text: 'OK',
+        //     onPress: async () => {
+        //       // await AsyncStorage.removeItem('access_token');
+        //       // navigation.replace('Login');
+        //       // console.log('ok token newnew');
+        //       TokenRenew();
+        //     },
+        //   },
+        // ]);
       } else {
         console.log('Error', error);
       }

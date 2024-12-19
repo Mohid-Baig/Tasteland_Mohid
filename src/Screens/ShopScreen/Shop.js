@@ -738,14 +738,12 @@ const AllShops = ({navigation, route}) => {
         closeModal();
       } catch (error) {
         if (error.response && error.response.status === 401) {
-          Alert.alert('Session Expired', [
-            {
-              text: 'OK',
-              onPress: async () => {
-                TokenRenew();
-              },
-            },
-          ]);
+          ToastAndroid.showWithGravity(
+            'Session Expired',
+            ToastAndroid.LONG,
+            ToastAndroid.CENTER,
+          );
+          TokenRenew();
         } else {
           console.log('Error', error);
           ToastAndroid.showWithGravity(
@@ -790,14 +788,12 @@ const AllShops = ({navigation, route}) => {
         closeModal();
       } catch (error) {
         if (error.response && error.response.status === 401) {
-          Alert.alert('Session Expired', [
-            {
-              text: 'OK',
-              onPress: async () => {
-                TokenRenew();
-              },
-            },
-          ]);
+          ToastAndroid.showWithGravity(
+            'Session Expired',
+            ToastAndroid.LONG,
+            ToastAndroid.CENTER,
+          );
+          TokenRenew();
         } else {
           console.log('Error', error);
           ToastAndroid.showWithGravity(
@@ -846,14 +842,12 @@ const AllShops = ({navigation, route}) => {
         console.log(response.data);
       } catch (error) {
         if (error.response && error.response.status === 401) {
-          Alert.alert('Session Expired', [
-            {
-              text: 'OK',
-              onPress: async () => {
-                TokenRenew();
-              },
-            },
-          ]);
+          ToastAndroid.showWithGravity(
+            'Session Expired',
+            ToastAndroid.LONG,
+            ToastAndroid.CENTER,
+          );
+          TokenRenew();
         } else {
           console.log('Error', error);
           ToastAndroid.showWithGravity(
