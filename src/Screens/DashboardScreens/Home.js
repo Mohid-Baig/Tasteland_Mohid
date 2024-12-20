@@ -92,7 +92,7 @@ const Home = ({navigation}) => {
     } catch (error) {
       if (error.response && error.response.status === 401) {
         ToastAndroid.showWithGravity(
-          'Please Log in again refreash',
+          'Please Log in again',
           ToastAndroid.LONG,
           ToastAndroid.CENTER,
         );
@@ -217,7 +217,7 @@ const Home = ({navigation}) => {
     } catch (error) {
       if (error.response && error.response.status === 401) {
         ToastAndroid.showWithGravity(
-          'Please Log in again auth',
+          'Please Log in again',
           ToastAndroid.LONG,
           ToastAndroid.CENTER,
         );
