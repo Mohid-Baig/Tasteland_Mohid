@@ -145,14 +145,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#000',
   },
   productBlock: {
     marginBottom: 20,
   },
   productTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 10,
+    color: '#000',
   },
   row: {
     flexDirection: 'column',
@@ -161,11 +163,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#555',
+    color: '#000',
   },
   value: {
     fontSize: 14,
     fontWeight: 'bold',
+    color: '#000',
   },
 });
 
