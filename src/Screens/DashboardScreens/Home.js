@@ -423,8 +423,10 @@ const Home = ({navigation}) => {
     );
     return totalCartons; // Return the total number of cartons for all items
   };
+  let hasSyncErrors = false; // Track sync errors
   const syncOrders = async () => {
     setIsLoading(true);
+    let OrderSyncErrors = false;
     try {
       // Clear previous Territorial, Discount Slab, Special Discount Slab, and Pricing data
       await AsyncStorage.removeItem(`territorialData_${userId}`);
@@ -435,11 +437,10 @@ const Home = ({navigation}) => {
       await AsyncStorage.removeItem(`LocalAPI_${userId}`);
       await AsyncStorage.removeItem(`ProductData_${userId}`);
 
-      // Fetching failed orders from AsyncStorage
+      // Fetching failed, offline post, and offline edit orders
       const failedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
       const parsedOrders = failedOrders ? JSON.parse(failedOrders) : [];
 
-      // Fetching offline orders from AsyncStorage
       const offlinePostOrders = await AsyncStorage.getItem(
         `offlineOrders_${userId}`,
       );
@@ -447,7 +448,6 @@ const Home = ({navigation}) => {
         ? JSON.parse(offlinePostOrders)
         : [];
 
-      // Fetching offline edit orders from AsyncStorage
       const offlineEditOrders = await AsyncStorage.getItem(
         `offlineEditOrders_${userId}`,
       );
@@ -455,6 +455,7 @@ const Home = ({navigation}) => {
         ? JSON.parse(offlineEditOrders)
         : [];
 
+      // Sync Failed Orders
       for (const order of parsedOrders) {
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -464,18 +465,31 @@ const Home = ({navigation}) => {
             },
           });
           console.log('Failed order synced successfully:', response.data);
+          if (response) {
+            OrderSyncErrors = false;
+          }
         } catch (error) {
+          if (error.response && error.response.status === 401) {
+            ToastAndroid.showWithGravity(
+              'Please Log in again',
+              ToastAndroid.LONG,
+              ToastAndroid.CENTER,
+            );
+            TokenRenew();
+          }
           console.log('Error syncing failed order:', error);
+          OrderSyncErrors = true; // Mark error if failed
         }
       }
 
+      // Sync Offline Post Orders
       for (const order of parsedOfflinePostOrders) {
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
           if (!authToken) {
             console.warn('Auth token is missing. Skipping order sync.');
-            await saveFailedOrder(userId, order); // Important: save failed order
-            continue; // Skip to the next order
+            await saveFailedOrder(userId, order);
+            continue;
           }
 
           const response = await instance.post('/secondary_order', order, {
@@ -485,18 +499,18 @@ const Home = ({navigation}) => {
           });
 
           console.log('Offline order synced successfully:', response.data);
+          if (response) {
+            OrderSyncErrors = false;
+          }
 
           const postorderId = response.data.id;
-
           await updateStoredOrderIds(userId, postorderId);
 
           const storedTotalAmount = await AsyncStorage.getItem(
             `totalAmount_${userId}`,
           );
           let totalAmount = parseFloat(storedTotalAmount) || 0;
-
           totalAmount += parseFloat(order.totalPrice);
-
           await AsyncStorage.setItem(
             `totalAmount_${userId}`,
             totalAmount.toString(),
@@ -505,9 +519,7 @@ const Home = ({navigation}) => {
 
           let orderCount = await AsyncStorage.getItem(`orderCount_${userId}`);
           orderCount = parseInt(orderCount) || 0;
-
           orderCount++;
-
           await AsyncStorage.setItem(
             `orderCount_${userId}`,
             orderCount.toString(),
@@ -516,11 +528,21 @@ const Home = ({navigation}) => {
 
           addCartonValueToStorage(order.totalCarton);
         } catch (error) {
+          if (error.response && error.response.status === 401) {
+            ToastAndroid.showWithGravity(
+              'Please Log in again',
+              ToastAndroid.LONG,
+              ToastAndroid.CENTER,
+            );
+            TokenRenew();
+          }
           console.error('Error syncing offline order:', error);
           await saveFailedOrder(userId, order);
+          OrderSyncErrors = true;
         }
       }
 
+      // Sync Offline Edit Orders
       for (const order of parsedOfflineEditOrders) {
         console.log('Total Carton:', order.totalCarton);
         try {
@@ -531,7 +553,7 @@ const Home = ({navigation}) => {
             shop: order.shop,
             date: new Date().toISOString(), // Ensure the date is unique for every request
           };
-          console.log(data);
+
           const response = await instance.put(
             `/secondary_order/${order.id}`,
             JSON.stringify(data),
@@ -543,47 +565,48 @@ const Home = ({navigation}) => {
               },
             },
           );
+
+          if (response) {
+            OrderSyncErrors = false;
+          }
+
           const storedTotalAmount = await AsyncStorage.getItem(
             `totalAmount_${userId}`,
           );
           let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
-
-          // Add current order amount to the total
           totalAmount += parseFloat(order.totalPrice);
-
-          // Save updated total amount in AsyncStorage
           await AsyncStorage.setItem(
             `totalAmount_${userId}`,
             totalAmount.toString(),
           );
-
           console.log(`Updated Total Amount: ${totalAmount}`);
+
           const storedTotalCartons = await AsyncStorage.getItem(
             `totalCartons_${userId}`,
           );
           let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
-
-          // Retrieve the new calculated cartons
           const newTotalCartons = await calculateOrderForMultipleItems(order);
-
-          // Add the previous total to the new total
           const updatedTotalCartons = previousTotalCartons + newTotalCartons;
           setTotalCartons(updatedTotalCartons);
-          // Save the updated total cartons back to AsyncStorage
           await AsyncStorage.setItem(
             `totalCartons_${userId}`,
             updatedTotalCartons.toFixed(1),
           );
           console.log('Offline edit order synced successfully:', response.data);
         } catch (error) {
+          if (error.response && error.response.status === 401) {
+            ToastAndroid.showWithGravity(
+              'Please Log in again',
+              ToastAndroid.LONG,
+              ToastAndroid.CENTER,
+            );
+            TokenRenew();
+          }
           console.log('Error syncing offline edit order:', error);
           await saveFailedOrder(userId, order);
+          OrderSyncErrors = true;
         }
       }
-
-      // await AsyncStorage.removeItem(`failedOrders_${userId}`);
-      await AsyncStorage.removeItem(`offlineOrders_${userId}`);
-      await AsyncStorage.removeItem(`offlineEditOrders_${userId}`);
 
       await fetchAndStoreTerritorialData();
       await fetchAndStoreDiscountSlabData();
@@ -592,8 +615,16 @@ const Home = ({navigation}) => {
       await fetchShopType();
       await FetchAllProductdata();
       await FetchLocalAPIdata();
-      refreshApp();
-      Alert.alert('Sync Complete', 'All orders synced and data retrieved.');
+      if (hasSyncErrors) {
+        Alert.alert(
+          'Sync Incomplete',
+          'Data failed to sync. Check your internet connection and try again.',
+        );
+        // TokenRenew();
+      } else {
+        Alert.alert('Sync Complete', 'All orders synced and data retrieved.');
+        refreshApp();
+      }
     } catch (error) {
       console.log('Error during sync:', error);
       Alert.alert('Sync Failed', 'An error occurred while syncing orders.');
@@ -601,6 +632,7 @@ const Home = ({navigation}) => {
       setIsLoading(false);
     }
   };
+
   const updateStoredOrderIds = async (userId, newOrderId) => {
     try {
       // Use a transaction to ensure atomicity
@@ -698,8 +730,20 @@ const Home = ({navigation}) => {
         'Territorial data saved to AsyncStorage:',
         rawTerritorialData,
       );
+      if (response) {
+        hasSyncErrors = false;
+      }
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      }
       console.log('Error fetching territorial data:', error);
+      hasSyncErrors = true;
     }
   };
   const fetchAndStoreDiscountSlabData = async () => {
@@ -724,8 +768,12 @@ const Home = ({navigation}) => {
         'Discount Slab data saved to AsyncStorage:',
         discountSlabData,
       );
+      if (response) {
+        hasSyncErrors = false;
+      }
     } catch (error) {
       console.log('Error fetching Discount Slab data:', error);
+      hasSyncErrors = true;
     }
   };
   const fetchAndStoreSpecialDiscountSlabData = async () => {
@@ -750,8 +798,12 @@ const Home = ({navigation}) => {
         'Special Discount Slab data saved to AsyncStorage:',
         specialDiscountSlabData,
       );
+      if (response) {
+        hasSyncErrors = false;
+      }
     } catch (error) {
       console.log('Error fetching Special Discount Slab data:', error);
+      hasSyncErrors = true;
     }
   };
   const fetchAndStorePricingData = async () => {
@@ -769,8 +821,12 @@ const Home = ({navigation}) => {
       const pricingDataKey = `pricingData_${userId}`;
       await AsyncStorage.setItem(pricingDataKey, JSON.stringify(pricingData));
       console.log('Pricing data saved to AsyncStorage:', pricingData);
+      if (response) {
+        hasSyncErrors = false;
+      }
     } catch (error) {
       console.log('Error fetching Pricing data:', error);
+      hasSyncErrors = true;
     }
   };
   const fetchShopType = async () => {
@@ -788,8 +844,12 @@ const Home = ({navigation}) => {
       const shopTypeDataKey = `ShopTypeData_${userId}`;
       await AsyncStorage.setItem(shopTypeDataKey, JSON.stringify(ShopTypeData));
       console.log('ShopType data saved to AsyncStorage:', ShopTypeData);
+      if (response) {
+        hasSyncErrors = false;
+      }
     } catch (error) {
       console.log('Error fetching Pricing data:', error);
+      hasSyncErrors = true;
     }
   };
   const FetchAllProductdata = async () => {
@@ -807,8 +867,12 @@ const Home = ({navigation}) => {
       const ProductDatakey = `ProductData_${userId}`;
       await AsyncStorage.setItem(ProductDatakey, JSON.stringify(ProductData));
       console.log('Product data saved in Asyncstorage:', ProductData);
+      if (response) {
+        hasSyncErrors = false;
+      }
     } catch (error) {
       console.log('Error Fetching Product data', error);
+      hasSyncErrors = true;
     }
   };
   const FetchLocalAPIdata = async () => {
@@ -838,8 +902,12 @@ const Home = ({navigation}) => {
       const LocalAPIkey = `LocalAPI_${userId}`;
       await AsyncStorage.setItem(LocalAPIkey, JSON.stringify(LocalAPIData));
       console.log('LocalAPI data saved in Asyncstorage:', LocalAPIData);
+      if (response) {
+        hasSyncErrors = false;
+      }
     } catch (error) {
       console.log('Error Fetching LocalAPI data', error);
+      hasSyncErrors = true;
     }
   };
   const formatDate = date => {

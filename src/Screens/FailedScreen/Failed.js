@@ -460,6 +460,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
+    color: '#000',
   },
   actionContainer: {
     justifyContent: 'space-evenly',
