@@ -44,7 +44,47 @@ const Order = ({route, navigation}) => {
 
   //   fetchUserId();
   // }, []);
-
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      // await AsyncStorage.removeItem('AUTH_TOKEN');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+              // console.log('ok token newnew');
+              // TokenRenew();
+            },
+          },
+        ]);
+      } else {
+        console.log('Error', error);
+      }
+    }
+  };
   const fetchOfflineRouteData = async () => {
     const userId = await AsyncStorage.getItem('userId');
     try {
@@ -173,8 +213,18 @@ const Order = ({route, navigation}) => {
       // Save all data to AsyncStorage at once with timestamps
       // await saveAllDataToStorage(FilterDates, FilterRoute, FilterShops);
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        TokenRenew();
+      } else {
+        console.log('Error', error);
+      }
       console.log('Error fetching territorial data:', error);
-      Alert.alert('Error', 'Failed to fetch data from the server.');
+      Alert.alert('Error', 'Failed to fetch data from the server.', [
+        {
+          text: 'ok',
+          onPress: () => navigation.navigate('Home'),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }

@@ -89,6 +89,9 @@ const Home = ({navigation}) => {
       // await AsyncStorage.removeItem('AUTH_TOKEN');
       const AuthToken = response.data.access_token;
       await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+      getAttandanceStatus();
+      getHeadingData();
+      getOrderBookerID();
     } catch (error) {
       if (error.response && error.response.status === 401) {
         ToastAndroid.showWithGravity(
@@ -164,45 +167,7 @@ const Home = ({navigation}) => {
       };
     }, []),
   );
-  // useEffect(() => {
-  //   const fetchOfflineOrders = async () => {
-  //     try {
-  //       const userId = await AsyncStorage.getItem('userId'); // Make sure userId is retrieved correctly
-  //       if (!userId) {
-  //         console.error('User ID not found');
-  //         return;
-  //       }
 
-  //       const offlinePostOrders = await AsyncStorage.getItem(
-  //         `offlineOrders_${userId}`,
-  //       );
-  //       console.log(`Key used for offline orders: offlineOrders_${userId}`);
-  //       const parsedOfflinePostOrders = offlinePostOrders
-  //         ? JSON.parse(offlinePostOrders)
-  //         : [];
-  //       console.log(
-  //         parsedOfflinePostOrders,
-  //         'Post newly order data to be synced',
-  //       );
-  //       console.log(JSON.stringify(parsedOfflinePostOrders));
-
-  //       const offlineEditOrders = await AsyncStorage.getItem(
-  //         `offlineEditOrders_${userId}`,
-  //       );
-  //       const parsedOfflineEditOrders = offlineEditOrders
-  //         ? JSON.parse(offlineEditOrders)
-  //         : [];
-  //       console.log(
-  //         JSON.stringify(parsedOfflineEditOrders),
-  //         'Data of offline edit orders',
-  //       );
-  //     } catch (error) {
-  //       console.error('Error fetching offline orders:', error);
-  //     }
-  //   };
-
-  //   fetchOfflineOrders();
-  // }, []);
   const getHeadingData = async () => {
     // setIsLoading(true);
     const employeeId = await AsyncStorage.getItem('employeeId');
@@ -311,13 +276,21 @@ const Home = ({navigation}) => {
           },
         },
       );
-      // console.log(response.data, "Attandance");
+      console.log(response.data, 'Attandance');
       if (response.data?.attendance_check_in) {
         setCheckAttandance(true);
       } else if (response.data?.message) {
         getLocation();
       }
     } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      }
       console.log('Attandance Error', error);
     }
     // setIsLoading(false);
@@ -376,8 +349,12 @@ const Home = ({navigation}) => {
       // Now you can use `currentLocation` wherever needed
       // For example, set it to a state or pass it to another function
     } catch (error) {
-      const {code, message} = error;
-      console.warn(code, message);
+      // const {code, message} = error;
+      // console.warn(code, message);
+      Alert.alert(
+        'Location Required',
+        'To mark your attendence enable your location',
+      );
     }
   };
   useEffect(() => {
@@ -974,6 +951,22 @@ const Home = ({navigation}) => {
       fetchTotalCartons();
     }, []), // Empty dependency array ensures it runs on screen focus only
   );
+  const LocationPerm = () => {
+    if (checkAttandance) {
+      navigation.navigate('Order', {orderBokerId: orderBokerId});
+    } else {
+      Alert.alert(
+        'Attendence Unmarked',
+        'Please enable your location and mark your attendence',
+        [
+          {
+            text: 'ok',
+            onPress: () => getLocation(),
+          },
+        ],
+      );
+    }
+  };
   return (
     <ImageBackground
       style={styles.image}
@@ -1013,20 +1006,37 @@ const Home = ({navigation}) => {
             {DistributerName ? DistributerName : 'null'}
           </Text>
         </View>
-        {checkAttandance ? (
-          <View>
-            <Text style={[styles.HeadingTxt]}>
-              Attendance <Text style={{color: 'green'}}>Marked</Text>
-            </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            alignItems: 'center',
+          }}>
+          {checkAttandance ? (
+            <View>
+              <Text style={[styles.HeadingTxt]}>
+                Attendance <Text style={{color: 'green'}}>Marked</Text>
+              </Text>
+            </View>
+          ) : (
+            <View>
+              <Text style={styles.HeadingTxt}>
+                Attendance <Text style={{color: 'red'}}>Un Marked</Text>
+              </Text>
+            </View>
+          )}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              // alignSelf: 'flex-end',
+              // marginRight: 20,
+            }}>
+            <Text style={styles.MiddleTXT}>Ver no: </Text>
+            <Text style={styles.MiddleTXT}>0.74.5</Text>
           </View>
-        ) : (
-          <View>
-            <Text style={styles.HeadingTxt}>
-              Attendance <Text style={{color: 'red'}}>Un Marked</Text>
-            </Text>
-          </View>
-        )}
-
+        </View>
         <View style={styles.MiddleContainer}>
           <View style={styles.MiddleLeft}>
             <Text style={styles.MiddleTXT}>TOTAL VISITS</Text>
@@ -1055,9 +1065,7 @@ const Home = ({navigation}) => {
         <View>
           <View style={styles.BottomContainer}>
             <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('Order', {orderBokerId: orderBokerId})
-              }
+              onPress={() => LocationPerm()}
               style={styles.ButtonContainer}>
               <Text style={styles.BtnTopTxt}>CREATE NEW ORDER</Text>
               <Text style={styles.HeadingTxt}>Order</Text>

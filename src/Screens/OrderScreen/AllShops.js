@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useMemo,
   useContext,
+  memo,
 } from 'react';
 import {
   View,
@@ -34,212 +35,70 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 
 import GetLocation from 'react-native-get-location';
 import Loader from '../../Components/Loaders/Loader';
-let StockAlreadyExist = [];
-const Add_Left_Stock = payload => {
-  if (payload) {
-    // Find the index of the existing item in the state
-    const existingIndex = StockAlreadyExist.findIndex(
-      item => item.pricing_id === payload.pricing_id,
-    );
+// let StockAlreadyExist = [];
+// const Add_Left_Stock = payload => {
+//   if (payload) {
+//     // Find the index of the existing item in the state
+//     const existingIndex = StockAlreadyExist.findIndex(
+//       item => item.pricing_id === payload.pricing_id,
+//     );
 
-    // If the item has both 'carton_ordered' and 'box_ordered' as 0, remove it from the state
-    if (payload.carton_ordered === 0 && payload.box_ordered === 0) {
-      StockAlreadyExist = StockAlreadyExist.filter(
-        item => item.pricing_id !== payload.pricing_id,
-      );
-      return StockAlreadyExist;
-    }
+//     // If the item has both 'carton_ordered' and 'box_ordered' as 0, remove it from the state
+//     if (payload.carton_ordered === 0 && payload.box_ordered === 0) {
+//       StockAlreadyExist = StockAlreadyExist.filter(
+//         item => item.pricing_id !== payload.pricing_id,
+//       );
+//       return StockAlreadyExist;
+//     }
 
-    if (existingIndex !== -1) {
-      // If item exists, replace it with the new payload
-      StockAlreadyExist[existingIndex] = payload;
-    } else {
-      // If item doesn't exist, add the new item to the state
-      StockAlreadyExist = [...StockAlreadyExist, payload];
-    }
-  }
-  console.log(StockAlreadyExist, 'StockAlreadyExist');
+//     if (existingIndex !== -1) {
+//       // If item exists, replace it with the new payload
+//       StockAlreadyExist[existingIndex] = payload;
+//     } else {
+//       // If item doesn't exist, add the new item to the state
+//       StockAlreadyExist = [...StockAlreadyExist, payload];
+//     }
+//   }
+//   console.log(StockAlreadyExist, 'StockAlreadyExist in');
 
-  return StockAlreadyExist;
-};
-const Remove_Left_Stock = () => {
-  StockAlreadyExist = [];
-};
-const removeById = id => {
-  const updatedArray = StockAlreadyExist.filter(
-    stock => stock.itemss.id !== id,
-  );
-  StockAlreadyExist = updatedArray;
-};
+//   return StockAlreadyExist;
+// };
 
-// import AntDesign from 'react-native-vector-icons/AntDesign'
-const AllShops = ({navigation, route}) => {
-  const [search, setSearch] = useState('');
-  const [openclosesearch, setopenclosesearch] = useState(false);
-  const [stores, setStores] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedStore, setSelectedStore] = useState(null);
-  const [filteredStores, setFilteredStores] = useState([]);
-  const [markUnproductiveButton, setMarkUnproductiveButton] = useState(false);
-  const [Selectedroute, setSelectedRoute] = useState('');
-  const [routeDate, setRouteDate] = useState('');
-  const [toggleBtn, settoggleBtn] = useState('');
-  const [view, setView] = useState('Shop Closed'); // State to manage which view to show
-  const [shopcloseReason, setshopCloseReason] = useState(null);
-  const [allProducts, setAllProducts] = useState([]);
-  const [SKUview, setSKUView] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSKUs, setSelectedSKUs] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState([]);
-  const [orderBokerId, setOrderBokerId] = useState([]);
-  const [existingProduct, setExistingProduct] = useState([]);
-  const [customerRefused, setCustomerRefused] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [singleId, setSingleId] = useState(null);
-  const [confirmBtn, setconfirmBtn] = useState(false);
+// const Remove_Left_Stock = () => {
+//   StockAlreadyExist = [];
+// };
 
-  const incrementTotalVisits = async () => {
-    const userId = await AsyncStorage.getItem('userId');
-    if (!userId) return; // Ensure userId is available
+// const removeById = id => {
+//   const updatedArray = StockAlreadyExist.filter(
+//     stock => stock.itemss.id !== id,
+//   );
+//   StockAlreadyExist = updatedArray;
+// };
 
-    const totalVisitsKey = `totalVisits_${userId}`;
-    const visits = await AsyncStorage.getItem(totalVisitsKey);
-    const totalVisits = parseInt(visits) || 0;
-    const newTotal = totalVisits + 1;
-
-    // Update the total visits in AsyncStorage
-    await AsyncStorage.setItem(totalVisitsKey, newTotal.toString());
-
-    // Show success message or do something else
-  };
-  const TokenRenew = async () => {
-    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-    const refreshToken = await AsyncStorage.getItem('refresh_token');
-    const payload = {
-      refresh_token: refreshToken,
-    };
-    console.log(refreshToken);
-    try {
-      const response = await instance.post('/login/renew_token', payload, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
-      console.log(response.data, 'Token after refreashing');
-      // await AsyncStorage.removeItem('AUTH_TOKEN');
-      const AuthToken = response.data.access_token;
-      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        ToastAndroid.showWithGravity(
-          'Please Log in again',
-          ToastAndroid.LONG,
-          ToastAndroid.CENTER,
-        );
-        Alert.alert('Session Expired', 'Please Login Again', [
-          {
-            text: 'OK',
-            onPress: async () => {
-              await AsyncStorage.removeItem('refresh_token');
-              navigation.replace('Login');
-              // console.log('ok token newnew');
-              // TokenRenew();
-            },
-          },
-        ]);
-      } else {
-        console.log('Error', error);
-      }
-    }
-  };
-  const getorderBookerId = async () => {
-    const id = await AsyncStorage.getItem('orderbooker');
-    // console.log(id,"Id id ")
-    setOrderBokerId(parseInt(id));
-  };
-  // Function to handle the button press and update the view
-  const handlePress = newView => {
-    setView(newView);
-  };
-
-  const openSKUModal = () => {
-    setSKUView(true);
-  };
-
-  const closeSKUModal = () => {
-    setSKUView(false);
-  };
-
-  const dispatch = useDispatch();
-
-  const updateSearch = search => {
-    setSearch(search);
-    // console.log(search, "search")
-    if (search) {
-      const filteredData = stores.filter(store =>
-        store.name.toLowerCase().includes(search.toLowerCase()),
-      );
-      setFilteredStores(filteredData);
-    } else {
-      setFilteredStores(stores);
-    }
-  };
-
-  const togglesearch = () => {
-    setopenclosesearch(!openclosesearch);
-  };
-
-  // const filteredStores = stores.filter((store) =>
-  //     store.name.toLowerCase().includes(search.toLowerCase())
-  // );
-  const handleVisit = store => {
-    setSelectedStore(store);
-    setModalVisible(true);
-  };
-  const closeModal = () => {
-    setModalVisible(false);
-    setMarkUnproductiveButton(false);
-    setSelectedStore(null);
-    setView('Shop Closed');
-    setSelectedSKUs([]);
-    setSelectedProduct([]);
-    setSingleId(null);
-    setCustomerRefused('');
-    setshopCloseReason(null);
-    Remove_Left_Stock();
-  };
-  useEffect(() => {
-    const {Shops, RouteName, RouteDate} = route.params;
-    // console.log(RouteDate, 'Date');
-    // console.log('Shop route', Shops);
-    // console.log(RouteName, 'RouteName');
-    setStores(Shops);
-    setFilteredStores(Shops); // Initialize filteredStores with the complete list
-    setSelectedRoute(RouteName);
-    setRouteDate(RouteDate);
-  }, [route]);
-  // useEffect(()=>{
-  //     dispatch(RemoveAllCart());
-
-  // },[])
-  useFocusEffect(
-    React.useCallback(() => {
-      dispatch(RemoveAllCart());
-    }, [dispatch]),
-  );
-  useEffect(() => {
-    getorderBookerId();
-  }, []);
-
-  const AddSingleProduct = ({boxInCtn, itemss, Val, del}) => {
-    console.log(itemss, 'Itemss in All shop screen');
+const AddSingleProduct = memo(
+  ({boxInCtn, itemss, del, StockAlreadyExist, Add_Left_Stock}) => {
+    console.log('Rendering AddSingleProduct component');
+    console.log(boxInCtn, 'boxinctn');
+    console.log(itemss, 'itemss');
+    console.log(del, 'del');
     const [Pack, setPack] = useState(0);
     const [carton, setCarton] = useState(0);
     const [addOn, setAddOn] = useState('pack');
 
-    const AddProduct = () => {
+    useEffect(() => {
+      const existingProduct = StockAlreadyExist.find(
+        sku => sku.itemss?.id === itemss.id,
+      );
+      if (existingProduct) {
+        setPack(existingProduct.box_ordered || 0);
+        setCarton(existingProduct.carton_ordered || 0);
+      } else {
+        setPack(0);
+        setCarton(0);
+      }
+    }, [StockAlreadyExist, itemss.id]);
+    const AddProduct = useCallback(() => {
+      // useCallback here
       let item = {
         carton_ordered: carton,
         box_ordered: Pack,
@@ -248,18 +107,10 @@ const AllShops = ({navigation, route}) => {
         pack_in_box: boxInCtn,
       };
       Add_Left_Stock(item);
-      // console.log(StockAlreadyExist, 'tm');
-      // StockAlreadyExist.push(item);
-      // const stock = Add_Left_Stock(item);
-      // console.log(stock, 'ext')
-
-      // Val(item); // Callback to send data to parent
-      // dispatch(AddUnProductive(item));
-    };
+    }, [Pack, carton, itemss, Add_Left_Stock, boxInCtn]);
 
     const handleDelete = id => {
-      del(id); // Callback to delete an item
-
+      del(id);
       removeById(id);
     };
 
@@ -316,22 +167,14 @@ const AllShops = ({navigation, route}) => {
           val -= boxInCtn;
           ctn += 1;
         }
-        setPack(val);
         setCarton(ctn);
+        setPack(val);
       }
-      if (Pack > 0 || carton > 0) {
-        AddProduct();
-      }
-    }, [Pack, boxInCtn]);
+    }, [Pack]);
 
     useEffect(() => {
-      if (carton > 9999) {
-        setCarton(9999);
-      }
-      if (Pack > 0 || carton > 0) {
-        AddProduct();
-      }
-    }, [carton]);
+      AddProduct();
+    }, [Pack, carton]);
 
     return (
       <View
@@ -405,7 +248,370 @@ const AllShops = ({navigation, route}) => {
         </View>
       </View>
     );
+  },
+);
+
+// import AntDesign from 'react-native-vector-icons/AntDesign'
+const AllShops = ({navigation, route}) => {
+  const [search, setSearch] = useState('');
+  const [openclosesearch, setopenclosesearch] = useState(false);
+  const [stores, setStores] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedStore, setSelectedStore] = useState(null);
+  const [filteredStores, setFilteredStores] = useState([]);
+  const [markUnproductiveButton, setMarkUnproductiveButton] = useState(false);
+  const [Selectedroute, setSelectedRoute] = useState('');
+  const [routeDate, setRouteDate] = useState('');
+  const [toggleBtn, settoggleBtn] = useState('');
+  const [view, setView] = useState('Shop Closed'); // State to manage which view to show
+  const [shopcloseReason, setshopCloseReason] = useState(null);
+  const [allProducts, setAllProducts] = useState([]);
+  const [SKUview, setSKUView] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSKUs, setSelectedSKUs] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState([]);
+  const [orderBokerId, setOrderBokerId] = useState([]);
+  const [existingProduct, setExistingProduct] = useState([]);
+  const [customerRefused, setCustomerRefused] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [singleId, setSingleId] = useState(null);
+  const [confirmBtn, setconfirmBtn] = useState(false);
+  const [StockAlreadyExist, setStockAlreadyExist] = useState([]);
+  const [rerender, setRerender] = useState(0);
+
+  const Add_Left_Stock = useCallback(payload => {
+    if (!payload) return;
+
+    setStockAlreadyExist(prevStock => {
+      const existingIndex = prevStock.findIndex(
+        item => item.pricing_id === payload.pricing_id,
+      );
+
+      if (payload.carton_ordered === 0 && payload.box_ordered === 0) {
+        return prevStock.filter(item => item.pricing_id !== payload.pricing_id);
+      }
+
+      if (existingIndex !== -1) {
+        return prevStock.map((item, index) =>
+          index === existingIndex ? payload : item,
+        );
+      } else {
+        return [...prevStock, payload];
+      }
+    });
+    setRerender(prev => prev + 1); // Force rerender after state update
+  }, []);
+
+  const Remove_Left_Stock = useCallback(() => {
+    setStockAlreadyExist([]);
+    setRerender(prev => prev + 1);
+  }, []);
+
+  const removeById = useCallback(id => {
+    setStockAlreadyExist(prevStock =>
+      prevStock.filter(stock => stock.itemss.id !== id),
+    );
+    setRerender(prev => prev + 1);
+  }, []);
+  const incrementTotalVisits = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) return; // Ensure userId is available
+
+    const totalVisitsKey = `totalVisits_${userId}`;
+    const visits = await AsyncStorage.getItem(totalVisitsKey);
+    const totalVisits = parseInt(visits) || 0;
+    const newTotal = totalVisits + 1;
+
+    // Update the total visits in AsyncStorage
+    await AsyncStorage.setItem(totalVisitsKey, newTotal.toString());
+
+    // Show success message or do something else
   };
+
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+            },
+          },
+        ]);
+      } else {
+        console.log('Error', error);
+      }
+    }
+  };
+
+  const getorderBookerId = async () => {
+    const id = await AsyncStorage.getItem('orderbooker');
+    setOrderBokerId(parseInt(id));
+  };
+
+  const handlePress = newView => {
+    setView(newView);
+  };
+
+  const openSKUModal = () => {
+    setSKUView(true);
+  };
+
+  const closeSKUModal = () => {
+    setSKUView(false);
+  };
+
+  const dispatch = useDispatch();
+
+  const updateSearch = search => {
+    setSearch(search);
+    if (search) {
+      const filteredData = stores.filter(store =>
+        store.name.toLowerCase().includes(search.toLowerCase()),
+      );
+      setFilteredStores(filteredData);
+    } else {
+      setFilteredStores(stores);
+    }
+  };
+
+  const togglesearch = () => {
+    setopenclosesearch(!openclosesearch);
+  };
+
+  const handleVisit = store => {
+    setSelectedStore(store);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setMarkUnproductiveButton(false);
+    setSelectedStore(null);
+    setView('Shop Closed');
+    setSelectedSKUs([]);
+    setSelectedProduct([]);
+    setSingleId(null);
+    setCustomerRefused('');
+    setshopCloseReason(null);
+    Remove_Left_Stock();
+  };
+
+  useEffect(() => {
+    const {Shops, RouteName, RouteDate} = route.params;
+    setStores(Shops);
+    setFilteredStores(Shops);
+    setSelectedRoute(RouteName);
+    setRouteDate(RouteDate);
+  }, [route]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      dispatch(RemoveAllCart());
+    }, [dispatch]),
+  );
+
+  useEffect(() => {
+    getorderBookerId();
+  }, []);
+
+  // const AddSingleProduct = ({boxInCtn, itemss, Val, del}) => {
+  //   console.log('Rendering AddSingleProduct component');
+  //   console.log(boxInCtn, 'boxinctn');
+  //   console.log(itemss, 'itemss');
+  //   console.log(del, 'del');
+  //   const [Pack, setPack] = useState(0);
+  //   const [carton, setCarton] = useState(0);
+  //   const [addOn, setAddOn] = useState('pack');
+
+  //   useEffect(() => {
+  //     const existingProduct = StockAlreadyExist.find(
+  //       sku => sku.itemss?.id === itemss.id,
+  //     ); // Optional chaining
+  //     if (existingProduct) {
+  //       setPack(existingProduct.box_ordered || 0);
+  //       setCarton(existingProduct.carton_ordered || 0);
+  //     } else {
+  //       setPack(0);
+  //       setCarton(0);
+  //     }
+  //   }, [StockAlreadyExist, itemss.id]);
+  //   const AddProduct = useCallback(() => {
+  //     // useCallback here
+  //     let item = {
+  //       carton_ordered: carton,
+  //       box_ordered: Pack,
+  //       pricing_id: itemss.id,
+  //       itemss: itemss,
+  //       pack_in_box: boxInCtn,
+  //     };
+  //     Add_Left_Stock(item);
+  //   }, [Pack, carton, itemss, Add_Left_Stock, boxInCtn]);
+
+  //   const handleDelete = id => {
+  //     del(id);
+  //     removeById(id);
+  //   };
+
+  //   const handlePackChange = txt => {
+  //     let num = parseInt(txt);
+  //     if (isNaN(num)) {
+  //       setPack(0);
+  //     } else if (num > 9999) {
+  //       setPack(9999);
+  //     } else {
+  //       setPack(num);
+  //     }
+  //   };
+
+  //   const handleCartonChange = txt => {
+  //     let num = parseInt(txt);
+  //     if (isNaN(num)) {
+  //       setCarton(0);
+  //     } else if (num > 9999) {
+  //       setCarton(9999);
+  //     } else {
+  //       setCarton(num);
+  //     }
+  //   };
+
+  //   const AddSub = val => {
+  //     if (val === 'Add') {
+  //       if (addOn === 'pack') {
+  //         setPack(prevPack => {
+  //           if (prevPack >= boxInCtn) {
+  //             setCarton(prevCarton => prevCarton + 1);
+  //             return 0;
+  //           } else {
+  //             return prevPack + 1;
+  //           }
+  //         });
+  //       } else if (addOn === 'carton') {
+  //         setCarton(prevCarton => prevCarton + 1);
+  //       }
+  //     } else if (val === 'Sub') {
+  //       if (addOn === 'pack') {
+  //         setPack(prevPack => Math.max(prevPack - 1, 0)); // Ensure non-negative
+  //       } else if (addOn === 'carton') {
+  //         setCarton(prevCarton => Math.max(prevCarton - 1, 0)); // Ensure non-negative
+  //       }
+  //     }
+  //   };
+
+  //   useEffect(() => {
+  //     if (Pack >= boxInCtn) {
+  //       let val = Pack;
+  //       let ctn = carton;
+  //       while (val >= boxInCtn) {
+  //         val -= boxInCtn;
+  //         ctn += 1;
+  //       }
+  //       setCarton(ctn);
+  //       setPack(val);
+  //     }
+  //   }, [Pack]);
+
+  //   useEffect(() => {
+  //     AddProduct();
+  //   }, [Pack, carton]);
+
+  //   return (
+  //     <View
+  //       style={{
+  //         marginTop: '2%',
+  //         borderBottomColor: '#000',
+  //         borderBottomWidth: 1,
+  //       }}>
+  //       <Text style={{color: '#000', fontSize: 13}}>
+  //         {`${itemss.product.name} ${itemss.sku.name} ${itemss.variant.name}`}
+  //       </Text>
+  //       <View
+  //         style={{
+  //           flexDirection: 'row',
+  //           alignItems: 'center',
+  //           justifyContent: 'space-between',
+  //         }}>
+  //         <AntDesign
+  //           name="delete"
+  //           size={25}
+  //           color={'red'}
+  //           onPress={() => handleDelete(itemss.id)}
+  //         />
+  //         <View style={{flexDirection: 'row', alignItems: 'center'}}>
+  //           <TouchableOpacity
+  //             style={{padding: '1%'}}
+  //             onPress={() => AddSub('Sub')}>
+  //             <AntDesign name="minuscircle" size={24} color={'#2196f3'} />
+  //           </TouchableOpacity>
+  //           <View
+  //             style={{
+  //               padding: '1%',
+  //               borderBottomColor: '#c0c0c0',
+  //               borderBottomWidth: 1,
+  //             }}>
+  //             <TextInput
+  //               value={carton.toString()}
+  //               onChangeText={handleCartonChange}
+  //               placeholder="0"
+  //               placeholderTextColor={'#000'}
+  //               keyboardType="numeric"
+  //               onFocus={() => setAddOn('carton')}
+  //               style={{color: '#000'}}
+  //             />
+  //           </View>
+  //           <View style={{padding: '1%'}}>
+  //             <Text>-</Text>
+  //           </View>
+  //           <View
+  //             style={{
+  //               padding: '1%',
+  //               borderBottomColor: '#c0c0c0',
+  //               borderBottomWidth: 1,
+  //             }}>
+  //             <TextInput
+  //               value={Pack.toString()}
+  //               onChangeText={handlePackChange}
+  //               placeholder="0"
+  //               placeholderTextColor={'#000'}
+  //               keyboardType="numeric"
+  //               onFocus={() => setAddOn('pack')}
+  //               style={{color: '#000'}}
+  //             />
+  //           </View>
+  //           <TouchableOpacity
+  //             style={{padding: '1%'}}
+  //             onPress={() => AddSub('Add')}>
+  //             <AntDesign name="pluscircle" size={24} color={'#2196f3'} />
+  //           </TouchableOpacity>
+  //         </View>
+  //       </View>
+  //     </View>
+  //   );
+  // };
 
   const renderItem = ({item, index}) => (
     <View style={styles.listItem}>
@@ -457,8 +663,18 @@ const AllShops = ({navigation, route}) => {
       setAllProducts(response.data);
       setFilteredProducts(response.data);
       //   console.log(JSON.stringify(response.data), 'Hello');
+      console.log('getProduct api successful');
     } catch (error) {
-      console.log('Error', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Session Expired',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -469,22 +685,24 @@ const AllShops = ({navigation, route}) => {
   }, []);
 
   const toggleSelect = skuId => {
+    // Check if SKU is already selected
     if (selectedSKUs.includes(skuId)) {
+      // If selected, unselect it
       setSelectedSKUs(selectedSKUs.filter(id => id !== skuId));
     } else {
+      // If not selected, add it
       setSelectedSKUs([...selectedSKUs, skuId]);
     }
-    let productsForUnmark = [];
-    selectedSKUs.forEach(sku => [
-      allProducts.forEach(product => {
-        if (product.id === sku) {
-          productsForUnmark.push(product);
-        }
-      }),
-    ]);
-    console.log(productsForUnmark, 'Product');
-    // console.log(JSON.stringify(allProducts));
   };
+
+  useEffect(() => {
+    // Whenever the selectedSKUs change, we can update the list of products for unmarking
+    let productsForUnmark = allProducts.filter(product =>
+      selectedSKUs.includes(product.id),
+    );
+
+    console.log(productsForUnmark, 'Product set');
+  }, [selectedSKUs]); // This useEffect runs when selectedSKUs changes
 
   const filterProducts = query => {
     if (query) {
@@ -544,6 +762,7 @@ const AllShops = ({navigation, route}) => {
   };
 
   const getLocation = async () => {
+    console.log(StockAlreadyExist, 'StockAlreadyExist');
     setIsLoading(true);
     const hasPermission = await requestLocationPermission();
     if (!hasPermission) {
@@ -614,6 +833,7 @@ const AllShops = ({navigation, route}) => {
           },
         );
         console.log(response.data);
+        console.log(response.status);
         closeModal();
       } catch (error) {
         if (error.response && error.response.status === 401) {
@@ -663,7 +883,8 @@ const AllShops = ({navigation, route}) => {
             },
           },
         );
-        // console.log(response.data)
+        console.log(response.data);
+        console.log(response.status);
         closeModal();
       } catch (error) {
         if (error.response && error.response.status === 401) {
@@ -686,7 +907,7 @@ const AllShops = ({navigation, route}) => {
       // StockAlreadyExist
       let details = [];
       StockAlreadyExist.forEach(item => {
-        console.log(item, 'Id');
+        console.log(item, ' stock Id'); //Good for debugging
         details.push({
           carton: item.carton_ordered,
           box: item.box_ordered,
@@ -694,6 +915,8 @@ const AllShops = ({navigation, route}) => {
         });
       });
       try {
+        console.log('Detail', details);
+        console.log(StockAlreadyExist, 'StockAlreadyexsists');
         const data = {
           reason: customerRefused,
           rejection_type: 'stock_exists',
@@ -704,8 +927,7 @@ const AllShops = ({navigation, route}) => {
           details: details,
         };
 
-        // console.log(JSON.stringify(data), "Data");
-        closeModal();
+        console.log(JSON.stringify(data), ' stockData');
 
         const response = await instance.post(
           '/unproductive_visit',
@@ -719,6 +941,8 @@ const AllShops = ({navigation, route}) => {
           },
         );
         console.log(response.data);
+        console.log(response.status);
+        closeModal();
       } catch (error) {
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
@@ -1037,29 +1261,32 @@ const AllShops = ({navigation, route}) => {
                           <View style={{height: '80%'}}>
                             <FlatList
                               showsVerticalScrollIndicator={false}
-                              data={selectedProduct}
-                              keyExtractor={(item, index) => index.toString()}
+                              data={selectedProduct} // Ensure this contains the expected data
+                              keyExtractor={(item, index) =>
+                                item?.id?.toString() || index.toString()
+                              }
                               renderItem={({item}) => (
                                 <AddSingleProduct
                                   itemss={item}
                                   boxInCtn={boxFilter(item.variant.name)}
+                                  StockAlreadyExist={StockAlreadyExist} // Pass StockAlreadyExist as prop
+                                  Add_Left_Stock={Add_Left_Stock}
                                   del={id => {
-                                    // Remove from existingProduct
+                                    console.log(
+                                      'Delete called for SKU with id:',
+                                      id,
+                                    );
                                     setExistingProduct(prevProducts =>
                                       prevProducts.filter(
                                         existingItem =>
                                           existingItem.itemss.item.id !== id,
                                       ),
                                     );
-
-                                    // Remove from selectedProduct
                                     setSelectedProduct(prevProducts =>
                                       prevProducts.filter(
                                         selectedItem => selectedItem.id !== id,
                                       ),
                                     );
-
-                                    // Remove from selectedSKUs
                                     setSelectedSKUs(prevSKUs =>
                                       prevSKUs.filter(skuId => skuId !== id),
                                     );
@@ -1172,36 +1399,35 @@ const AllShops = ({navigation, route}) => {
               <FlatList
                 showsVerticalScrollIndicator={false}
                 data={filteredProducts}
-                keyExtractor={(item, index) => index}
+                keyExtractor={(item, index) => index.toString()}
                 renderItem={({item}) => (
                   <View style={styles.skuItem}>
                     <View style={{width: '10%'}}>
-                      {/* {console.log(item)} */}
                       <CheckBox
                         value={selectedSKUs.includes(item.id)}
-                        tintColors={'#9E663C'}
-                        onCheckColor={'#6F763F'}
-                        onFillColor={'#4DABEC'}
-                        onTintColor={'#F4DCF8'}
-                        onValueChange={() => toggleSelect(item.id)}
+                        onValueChange={() => {
+                          console.log(item, 'item in toggle search');
+                          toggleSelect(item.id); // Update SKU selection on press
+                          setSelectedProduct(prevProducts => [
+                            ...prevProducts,
+                            item,
+                          ]);
+                        }}
                       />
                     </View>
                     <TouchableOpacity
                       style={{width: '90%'}}
                       onPress={() => {
-                        selectedSKUs.includes(item.id);
-                        toggleSelect(item.id);
-                        // console.log(selectedProduct, 'pp')
-
+                        console.log(item, 'item in toggle search');
+                        toggleSelect(item.id); // Update SKU selection on press
                         setSelectedProduct(prevProducts => [
                           ...prevProducts,
                           item,
                         ]);
                       }}>
-                      <Text
-                        style={
-                          styles.skuText
-                        }>{`${item.product.name} ${item.sku.name} ${item.variant.name}`}</Text>
+                      <Text style={styles.skuText}>
+                        {`${item.product.name} ${item.sku.name} ${item.variant.name}`}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
