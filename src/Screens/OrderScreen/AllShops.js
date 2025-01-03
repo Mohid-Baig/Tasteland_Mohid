@@ -851,6 +851,11 @@ const AllShops = ({navigation, route}) => {
             ToastAndroid.CENTER,
           );
         }
+        if (error.response && error.response.status === 400) {
+          Alert.alert(
+            'Please Check is your input is empty or Check if any order is pending',
+          );
+        }
       }
     } else if (view === 'Customer Refused') {
       try {
@@ -900,6 +905,11 @@ const AllShops = ({navigation, route}) => {
             'Unable to post Mark UnProductive Visit.',
             ToastAndroid.LONG,
             ToastAndroid.CENTER,
+          );
+        }
+        if (error.response && error.response.status === 400) {
+          Alert.alert(
+            'Please Check is your input is empty or Check if any order is pending',
           );
         }
       }
@@ -957,6 +967,11 @@ const AllShops = ({navigation, route}) => {
             'Unable to post Mark UnProductive Visit.',
             ToastAndroid.LONG,
             ToastAndroid.CENTER,
+          );
+        }
+        if (error.response && error.response.status === 400) {
+          Alert.alert(
+            'Please Check is your input is empty or Check if any order is pending',
           );
         }
       }
