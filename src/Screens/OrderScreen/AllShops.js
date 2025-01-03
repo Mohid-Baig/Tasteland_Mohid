@@ -853,7 +853,8 @@ const AllShops = ({navigation, route}) => {
         }
         if (error.response && error.response.status === 400) {
           Alert.alert(
-            'Please Check is your input is empty or Check if any order is pending',
+            'Error',
+            'Please Check if your input is empty or Check if any order is pending',
           );
         }
       }
