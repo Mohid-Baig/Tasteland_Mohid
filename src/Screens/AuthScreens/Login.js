@@ -15,8 +15,8 @@ import Loader from '../../Components/Loaders/Loader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Login = ({navigation}) => {
-  const [username, setUsername] = useState('0312-0444718');
-  const [password, setPassword] = useState('secret');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
