@@ -6,6 +6,7 @@ import {
   FlatList,
   Text,
   Alert,
+  PermissionsAndroid,
 } from 'react-native';
 import {TextInput, Button} from 'react-native-paper';
 import {Picker} from '@react-native-picker/picker';
@@ -17,6 +18,7 @@ import {ScrollView} from 'react-native-gesture-handler';
 import Loader from '../../Components/Loaders/Loader';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
+import GetLocation from 'react-native-get-location';
 
 const SHOPS_STORAGE_KEY = 'OFFLINE_SHOPS';
 const SHOP_TYPES_STORAGE_KEY = 'SHOP_TYPES';
@@ -50,6 +52,8 @@ const AddNewShop = ({route}) => {
   const [isSynced, setIsSynced] = useState(false);
   const {orderBokerId} = route.params;
   const [edited, isEdited] = useState(false);
+  const [longitude, setLongitude] = useState(null);
+  const [latitude, setLatitude] = useState(null);
   // console.log('Received orderBokerId in AddNewShop:', orderBokerId);
   // const  orderBokerId  =AsyncStorage.getItem('orderBokerId');
   // console.log(orderBokerId, 'orderBokerId');
@@ -565,8 +569,67 @@ const AddNewShop = ({route}) => {
 
     return () => unsubscribe();
   }, []);
+  const requestLocationPermission = async () => {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Location Permission',
+          message:
+            'This app needs access to your location to show your current position.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        console.log('You can use the location');
+        return true;
+      } else {
+        console.log('Location permission denied');
+        Alert.alert(
+          'Permission Denied',
+          'Location permission is required to Mark Attendance Go on app setting and turn on Location',
+        );
+        return false;
+      }
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
 
-  const handleSubmit = async () => {
+  const getLocation = async () => {
+    // console.log('lllllldldlld');
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+      Alert.alert(
+        'Permission Denied',
+        'Location permission is required to continue.',
+      );
+      return;
+    }
+    try {
+      const location = await GetLocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 60000,
+      });
+      const currentLocation = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+      };
+      handleSubmit(currentLocation);
+    } catch (error) {
+      if (error.code === 'CANCELLED') {
+        console.log('Location request was cancelled by the user.');
+      } else {
+        Alert.alert('Error', 'Unable to fetch location. Please try again.');
+      }
+      console.warn(error);
+    }
+  };
+
+  const handleSubmit = async currentLocation => {
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
@@ -588,8 +651,8 @@ const AddNewShop = ({route}) => {
       ntn: ntn,
       active: true,
       credit_active: false,
-      lat: 0,
-      lng: 0,
+      lat: currentLocation.latitude,
+      lng: currentLocation.longitude,
       register_date: currentDate,
       activation_date: currentDate,
       fk_shop_type: shopType,
@@ -737,6 +800,8 @@ const AddNewShop = ({route}) => {
       setShelf(Item.shelf);
       setntn(Item.ntn);
       isEdited(true);
+      setLatitude(Item.lat);
+      setLongitude(Item.lng);
     }
   }, [route.params]);
   return (
@@ -756,13 +821,13 @@ const AddNewShop = ({route}) => {
                   justifyContent: 'center',
                 },
               ]}
-              onPress={() => handleSubmit()}>
+              onPress={() => getLocation()}>
               <AntDesign name={'edit'} color={'#fff'} size={30} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.Add_col}
-              onPress={() => handleSubmit()}>
+              onPress={() => getLocation()}>
               <AntDesign name={'checkcircle'} color={'#2196f3'} size={50} />
             </TouchableOpacity>
           )}
@@ -941,6 +1006,23 @@ const AddNewShop = ({route}) => {
           cursorColor="#2196f3"
           activeUnderlineColor="#2196f3"
         />
+        {route.params.Item ? (
+          <View style={{marginLeft: -45}}>
+            <View
+              style={[
+                styles.input,
+                styles.borderPickBottom,
+                {
+                  flexDirection: 'row',
+                  justifyContent: 'space-evenly',
+                  marginTop: 20,
+                },
+              ]}>
+              <Text>lat:{latitude}</Text>
+              <Text>lng:{longitude}</Text>
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );

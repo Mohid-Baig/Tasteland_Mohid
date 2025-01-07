@@ -179,6 +179,7 @@ const Order = ({route, navigation}) => {
       // Populate allDates
       const FilterDates = rawTerritorialData.pjp_shops.map(val => val.pjp_date);
       setAllDates(FilterDates);
+      console.log(FilterDates, 'FilterDates');
 
       // Populate allroute with date information
       const FilterRoute = [];
@@ -229,89 +230,6 @@ const Order = ({route, navigation}) => {
       setIsLoading(false);
     }
   };
-
-  // Function to load data from AsyncStorage and check freshness
-  // const loadDataFromStorage = async () => {
-  //   const userId = await AsyncStorage.getItem('userId');
-  //   try {
-  //     const storedDates = await AsyncStorage.getItem(
-  //       STORAGE_KEYS.DATES + userId,
-  //     );
-  //     const storedRoutes = await AsyncStorage.getItem(
-  //       STORAGE_KEYS.ROUTES + userId,
-  //     );
-  //     const storedShops = await AsyncStorage.getItem(
-  //       STORAGE_KEYS.SHOPS + userId,
-  //     );
-
-  //     if (storedDates && storedRoutes && storedShops) {
-  //       const parsedDates = JSON.parse(storedDates);
-  //       const parsedRoutes = JSON.parse(storedRoutes);
-  //       const parsedShops = JSON.parse(storedShops);
-
-  //       // Define data freshness (e.g., 24 hours)
-  //       const freshnessThreshold = 24 * 60 * 60 * 1000; // 24 hours in ms
-  //       const currentTime = new Date().getTime();
-
-  //       const isDataFresh =
-  //         currentTime - new Date(parsedDates.timestamp).getTime() <
-  //           freshnessThreshold &&
-  //         currentTime - new Date(parsedRoutes.timestamp).getTime() <
-  //           freshnessThreshold &&
-  //         currentTime - new Date(parsedShops.timestamp).getTime() <
-  //           freshnessThreshold;
-
-  //       if (isDataFresh) {
-  //         setAllDates(parsedDates.data);
-  //         setAllRoute(parsedRoutes.data);
-  //         setAllShops(parsedShops.data);
-  //         console.log('Loaded fresh data from AsyncStorage.');
-  //         return true;
-  //       } else {
-  //         console.log('Stored data is stale.');
-  //         return false;
-  //       }
-  //     } else {
-  //       console.log('No data found in AsyncStorage.');
-  //       return false;
-  //     }
-  //   } catch (error) {
-  //     console.log('Error loading data from AsyncStorage:', error);
-  //     return false;
-  //   }
-  // };
-
-  // Function to handle data loading based on network status
-  // const loadData = async () => {
-  //   setIsLoading(true);
-  //   try {
-  //     const state = await NetInfo.fetch();
-  //     setIsConnected(state.isConnected);
-
-  //     if (state.isConnected) {
-  //       console.log('Device is online. Fetching data from API.');
-  //       await getTerritorial();
-  //     } else {
-  //       console.log('Device is offline. Loading data from AsyncStorage.');
-  //       const dataLoaded = await loadDataFromStorage();
-  //       if (!dataLoaded) {
-  //         Alert.alert(
-  //           'No Data Available',
-  //           'You are offline and no cached data is available. Please connect to the internet.',
-  //         );
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.log('Error determining network status:', error);
-  //     // As a fallback, try loading from storage
-  //     const dataLoaded = await loadDataFromStorage();
-  //     if (!dataLoaded) {
-  //       Alert.alert('Error', 'Failed to load data.');
-  //     }
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -412,6 +330,10 @@ const Order = ({route, navigation}) => {
       setshops(null); // Reset if no date selected
     }
   };
+  const getDayName = dateString => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {weekday: 'long'});
+  };
 
   return (
     <View style={{flex: 1}}>
@@ -429,9 +351,9 @@ const Order = ({route, navigation}) => {
             {allDates.map((date, index) => (
               <Picker.Item
                 key={index}
-                label={date}
+                label={`${getDayName(date)}, ${date}`} // Display day name + date
                 style={{color: 'grey'}}
-                value={date}
+                value={date} // Keep value as the original date
               />
             ))}
           </Picker>

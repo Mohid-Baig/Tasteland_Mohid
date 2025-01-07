@@ -70,6 +70,40 @@ const Home = ({navigation}) => {
       return [];
     }
   };
+  const getMondayToSundayWeek = date => {
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    const monday = 1;
+    let daysUntilMonday = dayOfWeek - monday;
+    if (daysUntilMonday < 0) {
+      daysUntilMonday += 7;
+    }
+    const startDate = new Date(dateObj);
+    startDate.setDate(dateObj.getDate() - daysUntilMonday);
+
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+
+    return {startDate, endDate};
+  };
+
+  const formatDateToYYYYMMDD = date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure 2 digits
+    const day = String(date.getDate()).padStart(2, '0'); // Ensure 2 digits
+    return `${year}-${month}-${day}`;
+  };
+
+  useEffect(() => {
+    const currentDate = new Date();
+    if (currentDate) {
+      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      setWeekDates({
+        startDate: formatDateToYYYYMMDD(startDate),
+        endDate: formatDateToYYYYMMDD(endDate),
+      });
+    }
+  }, []);
 
   const TokenRenew = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -244,17 +278,20 @@ const Home = ({navigation}) => {
   const getNameData = async () => {
     // setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-    const start = formatDate(weekDates?.startDate);
-    const end = formatDate(weekDates?.endDate);
+
     try {
-      const response = await axiosInstance.get(
-        `/radar_flutter/territorial/${orderBokerId}?start_date=${'2024-08-26'}&end_date=${'2024-08-26'}&sort_alphabetically=true`,
+      console.log(
+        `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}-----`,
+      );
+      const response = await instance.get(
+        `/radar_flutter/territorial/${orderBokerId}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
         },
       );
+      console.log('data coming in name', response.data);
       setDistributerName(response?.data?.distribution?.name);
     } catch (error) {
       console.log('Error', error);
@@ -368,6 +405,7 @@ const Home = ({navigation}) => {
       await getHeadingData();
       await getOrderBookerID();
       await getUserId();
+      // await getNameData();
       setIsInitialDataLoaded(true);
       setIsLoading(false);
     };
@@ -378,36 +416,13 @@ const Home = ({navigation}) => {
       getAttandanceStatus();
     }
   }, [userId]);
-  const getMondayToSundayWeek = date => {
-    const dateObj = new Date(date);
-    const dayOfWeek = dateObj.getDay();
-    const monday = 1;
-    let daysUntilMonday = dayOfWeek - monday;
-    if (daysUntilMonday < 0) {
-      daysUntilMonday += 7;
-    }
-    const startDate = new Date(dateObj);
-    startDate.setDate(dateObj.getDate() - daysUntilMonday);
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
-    return {startDate, endDate};
-  };
-  const formatDateToYYYYMMDD = date => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+
   useEffect(() => {
-    const currentDate = new Date();
-    if (currentDate) {
-      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
-      setWeekDates({
-        startDate: formatDateToYYYYMMDD(startDate),
-        endDate: formatDateToYYYYMMDD(endDate),
-      });
+    if (weekDates.startDate && weekDates.endDate && orderBokerId) {
+      getNameData();
     }
-  }, []);
+  }, [weekDates, orderBokerId]);
+
   const calculateOrderForMultipleItems = async orderItems => {
     const userId = await AsyncStorage.getItem('userId');
     let totalCartons = 0;
@@ -1043,29 +1058,54 @@ const Home = ({navigation}) => {
       <StatusBar translucent backgroundColor="transparent" />
 
       <View style={styles.Container}>
-        <Menu style={styles.menu}>
-          <MenuTrigger style={{width: '100%'}}>
-            <View>
-              <Ionicons name="menu" color="#fff" size={35} />
+        <View style={[styles.menu]}>
+          <View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginRight: 160,
+              }}>
+              <Text style={[styles.MiddleTXT, {fontSize: 14}]}>
+                Working Date:{' '}
+              </Text>
+              <Text style={[styles.MiddleTXT, {fontSize: 14}]}>
+                {formatDate(currentDate)}
+              </Text>
             </View>
-          </MenuTrigger>
-          <MenuOptions style={styles.menuOptions}>
-            <MenuOption onSelect={syncOrders}>
-              <Text style={styles.singleMenuOption}>Sync</Text>
-            </MenuOption>
-            <MenuOption>
-              <Text style={styles.singleMenuOption}>Settings</Text>
-            </MenuOption>
-            <MenuOption onSelect={handleLogout}>
-              <Text style={styles.singleMenuOption}>Logout</Text>
-            </MenuOption>
-          </MenuOptions>
-        </Menu>
+            <View
+              style={{
+                flexDirection: 'row',
+                // alignSelf: 'flex-end',
+                // marginRight: 20,
+              }}>
+              <Text style={[styles.MiddleTXT, {fontSize: 14}]}>Ver no: </Text>
+              <Text style={[styles.MiddleTXT, {fontSize: 14}]}>0.74.5</Text>
+            </View>
+          </View>
+          <Menu>
+            <MenuTrigger style={{width: '100%'}}>
+              <View>
+                <Ionicons name="menu" color="#fff" size={30} />
+              </View>
+            </MenuTrigger>
+            <MenuOptions style={styles.menuOptions}>
+              <MenuOption onSelect={syncOrders}>
+                <Text style={styles.singleMenuOption}>Sync</Text>
+              </MenuOption>
+              <MenuOption>
+                <Text style={styles.singleMenuOption}>Settings</Text>
+              </MenuOption>
+              <MenuOption onSelect={handleLogout}>
+                <Text style={styles.singleMenuOption}>Logout</Text>
+              </MenuOption>
+            </MenuOptions>
+          </Menu>
+        </View>
 
-        <View>
-          <Text style={styles.HeadingTxt}>
-            {headingData.first_name}
-            {headingData.last_name}
+        <View style={{marginTop: 30}}>
+          <Text style={[styles.HeadingTxt, {fontSize: 30, fontWeight: 'bold'}]}>
+            {headingData.first_name} {headingData.last_name}
           </Text>
           <Text style={styles.HeadingTxt}>
             {headingData.designation ? headingData.designation : 'null'}
@@ -1074,7 +1114,7 @@ const Home = ({navigation}) => {
             {DistributerName ? DistributerName : 'null'}
           </Text>
         </View>
-        <View
+        {/* <View
           style={{
             flexDirection: 'row',
             justifyContent: 'space-around',
@@ -1093,18 +1133,7 @@ const Home = ({navigation}) => {
               </Text>
             </View>
           )}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              alignItems: 'center',
-              // alignSelf: 'flex-end',
-              // marginRight: 20,
-            }}>
-            <Text style={styles.MiddleTXT}>Ver no: </Text>
-            <Text style={styles.MiddleTXT}>0.74.5</Text>
-          </View>
-        </View>
+        </View> */}
         <View style={styles.MiddleContainer}>
           <View style={styles.MiddleLeft}>
             <Text style={styles.MiddleTXT}>TOTAL VISITS</Text>
@@ -1112,9 +1141,7 @@ const Home = ({navigation}) => {
             <Text style={styles.MiddleTXT}>ORDERS</Text>
             <Text style={styles.MiddleTXT}>{orderCount}</Text>
           </View>
-          <View style={styles.MiddleRight}>
-            <Text style={styles.MiddleTXT}>Working Date</Text>
-            <Text style={styles.MiddleTXT}>{formatDate(currentDate)}</Text>
+          <View style={[styles.MiddleRight, {marginTop: 43}]}>
             <View style={{flexDirection: 'row'}}>
               <View style={{width: '50%'}}>
                 <Text style={styles.MiddleTXT}>BOOKING</Text>
@@ -1123,7 +1150,7 @@ const Home = ({navigation}) => {
               <View style={{width: '50%'}}>
                 <Text style={styles.MiddleTXT}>AMOUNT</Text>
                 <Text style={styles.MiddleTXT}>
-                  Rs:{totalAmount.toFixed(0)}
+                  Rs: {totalAmount.toFixed(0)}
                 </Text>
               </View>
             </View>
@@ -1136,12 +1163,12 @@ const Home = ({navigation}) => {
               onPress={() => LocationPerm()}
               style={styles.ButtonContainer}>
               <Text style={styles.BtnTopTxt}>CREATE NEW ORDER</Text>
-              <Text style={styles.HeadingTxt}>Order</Text>
+              <Text style={[styles.HeadingTxt, {color: '#000'}]}>Order</Text>
               <MaterialIcons
                 style={{marginTop: 10, padding: 10}}
                 name="mode-edit"
                 color="#3f5cd1"
-                size={45}
+                size={40}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -1150,12 +1177,12 @@ const Home = ({navigation}) => {
                 navigation.navigate('Shop', {orderBokerId: orderBokerId})
               }>
               <Text style={styles.BtnTopTxt}>MANAGE NEW SHOPS</Text>
-              <Text style={styles.HeadingTxt}>Shop</Text>
+              <Text style={[styles.HeadingTxt, {color: '#000'}]}>Shop</Text>
               <FontAwesome6
                 style={{marginTop: 10, padding: 10}}
                 name="shop"
                 color="#096132"
-                size={45}
+                size={35}
               />
             </TouchableOpacity>
           </View>
@@ -1166,24 +1193,24 @@ const Home = ({navigation}) => {
                 navigation.navigate('Invoice', {orderBokerId: orderBokerId});
               }}>
               <Text style={styles.BtnTopTxt}>VIEW ORDER INVOICES</Text>
-              <Text style={styles.HeadingTxt}>Invoice</Text>
+              <Text style={[styles.HeadingTxt, {color: '#000'}]}>Invoice</Text>
               <MaterialCommunityIcons
                 style={{marginTop: 10, padding: 10}}
                 name="file-search"
                 color="#48f053"
-                size={45}
+                size={40}
               />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.ButtonContainer}
               onPress={() => navigation.navigate('Failed', {userId})}>
               <Text style={styles.BtnTopTxt}>VIEW FAILED REQUESTS</Text>
-              <Text style={styles.HeadingTxt}>Failed</Text>
+              <Text style={[styles.HeadingTxt, {color: '#000'}]}>Failed</Text>
               <MaterialIcons
                 style={{marginTop: 10, padding: 10}}
                 name="error-outline"
                 color="red"
-                size={45}
+                size={40}
               />
             </TouchableOpacity>
           </View>
@@ -1219,10 +1246,11 @@ const styles = StyleSheet.create({
     width: 160,
     height: 135,
     borderRadius: 15,
-    backgroundColor: '#393a3f',
+    // backgroundColor: '#393a3f',
+    backgroundColor: '#fff',
   },
   BtnTopTxt: {
-    color: '#fff',
+    color: '#000',
     fontWeight: 'bold',
     fontSize: 12,
     padding: 5,
@@ -1239,7 +1267,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 5,
     right: 10,
-    backgroundColor: '#363232',
+    backgroundColor: '#fff',
     borderRadius: 10,
     zIndex: 2,
   },
@@ -1250,7 +1278,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 20,
     paddingVertical: 10,
-    color: '#fff',
+    color: '#000',
   },
   MiddleContainer: {
     flexDirection: 'row',
@@ -1264,7 +1292,7 @@ const styles = StyleSheet.create({
   MiddleTXT: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 16,
   },
   MiddleRight: {
     width: '60%',

@@ -15,8 +15,8 @@ import Loader from '../../Components/Loaders/Loader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Login = ({navigation}) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('0312-0444718');
+  const [password, setPassword] = useState('secret');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -67,7 +67,7 @@ const Login = ({navigation}) => {
         <View>
           <Image
             style={styles.Imagestyle}
-            source={require('../../assets/Images/TastelandLogo.jpeg')}
+            source={require('../../assets/Images/Pic.png')}
           />
         </View>
         <View style={styles.LoginContainer}>
@@ -132,26 +132,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   Imagestyle: {
-    height: 200,
-    width: 150,
+    height: 190,
+    width: 140,
     alignSelf: 'center',
-    marginTop: '20%',
+    marginTop: '15%',
   },
   LoginContainer: {
     height: 250,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#fff',
     width: '90%',
-    elevation: 4,
+    elevation: 10, // Higher elevation to increase shadow visibility on Android
     padding: 10,
-    shadowColor: '#fff',
-    marginTop: 10,
-    alignSelf: 'center',
+    shadowColor: '#000', // Darker shadow color for better visibility
+    shadowOffset: {width: 0, height: 0}, // Centered shadow for iOS (no directional offset)
+    shadowOpacity: 0.3, // Adjust the opacity for a more floating effect
+    shadowRadius: 10, // Larger radius for a softer shadow
     marginTop: '5%',
+    alignSelf: 'center',
   },
+
   LoginTxt: {
-    color: '#fff',
+    color: '#000',
     fontSize: 22,
     marginBottom: 10,
+    fontWeight: 'bold',
   },
   TextInputContainer: {
     marginTop: 10,
