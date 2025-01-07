@@ -20,6 +20,11 @@ import AddNewShop from '../ShopScreen/AddNewShop';
 //   ROUTES: 'ALL_ROUTES',
 //   SHOPS: 'ALL_SHOPS',
 // };
+const getDayName = dateString => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {weekday: 'long'});
+};
+
 const Order = ({route, navigation}) => {
   const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +36,6 @@ const Order = ({route, navigation}) => {
   const [shops, setshops] = useState(null); // array of { date, route }
   const {orderBokerId} = route.params;
   const [userId, setUserId] = useState(null); // Initialize userId state
-
   // Network status state
   const [isConnected, setIsConnected] = useState(true);
 
@@ -330,9 +334,19 @@ const Order = ({route, navigation}) => {
       setshops(null); // Reset if no date selected
     }
   };
-  const getDayName = dateString => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {weekday: 'long'});
+  useEffect(() => {
+    // Get today's date in the same format as your dates array
+    const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+    // Check if today's date exists in the `allDates` array
+    if (allDates.includes(today)) {
+      selectedPickerDate(today); // Set today's date as the default selected value
+    }
+  }, [allDates]);
+
+  const onValueChange = itemValue => {
+    selectedPickerDate(itemValue);
+    handleDateChange(itemValue); // Pass the selected value to your handler
   };
 
   return (
@@ -341,7 +355,7 @@ const Order = ({route, navigation}) => {
         <View style={[styles.pickerContainer, styles.borderPickBottom]}>
           <Picker
             selectedValue={pickerData}
-            onValueChange={itemValue => handleDateChange(itemValue)}
+            onValueChange={onValueChange}
             style={styles.picker}>
             <Picker.Item
               label={'Select Date'}

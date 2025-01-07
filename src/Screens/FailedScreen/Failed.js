@@ -284,6 +284,9 @@ const FailedOrdersScreen = ({route, navigation}) => {
           </Text>
           <Text style={styles.errorText}>{orderDate}</Text>
         </View>
+        <View style={styles.errorMessageContainer}>
+          <Text style={styles.errorText}>{item.error}</Text>
+        </View>
         <View style={styles.actionContainer}>
           <TouchableOpacity
             onPress={() => {

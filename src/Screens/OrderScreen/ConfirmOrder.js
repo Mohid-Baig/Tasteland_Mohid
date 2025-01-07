@@ -616,6 +616,7 @@ const ConfirmOrder = ({route, navigation}) => {
           details: mergedCartItems,
           shop: Store,
           cartItems: cartItems,
+          error: error.message || 'Order creation failed',
         };
         await saveFailedOrder(userId, failedOrder); // Save in failedOrders if API fails
         Alert.alert('Error', 'An error occurred while updating the order.', [
