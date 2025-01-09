@@ -213,10 +213,17 @@ const ConfirmOrder = ({route, navigation}) => {
     );
     return totalCartons;
   };
+  const generateUniqueId = () => {
+    return `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  };
+
   const saveOrderOffline = async (currentLocation, totalCarton) => {
     const userId = await AsyncStorage.getItem('userId');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
     const fk_employee = await AsyncStorage.getItem('fk_employee');
+
+    // Generate unique ID for the order
+    const uniqueOrderId = generateUniqueId();
 
     let orderDetails = cartItems.map(item => ({
       carton_ordered: item.carton_ordered,
@@ -225,6 +232,7 @@ const ConfirmOrder = ({route, navigation}) => {
     }));
 
     const offlineOrder = {
+      unid: uniqueOrderId,
       lng: currentLocation.longitude,
       lat: currentLocation.latitude,
       detailss: orderDetails,
@@ -252,13 +260,6 @@ const ConfirmOrder = ({route, navigation}) => {
       const key = `offlineOrders_${userId}`;
       const existingOrders = await AsyncStorage.getItem(key);
       let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
-
-      if (offlineOrders.some(order => order.id === offlineOrder.id)) {
-        console.log(
-          'Order with the same ID already exists in offline storage.',
-        );
-        return;
-      }
 
       offlineOrders.push(offlineOrder);
       await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
@@ -410,8 +411,10 @@ const ConfirmOrder = ({route, navigation}) => {
       }
     } catch (error) {
       console.log(error);
+      const uniqueOrderId = generateUniqueId();
 
       const failedOrder = {
+        unid: uniqueOrderId,
         date: formattedDate,
         details: mergedCartItems,
         shop: Store,
@@ -611,7 +614,10 @@ const ConfirmOrder = ({route, navigation}) => {
 
       // Handle only saving to failed orders if the network is available but the API fails
       if (networkAvailable) {
+        const uniqueOrderId = generateUniqueId();
+
         const failedOrder = {
+          unid: uniqueOrderId,
           id: orderId,
           details: mergedCartItems,
           shop: Store,
@@ -648,6 +654,20 @@ const ConfirmOrder = ({route, navigation}) => {
     } catch (error) {
       console.error('Error saving failed order:', error);
     }
+  };
+  const incrementTotalVisits = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) return; // Ensure userId is available
+
+    const totalVisitsKey = `totalVisits_${userId}`;
+    const visits = await AsyncStorage.getItem(totalVisitsKey);
+    const totalVisits = parseInt(visits) || 0;
+    const newTotal = totalVisits + 1;
+
+    // Update the total visits in AsyncStorage
+    await AsyncStorage.setItem(totalVisitsKey, newTotal.toString());
+
+    // Show success message or do something else
   };
   return (
     <View style={{flex: 1, position: 'relative'}}>
@@ -736,6 +756,7 @@ const ConfirmOrder = ({route, navigation}) => {
           }}
           onPress={() => {
             getLocation();
+            incrementTotalVisits();
           }}>
           <AntDesign name="shoppingcart" size={24} color="#fff" />
           <Text style={{color: '#fff', marginLeft: 10}}>

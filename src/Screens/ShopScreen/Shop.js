@@ -103,6 +103,8 @@ const AllShops = ({navigation, route}) => {
   const [confirmBtn, setconfirmBtn] = useState(false);
   const [territorial, setTerritorial] = useState();
   const [item, setitem] = useState([]);
+  const [MModalVisible, setMModalVisible] = useState(false);
+  const [sselectedShop, setSSelectedShop] = useState(null);
   const isFocused = useIsFocused();
 
   const TokenRenew = async () => {
@@ -316,8 +318,16 @@ const AllShops = ({navigation, route}) => {
         setFilteredStores([]);
       }
     } catch (error) {
-      console.log('Error fetching territorial data:', error);
-      // Alert.alert('Error', 'Failed to fetch data from the server.');
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Session Expired',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error fetching territorial data:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -535,31 +545,109 @@ const AllShops = ({navigation, route}) => {
         </Text>
         <Text style={styles.storeType}>{item.category}</Text>
       </View>
+
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            handleVisit(item);
-            setSingleId(item.id);
-            console.log(item.id, 'Selected Shop id');
+        <View
+          style={{
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginTop: 10,
           }}>
-          <Text style={styles.buttonText}>VISIT</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, {marginBottom: 5}]}
+            onPress={() => {
+              handleVisit(item);
+              setSingleId(item.id);
+            }}>
+            <Text style={styles.buttonText}>VISIT</Text>
+          </TouchableOpacity>
+        </View>
         <View style={{width: 20}}></View>
         <TouchableOpacity
           style={styles.infoButton}
           onPress={() => {
-            console.log(Selectedroute, 'hello');
-            navigation.navigate('AddNewShop', {
-              Item: item,
-              orderBokerId: orderBokerId,
-              routes: Selectedroute,
-            });
+            console.log(item, 'item');
+            setSSelectedShop(item); // Set the selected shop data
+            setMModalVisible(true); // Show the modal
           }}>
           <FontAwesome6 name={'circle-info'} size={20} color={'#2196f3'} />
         </TouchableOpacity>
       </View>
     </View>
+  );
+  const renderModal = () => (
+    <Modal
+      visible={MModalVisible}
+      onRequestClose={() => setMModalVisible(false)}
+      animationType="slide"
+      transparent={true}>
+      <TouchableOpacity
+        style={styles.modalOOverlay}
+        onPress={() => setMModalVisible(false)} // Close modal when tapping outside
+      >
+        <View
+          style={{
+            width: '80%',
+            padding: 20,
+            backgroundColor: '#fff',
+            borderRadius: 10,
+            position: 'relative',
+          }}>
+          {sselectedShop && (
+            <>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  marginBottom: 10,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#000',
+                  textAlign: 'center',
+                  color: '#000',
+                  marginBottom: 17,
+                }}>
+                {sselectedShop.name}
+              </Text>
+              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+                ID: {sselectedShop.id}
+              </Text>
+              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+                Shop Type: {sselectedShop.category}
+              </Text>
+              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+                Owner Name: {sselectedShop.owner}
+              </Text>
+              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+                Address: {sselectedShop.address}
+              </Text>
+              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+                Cell No: {sselectedShop.cell}
+              </Text>
+
+              <TouchableOpacity
+                style={{
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                  height: 40,
+                  width: 100,
+                  borderWidth: 1,
+                }}
+                onPress={() => {
+                  navigation.navigate('AddNewShop', {
+                    Item: sselectedShop,
+                    orderBokerId: orderBokerId,
+                    routes: Selectedroute,
+                  });
+                  setMModalVisible(false);
+                }}>
+                <Text style={styles.modifyButtonText}>Modify</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </TouchableOpacity>
+    </Modal>
   );
 
   const getProduct = async () => {
@@ -736,7 +824,9 @@ const AllShops = ({navigation, route}) => {
         );
         console.log(response.data);
         closeModal();
+        incrementTotalVisits();
       } catch (error) {
+        incrementTotalVisits();
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -786,7 +876,9 @@ const AllShops = ({navigation, route}) => {
         );
         // console.log(response.data)
         closeModal();
+        incrementTotalVisits();
       } catch (error) {
+        incrementTotalVisits();
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -840,7 +932,9 @@ const AllShops = ({navigation, route}) => {
           },
         );
         console.log(response.data);
+        incrementTotalVisits();
       } catch (error) {
+        incrementTotalVisits();
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -874,6 +968,7 @@ const AllShops = ({navigation, route}) => {
         keyExtractor={(item, index) => item.id.toString()}
         contentContainerStyle={{paddingBottom: 80}}
       />
+      {renderModal()}
       <Modal
         transparent={true}
         visible={modalVisible}
@@ -891,7 +986,6 @@ const AllShops = ({navigation, route}) => {
                 <TouchableOpacity
                   style={styles.createOrderButton}
                   onPress={() => {
-                    incrementTotalVisits();
                     navigation.navigate('CreateOrder', {
                       Store: selectedStore,
                       RouteDate: routeDate,
@@ -912,7 +1006,9 @@ const AllShops = ({navigation, route}) => {
                     <Text style={{color: 'red', marginTop: 20}}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={closeModal}
+                    onPress={() => {
+                      closeModal();
+                    }}
                     style={{marginLeft: 'auto'}}>
                     <Text style={{color: 'red', marginTop: 20}}>Confirm</Text>
                   </TouchableOpacity>
@@ -1239,7 +1335,14 @@ const AllShops = ({navigation, route}) => {
                         onCheckColor={'#6F763F'}
                         onFillColor={'#4DABEC'}
                         onTintColor={'#F4DCF8'}
-                        onValueChange={() => toggleSelect(item.id)}
+                        onValueChange={() => {
+                          toggleSelect(item.id),
+                            selectedSKUs.includes(item.id),
+                            setSelectedProduct(prevProducts => [
+                              ...prevProducts,
+                              item,
+                            ]);
+                        }}
                       />
                     </View>
                     <TouchableOpacity
@@ -1498,6 +1601,13 @@ const styles = StyleSheet.create({
   modalSKUText: {
     fontSize: 18,
     textAlign: 'center',
+  },
+  modalOOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingVertical: 20,
   },
   buttonSKUContainer: {
     flexDirection: 'row',

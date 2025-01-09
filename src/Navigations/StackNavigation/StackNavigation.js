@@ -15,6 +15,7 @@ import ConfirmOrder from '../../Screens/OrderScreen/ConfirmOrder';
 import ViewInvoice from '../../Screens/InvoiceScreen/ViewInvoice';
 import Failed from '../../Screens/FailedScreen/Failed';
 import Internet from '../../Screens/InvoiceScreen/Internet';
+import Target from '../../Screens/Target/Target';
 export default function StackNavigation() {
   const Stack = createNativeStackNavigator();
   return (
@@ -31,12 +32,12 @@ export default function StackNavigation() {
         <Stack.Screen
           name="Order"
           component={Order}
-          options={{headerShown: true}}
+          options={{headerShown: true, animation: 'fade_from_bottom'}}
         />
         <Stack.Screen
           name="Shop"
           component={Shop}
-          options={{headerShown: true}}
+          options={{headerShown: true, animation: 'fade_from_bottom'}}
         />
         <Stack.Screen
           name="Failed"
@@ -46,6 +47,8 @@ export default function StackNavigation() {
             headerStyle: {backgroundColor: '#ff3333'},
             headerTitle: 'Failed Requests',
             headerTintColor: '#fff',
+            animation: 'fade_from_bottom',
+            animationDuration: 2000,
           }}
         />
         <Stack.Screen
@@ -66,7 +69,7 @@ export default function StackNavigation() {
         <Stack.Screen
           name="Invoice"
           component={InvoiceScreen}
-          options={{headerShown: true}}
+          options={{headerShown: true, animation: 'fade_from_bottom'}}
         />
         <Stack.Screen
           name="ViewInvoice"
@@ -81,6 +84,11 @@ export default function StackNavigation() {
         <Stack.Screen
           name="Internet"
           component={Internet}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="Target"
+          component={Target}
           options={{headerShown: false}}
         />
       </Stack.Navigator>

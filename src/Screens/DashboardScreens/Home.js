@@ -16,6 +16,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from 'react-native-vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Menu,
@@ -145,7 +146,7 @@ const Home = ({navigation}) => {
           },
         ]);
       } else {
-        console.log('Error', error);
+        console.log('Error in tokenRenew', error);
       }
     }
   };
@@ -233,7 +234,7 @@ const Home = ({navigation}) => {
         //   },
         // ]);
       } else {
-        console.log('Error', error);
+        console.log('Error in heading data', error);
       }
     } finally {
       // setIsLoading(false);
@@ -270,7 +271,7 @@ const Home = ({navigation}) => {
         response?.data?.orderbooker?.fk_employee.toString(),
       );
     } catch (error) {
-      console.log('Error', error);
+      console.log('Error in orderbooker', error);
     } finally {
       // setIsLoading(false);
     }
@@ -294,7 +295,7 @@ const Home = ({navigation}) => {
       console.log('data coming in name', response.data);
       setDistributerName(response?.data?.distribution?.name);
     } catch (error) {
-      console.log('Error', error);
+      console.log('Error in getname', error);
     } finally {
       // setIsLoading(false);
     }
@@ -516,6 +517,7 @@ const Home = ({navigation}) => {
           console.log('Offline order synced successfully:', response.data);
           if (response) {
             OrderSyncErrors = false;
+            await AsyncStorage.removeItem(`offlineOrders_${userId}`);
           }
 
           const postorderId = response.data.id;
@@ -552,7 +554,12 @@ const Home = ({navigation}) => {
             TokenRenew();
           }
           console.error('Error syncing offline order:', error);
-          await saveFailedOrder(userId, order);
+          const failed = {
+            order: order,
+            error: error.message || 'Order creation failed',
+          };
+          await saveFailedOrder(userId, failed);
+          await AsyncStorage.removeItem(`offlineOrders_${userId}`);
           OrderSyncErrors = true;
         }
       }
@@ -583,6 +590,7 @@ const Home = ({navigation}) => {
 
           if (response) {
             OrderSyncErrors = false;
+            await AsyncStorage.removeItem(`offlineEditOrders_${userId}`);
           }
 
           const storedTotalAmount = await AsyncStorage.getItem(
@@ -619,6 +627,7 @@ const Home = ({navigation}) => {
           }
           console.log('Error syncing offline edit order:', error);
           await saveFailedOrder(userId, order);
+          await AsyncStorage.removeItem(`offlineEditOrders_${userId}`);
           OrderSyncErrors = true;
         }
       }
@@ -1114,26 +1123,26 @@ const Home = ({navigation}) => {
             {DistributerName ? DistributerName : 'null'}
           </Text>
         </View>
-        {/* <View
+        <View
           style={{
             flexDirection: 'row',
-            justifyContent: 'space-around',
+            // justifyContent: 'space-around',
             alignItems: 'center',
           }}>
           {checkAttandance ? (
             <View>
-              <Text style={[styles.HeadingTxt]}>
+              <Text style={[styles.HeadingTxt, {fontSize: 20}]}>
                 Attendance <Text style={{color: 'green'}}>Marked</Text>
               </Text>
             </View>
           ) : (
             <View>
-              <Text style={styles.HeadingTxt}>
+              <Text style={[styles.HeadingTxt, {fontSize: 20}]}>
                 Attendance <Text style={{color: 'red'}}>Un Marked</Text>
               </Text>
             </View>
           )}
-        </View> */}
+        </View>
         <View style={styles.MiddleContainer}>
           <View style={styles.MiddleLeft}>
             <Text style={styles.MiddleTXT}>TOTAL VISITS</Text>
@@ -1186,7 +1195,7 @@ const Home = ({navigation}) => {
               />
             </TouchableOpacity>
           </View>
-          <View style={styles.BottomContainer}>
+          <View style={[styles.BottomContainer, {marginTop: '4%'}]}>
             <TouchableOpacity
               style={styles.ButtonContainer}
               onPress={() => {
@@ -1214,6 +1223,29 @@ const Home = ({navigation}) => {
               />
             </TouchableOpacity>
           </View>
+        </View>
+        <View
+          style={{
+            marginTop: '4%',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <TouchableOpacity
+            style={[styles.ButtonContainer, {width: '95%'}]}
+            onPress={() => navigation.navigate('Target')}>
+            <Text style={[styles.BtnTopTxt, {marginLeft: 10}]}>
+              VIEW Targets
+            </Text>
+            <Text style={[styles.HeadingTxt, {color: '#000'}]}>
+              Target vs Acheivement
+            </Text>
+            <Feather
+              style={{marginTop: 10, padding: 10}}
+              name="target"
+              color="blue"
+              size={40}
+            />
+          </TouchableOpacity>
         </View>
       </View>
       {isLoading ? <Loader /> : null}

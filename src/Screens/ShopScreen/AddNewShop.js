@@ -19,6 +19,7 @@ import Loader from '../../Components/Loaders/Loader';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import GetLocation from 'react-native-get-location';
+import MapView, {Marker} from 'react-native-maps';
 
 const SHOPS_STORAGE_KEY = 'OFFLINE_SHOPS';
 const SHOP_TYPES_STORAGE_KEY = 'SHOP_TYPES';
@@ -804,6 +805,12 @@ const AddNewShop = ({route}) => {
       setLongitude(Item.lng);
     }
   }, [route.params]);
+
+  const shopLocation = {
+    latitude: latitude,
+    longitude: longitude,
+  };
+  console.log(shopLocation, 'shopLocation');
   return (
     <View>
       <View style={styles.Add_cont}>
@@ -956,8 +963,18 @@ const AddNewShop = ({route}) => {
           label="Cell *"
           value={cell}
           keyboardType="numeric"
-          maxLength={11}
-          onChangeText={setCell}
+          maxLength={12}
+          onChangeText={text => {
+            let formattedText = text;
+            formattedText = formattedText.replace(/\D/g, '');
+            if (formattedText.length > 4) {
+              formattedText =
+                formattedText.slice(0, 4) + '-' + formattedText.slice(4);
+            }
+            formattedText = formattedText.slice(0, 12);
+
+            setCell(formattedText);
+          }}
           style={[styles.input, styles.borderBottom]}
           selectionColor="#000"
           cursorColor="#2196f3"
@@ -1006,23 +1023,20 @@ const AddNewShop = ({route}) => {
           cursorColor="#2196f3"
           activeUnderlineColor="#2196f3"
         />
-        {route.params.Item ? (
-          <View style={{marginLeft: -45}}>
-            <View
-              style={[
-                styles.input,
-                styles.borderPickBottom,
-                {
-                  flexDirection: 'row',
-                  justifyContent: 'space-evenly',
-                  marginTop: 20,
-                },
-              ]}>
-              <Text>lat:{latitude}</Text>
-              <Text>lng:{longitude}</Text>
-            </View>
-          </View>
-        ) : null}
+        {shopLocation && shopLocation.latitude && shopLocation.longitude ? (
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: shopLocation.latitude,
+              longitude: shopLocation.longitude,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }}>
+            <Marker coordinate={shopLocation} />
+          </MapView>
+        ) : (
+          <Text>Loading Map...</Text> // Fallback or loading state
+        )}
       </ScrollView>
     </View>
   );
@@ -1033,6 +1047,18 @@ const styles = StyleSheet.create({
     // flex: 1,
     padding: 16,
     backgroundColor: '#cccccc',
+  },
+  // cont: {
+  //   ...StyleSheet.absoluteFillObject,
+  //   justifyContent: 'flex-end',
+  //   alignItems: 'center',
+  // },
+  // map: {
+  //   ...StyleSheet.absoluteFillObject,
+  // },
+  map: {
+    height: 300, // Set a specific height
+    width: '100%', // Full width
   },
   input: {
     marginBottom: 16,

@@ -82,7 +82,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
     }
   };
 
-  const handleDeleteOrder = pricingId => {
+  const handleDeleteOrder = uniqueId => {
     Alert.alert(
       'Confirm Delete',
       'Are you sure you want to delete this order?',
@@ -95,16 +95,14 @@ const FailedOrdersScreen = ({route, navigation}) => {
         {
           text: 'Yes',
           onPress: () => {
-            console.log('Deleting order with pricingId:', pricingId);
+            console.log('Deleting order with uniqueId:', uniqueId);
 
-            const updatedOrders = failedOrders.filter(order => {
-              return (
-                order.details &&
-                order.details[0] &&
-                order.details[0].pricing_id !== pricingId
-              );
-            });
+            // Filter out the order using uniqueId
+            const updatedOrders = failedOrders.filter(
+              order => order.unid !== uniqueId,
+            );
 
+            // Save the updated orders back to AsyncStorage
             saveFailedOrders(updatedOrders);
 
             Alert.alert('Success', 'Failed order deleted successfully!');
@@ -321,12 +319,9 @@ const FailedOrdersScreen = ({route, navigation}) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              if (
-                item.details &&
-                item.details.length > 0 &&
-                item.details[0].pricing_id
-              ) {
-                handleDeleteOrder(item.details[0].pricing_id);
+              console.log(item.unid);
+              if (item.details && item.details.length > 0 && item.unid) {
+                handleDeleteOrder(item.unid);
               } else {
                 console.error('Order details are missing or invalid.');
               }
