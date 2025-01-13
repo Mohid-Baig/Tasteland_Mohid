@@ -6,15 +6,16 @@ import {
   Text,
   View,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import instance from '../../Components/BaseUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {TouchableOpacity} from 'react-native-gesture-handler';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {Remove_All_Cart} from '../../Components/redux/constants';
 import {useSelector, useDispatch} from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {AddToCart} from '../../Components/redux/action';
+
 const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   const [internetAPI, setInternetAPI] = useState([]);
   const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
@@ -32,52 +33,63 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const cartItems = useSelector(state => state.reducer);
-  useEffect(() => {
-    console.log(cartItems, 'Item');
-    if (cartItems.length > 0) {
-      // console.log(cartItems.length,'suh')
-      let Product_Count = 0;
-      let GrossAmount = 0;
-      let TO_Discount = 0;
-      let gst = 0;
-      // let count = 0;
-      cartItems.forEach(item => {
-        // console.log(item, "Item kkk");
-        Product_Count +=
-          item?.itemss?.trade_price *
-            (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
-          (item?.itemss?.trade_offer / 100) * item?.itemss?.trade_price;
-        GrossAmount +=
-          item?.itemss?.trade_price *
-          (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
-        // console.log(item?.itemss?.gst_base)
-        if (item?.itemss?.gst_base === 'Retail Price') {
-          gst =
-            gst +
-            item.itemss.retail_price *
-              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
-              (item?.itemss?.pricing_gst / 100);
-          console.log(gst, 'GST Price');
-        }
-        const gstt = gst;
-        setGst(gstt.toFixed(1));
-      });
-      setTotalprice(Product_Count);
-      setGrossAmount(GrossAmount);
-      setSelectedProductData(cartItems);
-      // setGst(gst);
-      // console.log(Product_Count,"Product Count");
-      // dispatch(AddToCart(filteredData));
-    } else {
-      setTotalprice(0);
+  const gstRef = useRef(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen Focused - Resetting States');
+
+      // Reset states to avoid using old data
       setTotalprice(0);
       setGrossAmount(0);
-      // setGst(0);
-    }
-  }, [cartItems]);
+      setGst(0);
+      gstRef.current = 0;
+
+      // Add a check to ensure cartItems is available
+      if (cartItems.length > 0) {
+        console.log('cartItems found, recalculating values');
+
+        let Product_Count = 0;
+        let GrossAmount = 0;
+        let gst = 0;
+
+        cartItems.forEach(item => {
+          // Calculate Product Count
+          Product_Count +=
+            item?.itemss?.trade_price *
+              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
+            (item?.itemss?.trade_offer / 100) * item?.itemss?.trade_price;
+
+          // Calculate Gross Amount
+          GrossAmount +=
+            item?.itemss?.trade_price *
+            (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
+
+          // GST Calculation based on gst_base value
+          if (item?.itemss?.gst_base === 'Retail Price') {
+            gst +=
+              item.itemss.retail_price *
+              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
+              (item?.itemss?.pricing_gst / 100);
+          }
+        });
+
+        // Update states with the new values after loop
+        console.log('New GST Calculated:', gst);
+        setTotalprice(Product_Count);
+        setGrossAmount(GrossAmount);
+        setGst(gst);
+        gstRef.current = gst; // Store the final value in useRef
+      } else {
+        console.log('No cartItems found, values will remain 0');
+      }
+    }, [cartItems]), // Add cartItems as dependency
+  );
+
   const goTOEdit = () => {
     // navigation.navigate('ConfirmOrder', { Store: Store, "RouteDate": RouteDate,'applySpecialDiscount':applySpecialDiscount ,'FinalDistributiveDiscount':FinalDistributiveDiscount ,'GST':gst})
   };
+
   const getProduct = async () => {
     setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -98,10 +110,12 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       setIsLoading(false);
     }
   };
+
   useEffect(() => {
     getProduct();
     setDistributiveDiscount(0);
   }, []);
+
   const getMondayToSundayWeek = date => {
     const dateObj = new Date(date);
     const dayOfWeek = dateObj.getDay();
@@ -116,12 +130,14 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
     endDate.setDate(startDate.getDate() + 6);
     return {startDate, endDate};
   };
+
   const formatDateToYYYYMMDD = date => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
+
   useEffect(() => {
     const currentDate = new Date();
     if (currentDate) {
@@ -132,6 +148,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       });
     }
   }, []);
+
   const getInternetAPi = async () => {
     setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -171,11 +188,21 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       setIsLoading(false);
     }
   };
+  const getCurrentDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     if (selectedDate) {
       getInternetAPi();
     }
   }, [selectedDate, routeID, shopID]);
+
   return (
     <View style={styles.main}>
       {isLoading ? (
@@ -191,12 +218,11 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
             <Pressable
               style={styles.flatlistbackground}
               onPress={() => {
+                // Add items to cart first
                 item.details.forEach(val => {
-                  // console.log(allProducts, 'Product');
                   let pro = allProducts.filter(
                     valfil => valfil.id === val.pricing_id,
                   );
-                  // console.log(pro, '----');
                   let items = {
                     carton_ordered: val.carton_ordered,
                     box_ordered: val.box_ordered,
@@ -204,15 +230,18 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
                     itemss: pro[0],
                     pack_in_box: val.box_ordered,
                   };
-                  // console.log(items, '+++++');
                   dispatch(AddToCart(items));
                 });
-                goTOEdit();
-                navigation.navigate('ViewInvoice', {
-                  cartItems: item,
-                  Gst: gst,
-                  orderBokerId: orderBokerId,
-                });
+
+                // Wait for GST to update before navigating
+                setTimeout(() => {
+                  console.log('Current GST after setting:', gstRef.current); // Ensure GST is correctly updated
+                  navigation.navigate('ViewInvoice', {
+                    cartItems: item,
+                    Gst: gstRef.current, // Use the gstRef value here
+                    grossAmount: GrossAmount,
+                  });
+                }, 200);
               }}>
               <View style={styles.FlatList}>
                 <View style={styles.centre}>
@@ -225,7 +254,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
                 </View>
                 <View style={styles.centre}>
                   <Text style={{color: 'black'}}>Order Date</Text>
-                  <Text style={{color: 'black'}}>{formattedDate}</Text>
+                  <Text style={{color: 'black'}}>{getCurrentDate()}</Text>
                 </View>
               </View>
               <View style={styles.FlatList}>
@@ -248,17 +277,14 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
               </View>
             </Pressable>
           )}
-          keyExtractor={item => item.id.toString()}
         />
       )}
-
-      {/* <TouchableOpacity style={styles.button}>
-        <Icon name="search" size={24} color="#fff" />
-      </TouchableOpacity> */}
     </View>
   );
 };
+
 export default Internet;
+
 const styles = StyleSheet.create({
   main: {
     flex: 1,
@@ -286,19 +312,5 @@ const styles = StyleSheet.create({
   centre: {
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
-  },
-  button: {
-    backgroundColor: 'blue',
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 60,
-    height: 60,
-    position: 'absolute', // Fixes the button's position
-    bottom: 20, // Adjust the distance from the bottom of the screen
-    right: 20, // Adjust the distance from the right of the screen
-    zIndex: 1000, // Ensures it's above other content
-    elevation: 5, // Shadow effect for Android
   },
 });

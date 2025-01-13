@@ -14,7 +14,7 @@ const ViewInvoice = ({route, navigation}) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
   const [gstRate, setGSTrate] = useState();
-  const {cartItems, Gst, orderBokerId} = route.params;
+  const {cartItems, Gst, orderBokerId, local} = route.params;
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -23,9 +23,10 @@ const ViewInvoice = ({route, navigation}) => {
     };
   }, [dispatch]);
 
-  // console.log(Gst, 'On local screen gst');
-  // console.log(cartItems, '-----');
-  // console.log(singleDetail);
+  console.log(Gst, 'On local screen gst');
+  console.log(cartItems, '-----');
+
+  console.log(singleDetail);
   // console.log(singleDetail.trade_offer);
   // console.log(orderBokerId);
   useEffect(() => {
@@ -37,7 +38,11 @@ const ViewInvoice = ({route, navigation}) => {
       // console.log(cartItems.details.map(it => it.id));
     }
   }, [cartItems]);
-  const TO_amount = cartItems.gross_amount - (singleDetail?.trade_offer || 0);
+  const TO_amount =
+    cartItems.gross_amount -
+    (cartItems?.trade_discount +
+      cartItems.special_discount +
+      cartItems.discount);
   const formatDate = dateString => {
     if (!dateString) return '';
     return dateString.slice(0, 10);
@@ -108,7 +113,8 @@ const ViewInvoice = ({route, navigation}) => {
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Trade Offer</Text>
                       <Text style={styles.C1_text2}>
-                        {it.trade_offer} ({cartItems.trade_discount.toFixed(2)}
+                        {cartItems.trade_discount.toFixed(2)} (
+                        {it.trade_offer.toFixed(2)}
                         %)
                       </Text>
                     </View>
@@ -121,7 +127,7 @@ const ViewInvoice = ({route, navigation}) => {
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>After TO Amount</Text>
                       <Text style={styles.C1_text2}>
-                        {it.gross_price - it.trade_offer}
+                        {it.gross_price}--work
                       </Text>
                     </View>
                   </View>
@@ -150,14 +156,17 @@ const ViewInvoice = ({route, navigation}) => {
             </View>
             <View style={{marginLeft: 15, justifyContent: 'center'}}>
               <Text style={styles.Text2}>
-                {Gst} ({singleDetail?.gst_rate}.0)%
+                {Gst.toFixed(2)} ({singleDetail?.gst_rate})%
               </Text>
               <Text style={styles.Text2}>
                 {cartItems.gross_amount.toFixed(2)} (Inclusive of GST)
               </Text>
-              <Text style={styles.Text2}>{singleDetail?.trade_offer || 0}</Text>
               <Text style={styles.Text2}>
-                {cartItems.discount.toFixed(2)}(0.0%)
+                {cartItems?.trade_discount.toFixed(2) || 0}
+              </Text>
+              <Text style={styles.Text2}>
+                {cartItems.discount.toFixed(2)}(
+                {cartItems.discount_rate.toFixed(2)}%)
               </Text>
               <Text style={styles.Text2}>{cartItems.special_discount}</Text>
             </View>
@@ -168,7 +177,13 @@ const ViewInvoice = ({route, navigation}) => {
               <Text style={styles.Text1}>Net Invoice:</Text>
             </View>
             <View style={{marginLeft: 10}}>
-              <Text style={styles.Text2}>{singleDetail?.trade_offer || 0}</Text>
+              <Text style={styles.Text2}>
+                {(
+                  cartItems?.trade_discount +
+                  cartItems.special_discount +
+                  cartItems.discount
+                ).toFixed(2)}
+              </Text>
               <Text style={[styles.Text2, {fontWeight: 'bold'}]}>
                 {TO_amount.toFixed(2)}
               </Text>

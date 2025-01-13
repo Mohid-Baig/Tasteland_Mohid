@@ -47,7 +47,7 @@ const CreateOrder = ({navigation, route}) => {
   // console.log(Store, '///');
   // console.log(items);
   // console.log(cartItems, 'cartItems');
-  console.log(existingOrderId, 'Exsisting order id');
+  // console.log(existingOrderId, 'Exsisting order id');
   // console.log(Invoiceitems, 'InvoiceItems');
   // Handle closing the Bottom Sheet
   const handleClosePress = useCallback(() => {
@@ -199,9 +199,9 @@ const CreateOrder = ({navigation, route}) => {
           },
         );
 
-        console.log(response.data, 'distributerdiscount');
+        console.log(response.data, 'distributerdiscount - -');
         response.data.forEach(item => {
-          if (item.shop_type.id === Store.shop_type.id) {
+          if (item?.shop_type.id === Store?.shop_type.id) {
             setDistributiveDiscount(item);
           }
         });
@@ -300,7 +300,7 @@ const CreateOrder = ({navigation, route}) => {
       let SpecDiscount = 0;
       let finalDiscount = 0; // To store the highest applicable discount
       SpecaialDiscount.forEach((item, index) => {
-        if (item.fk_shop_type === Store.shop_type.id) {
+        if (item?.fk_shop_type === Store?.shop_type?.id) {
           // Compare the current item's gross amount with GrossAmount
           if (GrossAmount >= item.gross_amount) {
             // Check if the item has a rate-based or amount-based discount

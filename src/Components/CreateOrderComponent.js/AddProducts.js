@@ -603,7 +603,10 @@ const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
 });
 
 const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
-  const [ProductName, SetProductname] = useState();
+  // console.log(datas.length, 'datas length');
+  // console.log(allProduct.length, 'allProduct length');
+
+  const [ProductName, SetProductname] = useState([]);
   const order = useSelector(state => state.UnProductive_reducer, shallowEqual);
 
   const filter = useCallback(() => {
@@ -636,6 +639,10 @@ const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
       );
     }
 
+    // console.log('FinalProduct:', FinalProduct);
+    /* The code is logging the length of the variable `FinalProduct` to the console. */
+    // console.log('FinalProduct Length:', FinalProduct.length);
+
     SetProductname(FinalProduct);
   }, [allProduct, datas, search]);
 
@@ -649,18 +656,32 @@ const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
     );
   }, [ProductName, search]);
 
+  // console.log('filteredProductName Length', filteredProductName?.length);
+
   return (
     <FlatList
-      data={filteredProductName}
+      data={filteredProductName} // Pass all filtered items here
       keyExtractor={(item, index) => index.toString()}
-      renderItem={({item}) => (
-        <AccordionItem
-          title={item.title}
-          items={item.item}
-          Invoiceitems={Invoiceitems}
-          datas={datas}
-        />
-      )}
+      renderItem={({item}) => {
+        // console.log(
+        //   'filteredProductName Length in flatlist',
+        //   filteredProductName?.length,
+        // );
+        // console.log('Rendering item:', JSON.stringify(item));
+
+        return (
+          <AccordionItem
+            title={item.title}
+            items={item.item}
+            Invoiceitems={Invoiceitems}
+            datas={datas}
+          />
+        );
+      }}
+      initialNumToRender={14} // Ensure the list starts with all 14 items
+      maxToRenderPerBatch={14} // Render all items per batch (no batching restriction)
+      windowSize={21} // Ensure we load items beyond the viewport
+      removeClippedSubviews={false} // Prevent clipping of items
     />
   );
 };

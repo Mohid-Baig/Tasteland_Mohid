@@ -1,21 +1,22 @@
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
-  Pressable,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import instance from '../../Components/BaseUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {TouchableOpacity} from 'react-native-gesture-handler';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {Remove_All_Cart} from '../../Components/redux/constants';
 import {useSelector, useDispatch} from 'react-redux';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import {AddToCart} from '../../Components/redux/action';
-import NetInfo from '@react-native-community/netinfo';
-const Local = ({selectedDate, orderBokerId}) => {
+
+const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   const [internetAPI, setInternetAPI] = useState([]);
   const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
   const [formattedDate, setFormattedDate] = useState('');
@@ -29,56 +30,66 @@ const Local = ({selectedDate, orderBokerId}) => {
   const [allProducts, setAllProducts] = useState([]);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
-  // console.log(selectedDate, 'rr');
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const cartItems = useSelector(state => state.reducer);
-  useEffect(() => {
-    console.log(cartItems, 'Item');
-    if (cartItems.length > 0) {
-      // console.log(cartItems.length,'suh')
-      let Product_Count = 0;
-      let GrossAmount = 0;
-      let TO_Discount = 0;
-      let gst = 0;
-      // let count = 0;
-      cartItems.forEach(item => {
-        // console.log(item, "Item kkk");
-        Product_Count +=
-          item?.itemss?.trade_price *
-            (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
-          (item?.itemss?.trade_offer / 100) * item?.itemss?.trade_price;
-        GrossAmount +=
-          item?.itemss?.trade_price *
-          (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
-        // console.log(item?.itemss?.gst_base)
-        if (item?.itemss?.gst_base === 'Retail Price') {
-          gst =
-            gst +
-            item.itemss.retail_price *
-              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
-              (item?.itemss?.pricing_gst / 100);
-          console.log(gst, 'GST Price');
-        }
-        const gstt = gst;
-        setGst(gstt.toFixed(1));
-      });
-      setTotalprice(Product_Count);
-      setGrossAmount(GrossAmount);
-      setSelectedProductData(cartItems);
-      // setGst(gst);
-      // console.log(Product_Count,"Product Count");
-      // dispatch(AddToCart(filteredData));
-    } else {
-      setTotalprice(0);
+  const gstRef = useRef(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen Focused - Resetting States');
+
+      // Reset states to avoid using old data
       setTotalprice(0);
       setGrossAmount(0);
-      // setGst(0);
-    }
-  }, [cartItems]);
+      setGst(0);
+      gstRef.current = 0;
+
+      // Add a check to ensure cartItems is available
+      if (cartItems.length > 0) {
+        console.log('cartItems found, recalculating values');
+
+        let Product_Count = 0;
+        let GrossAmount = 0;
+        let gst = 0;
+
+        cartItems.forEach(item => {
+          // Calculate Product Count
+          Product_Count +=
+            item?.itemss?.trade_price *
+              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
+            (item?.itemss?.trade_offer / 100) * item?.itemss?.trade_price;
+
+          // Calculate Gross Amount
+          GrossAmount +=
+            item?.itemss?.trade_price *
+            (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
+
+          // GST Calculation based on gst_base value
+          if (item?.itemss?.gst_base === 'Retail Price') {
+            gst +=
+              item.itemss.retail_price *
+              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
+              (item?.itemss?.pricing_gst / 100);
+          }
+        });
+
+        // Update states with the new values after loop
+        console.log('New GST Calculated:', gst);
+        setTotalprice(Product_Count);
+        setGrossAmount(GrossAmount);
+        setGst(gst);
+        gstRef.current = gst; // Store the final value in useRef
+      } else {
+        console.log('No cartItems found, values will remain 0');
+      }
+    }, [cartItems]), // Add cartItems as dependency
+  );
+
   const goTOEdit = () => {
     // navigation.navigate('ConfirmOrder', { Store: Store, "RouteDate": RouteDate,'applySpecialDiscount':applySpecialDiscount ,'FinalDistributiveDiscount':FinalDistributiveDiscount ,'GST':gst})
   };
+
   const FetchProduct = async () => {
     const userId = await AsyncStorage.getItem('userId');
     try {
@@ -94,6 +105,7 @@ const Local = ({selectedDate, orderBokerId}) => {
     FetchProduct();
     setDistributiveDiscount(0);
   }, []);
+
   const getCurrentDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -102,6 +114,7 @@ const Local = ({selectedDate, orderBokerId}) => {
 
     return `${year}-${month}-${day}`;
   };
+
   const FetchLocalAPi = async () => {
     const userId = await AsyncStorage.getItem('userId');
     try {
@@ -116,79 +129,89 @@ const Local = ({selectedDate, orderBokerId}) => {
   useEffect(() => {
     FetchLocalAPi();
   }, []);
+
   return (
     <View style={styles.main}>
-      <FlatList
-        contentContainerStyle={{paddingBottom: 50}}
-        data={internetAPI} // Bind correct state here
-        showsVerticalScrollIndicator={false}
-        renderItem={({item}) => (
-          <Pressable
-            style={styles.flatlistbackground}
-            onPress={() => {
-              item.details.forEach(val => {
-                // console.log(allProducts, 'Product');
-                let pro = allProducts.filter(
-                  valfil => valfil.id === val.pricing_id,
-                );
-                // console.log(pro, '----');
-                let items = {
-                  carton_ordered: val.carton_ordered,
-                  box_ordered: val.box_ordered,
-                  pricing_id: val.id,
-                  itemss: pro[0],
-                  pack_in_box: val.box_ordered,
-                };
-                // console.log(items, '+++++');
-                dispatch(AddToCart(items));
-              });
-              goTOEdit();
-              navigation.navigate('ViewInvoice', {
-                cartItems: item,
-                Gst: gst,
-                orderBokerId: orderBokerId,
-              });
-            }}>
-            <View style={styles.FlatList}>
-              <View style={styles.centre}>
-                <Text style={{color: 'black'}}>Invoice #</Text>
-                <Text style={{color: 'black'}}>{item.id}</Text>
+      {isLoading ? (
+        <View style={{alignItems: 'center', flex: 1, marginTop: '60%'}}>
+          <ActivityIndicator size={50} color={'#16a4dd'} />
+        </View>
+      ) : (
+        <FlatList
+          contentContainerStyle={{paddingBottom: 50}}
+          data={internetAPI} // Bind correct state here
+          showsVerticalScrollIndicator={false}
+          renderItem={({item}) => (
+            <Pressable
+              style={styles.flatlistbackground}
+              onPress={() => {
+                // Add items to cart first
+                item.details.forEach(val => {
+                  let pro = allProducts.filter(
+                    valfil => valfil.id === val.pricing_id,
+                  );
+                  let items = {
+                    carton_ordered: val.carton_ordered,
+                    box_ordered: val.box_ordered,
+                    pricing_id: val.id,
+                    itemss: pro[0],
+                    pack_in_box: val.box_ordered,
+                  };
+                  dispatch(AddToCart(items));
+                });
+
+                // Wait for GST to update before navigating
+                setTimeout(() => {
+                  console.log('Current GST after setting:', gstRef.current); // Ensure GST is correctly updated
+                  navigation.navigate('ViewInvoice', {
+                    cartItems: item,
+                    Gst: gstRef.current, // Use the gstRef value here
+                    grossAmount: GrossAmount,
+                  });
+                }, 200);
+              }}>
+              <View style={styles.FlatList}>
+                <View style={styles.centre}>
+                  <Text style={{color: 'black'}}>Invoice #</Text>
+                  <Text style={{color: 'black'}}>{item.id}</Text>
+                </View>
+                <View style={styles.centre}>
+                  <Text style={{color: 'black'}}>Shop</Text>
+                  <Text style={{color: 'black'}}>{item.shop.name}</Text>
+                </View>
+                <View style={styles.centre}>
+                  <Text style={{color: 'black'}}>Order Date</Text>
+                  <Text style={{color: 'black'}}>{getCurrentDate()}</Text>
+                </View>
               </View>
-              <View style={styles.centre}>
-                <Text style={{color: 'black'}}>Shop</Text>
-                <Text style={{color: 'black'}}>{item.shop.name}</Text>
+              <View style={styles.FlatList}>
+                <View style={styles.centre}>
+                  <Text style={{color: 'black'}}>Status</Text>
+                  <Text style={{color: 'black'}}>{item.status}</Text>
+                </View>
+                <View style={styles.centre}>
+                  <Text style={{color: 'black'}}>Gross Amount</Text>
+                  <Text style={{color: 'black'}}>{`${item.gross_amount.toFixed(
+                    1,
+                  )}`}</Text>
+                </View>
+                <View style={styles.centre}>
+                  <Text style={{color: 'black'}}>Net Amount</Text>
+                  <Text style={{color: 'black'}}>
+                    {item.net_amount.toFixed(1)}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.centre}>
-                <Text style={{color: 'black'}}>Order Date</Text>
-                <Text style={{color: 'black'}}>{getCurrentDate()}</Text>
-              </View>
-            </View>
-            <View style={styles.FlatList}>
-              <View style={styles.centre}>
-                <Text style={{color: 'black'}}>Status</Text>
-                <Text style={{color: 'black'}}>{item.status}</Text>
-              </View>
-              <View style={styles.centre}>
-                <Text style={{color: 'black'}}>Gross Amount</Text>
-                <Text style={{color: 'black'}}>{`${item.gross_amount.toFixed(
-                  1,
-                )}`}</Text>
-              </View>
-              <View style={styles.centre}>
-                <Text style={{color: 'black'}}>Net Amount</Text>
-                <Text style={{color: 'black'}}>
-                  {item.net_amount.toFixed(1)}
-                </Text>
-              </View>
-            </View>
-          </Pressable>
-        )}
-        keyExtractor={item => item.id.toString()}
-      />
+            </Pressable>
+          )}
+        />
+      )}
     </View>
   );
 };
-export default Local;
+
+export default Internet;
+
 const styles = StyleSheet.create({
   main: {
     flex: 1,

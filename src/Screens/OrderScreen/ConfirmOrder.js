@@ -500,7 +500,7 @@ const ConfirmOrder = ({route, navigation}) => {
         net_price: 0,
         trade_offer,
         gst_rate: pricing_gst,
-        gst_base: GST || 0,
+        gst_base: 0.0, // Fix potential undefined GST
         pricing_id: id,
         pack_in_box,
       };
@@ -522,6 +522,7 @@ const ConfirmOrder = ({route, navigation}) => {
       .join('_')}`;
 
     try {
+      console.log(JSON.stringify(data), 'Data to be updated');
       if (networkAvailable) {
         // If network is available, update order via API
         const response = await instance.put(
@@ -563,6 +564,7 @@ const ConfirmOrder = ({route, navigation}) => {
         // Add the previous total to the new total
         const updatedTotalCartons = previousTotalCartons + newTotalCartons;
         setTotalCartons(updatedTotalCartons);
+
         // Save the updated total cartons back to AsyncStorage
         await AsyncStorage.setItem(
           `totalCartons_${userId}`,
@@ -596,7 +598,7 @@ const ConfirmOrder = ({route, navigation}) => {
           // Save the updated offline edit orders list
           await AsyncStorage.setItem(
             `offlineEditOrders_${userId}`,
-            JSON.stringify(parsedOfflineEditOrders),
+            JSON.stringify(parsedOfflineEditOrders), // Correctly save the updated array
           );
 
           console.log('Order saved for offline update.');

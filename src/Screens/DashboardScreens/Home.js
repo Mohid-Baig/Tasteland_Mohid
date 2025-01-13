@@ -174,7 +174,9 @@ const Home = ({navigation}) => {
     useCallback(() => {
       const checkNewDay = async () => {
         const userId = await AsyncStorage.getItem('userId');
-        if (!userId) return; // Ensure userId is available
+        if (!userId) {
+          return;
+        } // Ensure userId is available
 
         const today = new Date().toDateString();
         const lastVisitDateKey = `lastVisitDate_${userId}`;
@@ -364,7 +366,9 @@ const Home = ({navigation}) => {
   };
   const getLocation = async () => {
     const hasPermission = await requestLocationPermission();
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      return;
+    }
 
     try {
       const location = await GetLocation.getCurrentPosition({
@@ -471,6 +475,26 @@ const Home = ({navigation}) => {
         ? JSON.parse(offlineEditOrders)
         : [];
 
+      // Check if parsed data is iterable
+      if (!Array.isArray(parsedOrders)) {
+        console.error('Failed Orders is not an array:', parsedOrders);
+        throw new Error('Failed orders are not iterable.');
+      }
+      if (!Array.isArray(parsedOfflinePostOrders)) {
+        console.error(
+          'Offline Post Orders is not an array:',
+          parsedOfflinePostOrders,
+        );
+        throw new Error('Offline post orders are not iterable.');
+      }
+      if (!Array.isArray(parsedOfflineEditOrders)) {
+        console.error(
+          'Offline Edit Orders is not an array:',
+          parsedOfflineEditOrders,
+        );
+        throw new Error('Offline edit orders are not iterable.');
+      }
+
       // Sync Failed Orders
       for (const order of parsedOrders) {
         try {
@@ -566,6 +590,7 @@ const Home = ({navigation}) => {
 
       // Sync Offline Edit Orders
       for (const order of parsedOfflineEditOrders) {
+        console.log(order.id);
         console.log('Total Carton:', order.totalCarton);
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -575,7 +600,7 @@ const Home = ({navigation}) => {
             shop: order.shop,
             date: new Date().toISOString(), // Ensure the date is unique for every request
           };
-
+          console.log(data, 'data');
           const response = await instance.put(
             `/secondary_order/${order.id}`,
             JSON.stringify(data),
@@ -596,7 +621,7 @@ const Home = ({navigation}) => {
           const storedTotalAmount = await AsyncStorage.getItem(
             `totalAmount_${userId}`,
           );
-          let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
+          let totalAmount = parseFloat(storedTotalAmount) || 0;
           totalAmount += parseFloat(order.totalPrice);
           await AsyncStorage.setItem(
             `totalAmount_${userId}`,
@@ -1028,6 +1053,7 @@ const Home = ({navigation}) => {
         await AsyncStorage.setItem('lastOrderDate', currentDate); // Update stored date
         setTotalCartons(0); // Update the state with the reset value
         console.log('New day detected. Total cartons reset.');
+        await AsyncStorage.removeItem(`LocalAPI_${userId}`);
       } else {
         // If it's the same day, set the total cartons from AsyncStorage
         setTotalCartons(cartonsValue);
@@ -1231,7 +1257,7 @@ const Home = ({navigation}) => {
             alignItems: 'center',
           }}>
           <TouchableOpacity
-            style={[styles.ButtonContainer, {width: '95%'}]}
+            style={[styles.ButtonContainer, {width: 170}]}
             onPress={() => navigation.navigate('Target')}>
             <Text style={[styles.BtnTopTxt, {marginLeft: 10}]}>
               VIEW Targets
@@ -1240,7 +1266,7 @@ const Home = ({navigation}) => {
               Target vs Acheivement
             </Text>
             <Feather
-              style={{marginTop: 10, padding: 10}}
+              style={{marginTop: -10, padding: 10}}
               name="target"
               color="blue"
               size={40}
