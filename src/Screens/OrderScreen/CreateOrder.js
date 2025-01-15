@@ -47,7 +47,7 @@ const CreateOrder = ({navigation, route}) => {
   // console.log(Store, '///');
   // console.log(items);
   // console.log(cartItems, 'cartItems');
-  // console.log(existingOrderId, 'Exsisting order id');
+  console.log(existingOrderId, 'Exsisting order id');
   // console.log(Invoiceitems, 'InvoiceItems');
   // Handle closing the Bottom Sheet
   const handleClosePress = useCallback(() => {
@@ -75,6 +75,14 @@ const CreateOrder = ({navigation, route}) => {
   );
   // const cartItems = useSelector(state => state.reducer);
   const cartItems = route.params?.cItems || useSelector(state => state.reducer);
+
+  // let cartItems; // Declare outside the block
+
+  // if (route.params.cItems) {
+  //   cartItems = route.params.cItems; // Assign conditionally
+  // } else {
+  //   cartItems = useSelector(state => state.reducer); // Assign conditionally
+  // }
   console.log(JSON.stringify(cartItems), 'cartItems...');
   useEffect(() => {
     // console.log(cartItems, 'Item');
@@ -87,21 +95,25 @@ const CreateOrder = ({navigation, route}) => {
       cartItems.forEach(item => {
         // console.log(item, 'Item kkk');
         Product_Count +=
-          item?.itemss?.trade_price *
+          item?.itemss?.pricing?.trade_price *
             (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
-          (item?.itemss?.trade_offer / 100) * item?.itemss?.trade_price;
+          (item?.itemss?.trade_offer / 100) *
+            item?.itemss?.pricing?.trade_price;
         GrossAmount +=
-          item?.itemss?.trade_price *
+          item?.itemss?.pricing?.trade_price *
           (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
-        console.log(item?.itemss?.gst_base, 'gst base console for time being');
-        if (item?.itemss?.gst_base === 'Retail Price') {
+        console.log(
+          item?.itemss?.pricing?.gst_base,
+          'gst base console for time being',
+        );
+        if (item?.itemss?.pricing?.gst_base === 'Retail Price') {
           gst =
             gst +
-            item.itemss.retail_price *
+            item.itemss.pricing?.retail_price *
               (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
-              (item?.itemss?.pricing_gst / 100);
-          console.log(gst, 'GST Price');
-          console.log(GrossAmount, '==');
+              (item?.itemss?.pricing?.pricing_gst / 100);
+          // console.log(gst, 'GST Price');
+          // console.log(GrossAmount, '==');
         }
       });
       setTotalprice(Product_Count);
@@ -120,7 +132,7 @@ const CreateOrder = ({navigation, route}) => {
   const updateSearch = search => {
     // setSearch(search);
     setSearchText(search);
-    console.log(search, 'search');
+    // console.log(search, 'search');
   };
   const togglesearch = () => {
     setopenclosesearch(!openclosesearch);
@@ -130,11 +142,12 @@ const CreateOrder = ({navigation, route}) => {
     const state = await NetInfo.fetch(); // Check network connectivity
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const userId = await AsyncStorage.getItem('userId');
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
     try {
       if (state.isConnected) {
         // If there's network, fetch data from API
         const response = await instance.get(
-          '/pricing/all?sort_alphabetically=true&active=true',
+          `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
           {
             headers: {
               Authorization: `Bearer ${authToken}`,
@@ -142,13 +155,14 @@ const CreateOrder = ({navigation, route}) => {
           },
         );
 
+        // console.log(response.data, '-----');
         setAllProducts(response.data);
         const filteredData = [];
         const productNames = new Set();
         response.data.forEach(item => {
-          if (!productNames.has(item.product.name)) {
-            filteredData.push(item.product.name);
-            productNames.add(item.product.name);
+          if (!productNames.has(item.pricing.product.name)) {
+            filteredData.push(item.pricing.product.name);
+            productNames.add(item.pricing.product.name);
           }
         });
         SetProductname(filteredData);
@@ -164,11 +178,12 @@ const CreateOrder = ({navigation, route}) => {
           const filteredData = [];
           const productNames = new Set();
           parsedProducts.forEach(item => {
-            if (!productNames.has(item.product.name)) {
-              filteredData.push(item.product.name);
-              productNames.add(item.product.name);
+            if (!productNames.has(item.pricing.product.name)) {
+              filteredData.push(item.pricing.product.name);
+              productNames.add(item.pricing.product.name);
             }
           });
+          // console.log(filteredData, 'filteredData');
           SetProductname(filteredData);
         } else {
           console.log('No products in AsyncStorage');
@@ -199,9 +214,12 @@ const CreateOrder = ({navigation, route}) => {
           },
         );
 
-        console.log(response.data, 'distributerdiscount - -');
+        // console.log(response.data, 'distributerdiscount - -');
         response.data.forEach(item => {
-          if (item?.shop_type.id === Store?.shop_type.id) {
+          if (
+            item?.shop_type?.id === Store?.shop_type?.id ||
+            Store?.fk_shop_type
+          ) {
             setDistributiveDiscount(item);
           }
         });
@@ -214,7 +232,10 @@ const CreateOrder = ({navigation, route}) => {
         if (storedDiscount) {
           const parsedDiscount = JSON.parse(storedDiscount);
           parsedDiscount.forEach(item => {
-            if (item.shop_type.id === Store.shop_type.id) {
+            if (
+              item.shop_type?.id === Store.shop_type?.id ||
+              Store.fk_shop_type
+            ) {
               setDistributiveDiscount(item);
             }
           });
@@ -283,7 +304,7 @@ const CreateOrder = ({navigation, route}) => {
         GrossAmount <= distributiveDiscount?.upper_limit
       ) {
         const discount = GrossAmount * (distributiveDiscount?.rate / 100);
-        console.log(discount, 'val');
+        // console.log(discount, 'val');
         setFinalDistributiveDiscount(discount);
       } else {
         setFinalDistributiveDiscount(0);
@@ -300,7 +321,10 @@ const CreateOrder = ({navigation, route}) => {
       let SpecDiscount = 0;
       let finalDiscount = 0; // To store the highest applicable discount
       SpecaialDiscount.forEach((item, index) => {
-        if (item?.fk_shop_type === Store?.shop_type?.id) {
+        if (
+          item?.fk_shop_type === Store?.shop_type?.id ||
+          Store?.fk_shop_type
+        ) {
           // Compare the current item's gross amount with GrossAmount
           if (GrossAmount >= item.gross_amount) {
             // Check if the item has a rate-based or amount-based discount
@@ -314,7 +338,8 @@ const CreateOrder = ({navigation, route}) => {
             // Check if the next item exists and has a higher gross amount
             if (
               SpecaialDiscount[index + 1] &&
-              SpecaialDiscount[index + 1].fk_shop_type === Store.shop_type.id
+              SpecaialDiscount[index + 1].fk_shop_type ===
+                (Store.shop_type?.id ? Store.shop_type.id : Store.fk_shop_type)
             ) {
               const nextItem = SpecaialDiscount[index + 1];
               if (GrossAmount >= nextItem.gross_amount) {

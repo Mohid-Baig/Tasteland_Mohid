@@ -35,6 +35,7 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 
 import GetLocation from 'react-native-get-location';
 import Loader from '../../Components/Loaders/Loader';
+import {black} from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
 // let StockAlreadyExist = [];
 // const Add_Left_Stock = payload => {
 //   if (payload) {
@@ -744,7 +745,9 @@ const AllShops = ({navigation, route}) => {
                   });
                   setMModalVisible(false);
                 }}>
-                <Text style={styles.modifyButtonText}>Modify</Text>
+                <Text style={[styles.modifyButtonText, {color: '#000'}]}>
+                  Modify
+                </Text>
               </TouchableOpacity>
             </>
           )}

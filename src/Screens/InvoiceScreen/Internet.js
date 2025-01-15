@@ -33,6 +33,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const cartItems = useSelector(state => state.reducer);
+  // console.log(JSON.stringify(cartItems), 'cartItems');
   const gstRef = useRef(0);
 
   useFocusEffect(
@@ -56,21 +57,22 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
         cartItems.forEach(item => {
           // Calculate Product Count
           Product_Count +=
-            item?.itemss?.trade_price *
+            item?.itemss?.pricing.trade_price *
               (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
-            (item?.itemss?.trade_offer / 100) * item?.itemss?.trade_price;
+            (item?.itemss?.trade_offer / 100) *
+              item?.itemss?.pricing.trade_price;
 
           // Calculate Gross Amount
           GrossAmount +=
-            item?.itemss?.trade_price *
+            item?.itemss?.pricing.trade_price *
             (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
 
           // GST Calculation based on gst_base value
-          if (item?.itemss?.gst_base === 'Retail Price') {
+          if (item?.itemss?.pricing.gst_base === 'Retail Price') {
             gst +=
-              item.itemss.retail_price *
+              item.itemss.pricing.retail_price *
               (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
-              (item?.itemss?.pricing_gst / 100);
+              (item?.itemss?.pricing.pricing_gst / 100);
           }
         });
 
@@ -93,9 +95,10 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   const getProduct = async () => {
     setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
     try {
       const response = await instance.get(
-        '/pricing/all?sort_alphabetically=true&active=true',
+        `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -104,6 +107,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       );
       setAllProducts(response.data);
       // console.log(JSON.stringify(response.data), '---111----');
+      console.log('data of allProducts successfully coming');
     } catch (error) {
       console.log('Error', error);
     } finally {
@@ -156,7 +160,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       ? formatDateToYYYYMMDD(selectedDate)
       : '';
     console.log(formattedDate, 'date');
-    console.log(orderBokerId);
+    console.log(orderBokerId, 'orderbooker');
     try {
       const fkEmployee = await AsyncStorage.getItem('fk_employee');
       let apiUrl = `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`;
@@ -178,6 +182,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       // console.log(JSON.stringify(response.data), 'For Edit ');
       console.log(
         `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
+        'apiUrl',
       );
       setInternetAPI(response.data); // Set API response here
       setFormattedDate(formattedDate); // Store formattedDate in state
@@ -221,12 +226,13 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
                 // Add items to cart first
                 item.details.forEach(val => {
                   let pro = allProducts.filter(
-                    valfil => valfil.id === val.pricing_id,
+                    valfil => valfil.pricing.id === val.pricing_id,
                   );
+                  console.log(pro, 'pro');
                   let items = {
                     carton_ordered: val.carton_ordered,
                     box_ordered: val.box_ordered,
-                    pricing_id: val.id,
+                    pricing_id: val.pricing_id,
                     itemss: pro[0],
                     pack_in_box: val.box_ordered,
                   };

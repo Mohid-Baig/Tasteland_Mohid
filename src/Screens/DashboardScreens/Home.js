@@ -485,6 +485,7 @@ const Home = ({navigation}) => {
           'Offline Post Orders is not an array:',
           parsedOfflinePostOrders,
         );
+        parsedOfflineEditOrders = [parsedOfflineEditOrders];
         throw new Error('Offline post orders are not iterable.');
       }
       if (!Array.isArray(parsedOfflineEditOrders)) {
@@ -856,10 +857,11 @@ const Home = ({navigation}) => {
     }
   };
   const fetchAndStorePricingData = async () => {
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
     try {
       const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
       const response = await instance.get(
-        '/pricing/all?sort_alphabetically=true&active=true',
+        `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -903,9 +905,10 @@ const Home = ({navigation}) => {
   };
   const FetchAllProductdata = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
     try {
       const response = await instance.get(
-        '/pricing/all?sort_alphabetically=true&active=true',
+        `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,

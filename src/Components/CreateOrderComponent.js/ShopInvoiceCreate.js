@@ -19,7 +19,7 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
       if (Array.isArray(datas)) {
         datas.forEach(item => {
           // console.log('Checking item:', item);
-          if (item?.itemss?.product.name === data) {
+          if (item?.itemss?.pricing.product.name === data) {
             // console.log('Match found for:', item.product.name);
             FinalProduct[index].item.push(item);
           } else {
@@ -56,7 +56,7 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
               <Text
                 style={
                   styles.productTitle
-                }>{`${item.itemss.product.name} ${item.itemss.sku.name} ${item.itemss.variant.name}`}</Text>
+                }>{`${item.itemss.pricing.product.name} ${item.itemss.pricing.sku.name} ${item.itemss.pricing.variant.name}`}</Text>
               <View
                 style={{
                   flexDirection: 'row',
@@ -71,13 +71,16 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                 </View>
                 <View style={styles.row}>
                   <Text style={styles.label}>Trade Price</Text>
-                  <Text style={styles.value}>{item.itemss.trade_price}</Text>
+                  <Text style={styles.value}>
+                    {item.itemss.pricing.trade_price}
+                  </Text>
                 </View>
                 <View style={styles.row}>
                   <Text style={styles.label}>Trade Offer</Text>
                   <Text style={styles.value}>
                     {Math.round(
-                      item.itemss.trade_price * (item.itemss.trade_offer / 100),
+                      item.itemss.pricing.trade_price *
+                        (item.itemss.trade_offer / 100),
                       2,
                     )}{' '}
                     ({item.itemss.trade_offer})
@@ -93,18 +96,18 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                 <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
                   <Text style={styles.label}>Gross Amount</Text>
                   <Text style={styles.value}>
-                    {Math.round(item.itemss.trade_price)}
+                    {Math.round(item.itemss.pricing.trade_price)}
                   </Text>
                 </View>
                 <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
                   <Text style={styles.label}>After T.O Amount</Text>
                   <Text style={styles.value}>
                     {(
-                      item?.itemss?.trade_price *
+                      item?.itemss?.pricing.trade_price *
                         (item?.pack_in_box * item?.carton_ordered +
                           item?.box_ordered) -
                       (item?.itemss?.trade_offer / 100) *
-                        item?.itemss?.trade_price
+                        item?.itemss?.pricing.trade_price
                     ).toFixed(2)}
                   </Text>
                 </View>

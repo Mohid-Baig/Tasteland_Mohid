@@ -35,11 +35,11 @@ const FailedOrdersScreen = ({route, navigation}) => {
     return `${year}-${month}-${day}`;
   };
 
-  // useEffect(() => {
-  //   return () => {
-  //     dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
-  //   };
-  // }, [dispatch]);
+  useEffect(() => {
+    return () => {
+      dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
+    };
+  }, [dispatch]);
   const loadFailedOrders = async () => {
     try {
       const storedFailedOrders = await AsyncStorage.getItem(
@@ -48,7 +48,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
 
       if (storedFailedOrders) {
         const parsedOrders = JSON.parse(storedFailedOrders);
-        console.log(JSON.stringify(parsedOrders));
+        // console.log(JSON.stringify(parsedOrders));
 
         if (Array.isArray(parsedOrders)) {
           setFailedOrders(parsedOrders);
@@ -178,7 +178,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
         },
       );
 
-      console.log('Post Data', response.data);
+      // console.log('Post Data', response.data);
       console.log(response.status, 'status');
 
       if (response.status === 200) {
@@ -227,7 +227,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
         },
       );
 
-      console.log(response.data, 'Put data');
+      // console.log(response.data, 'Put data');
       console.log(response.status, 'status');
 
       if (response.status === 200) {
@@ -255,6 +255,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
   }, [userId]);
 
   const renderItem = ({item}) => {
+    // console.log(item.totalPrice);
     const shopName = item?.shop ? item?.shop?.name : 'No Shop Info';
     const orderDate = item?.date ? formatDate(item.date) : 'No Date';
 
@@ -272,7 +273,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
           <View style={styles.center}>
             <Text style={styles.infoLabel}>Net Amount</Text>
             <Text style={styles.infoValue}>
-              {item.net_amount ? item.net_amount : '--'}
+              {item.net_amount ?? item.totalPrice ?? '--'}
             </Text>
           </View>
         </View>
@@ -299,6 +300,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
           <TouchableOpacity
             onPress={() => {
               // console.log(JSON.stringify(item), 'Selected order');
+              // console.log(JSON.stringify(cartItems), 'cartItems');
               console.log(
                 item.details.forEach(it => {
                   it.id;
@@ -309,10 +311,17 @@ const FailedOrdersScreen = ({route, navigation}) => {
               navigation.navigate('CreateOrder', {
                 // cartItems: item,
                 existingOrderId: item.id,
-                Invoiceitems: item,
+                Invoiceitems: {
+                  date: item.date,
+                  details: item.details,
+                  id: item.id,
+                  shop: item.shop,
+                  totalCarton: item.totalCarton,
+                  totalPrice: item.totalPrice,
+                },
                 Store: item.shop,
                 RouteDate: orderDate,
-                cItems: cartItems,
+                cItems: item.cartItems,
               });
             }}>
             <MaterialIcons name="edit" color={'#16a4dd'} size={25} />

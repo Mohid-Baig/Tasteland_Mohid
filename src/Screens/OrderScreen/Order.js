@@ -38,6 +38,7 @@ const Order = ({route, navigation}) => {
   const [userId, setUserId] = useState(null); // Initialize userId state
   // Network status state
   const [isConnected, setIsConnected] = useState(true);
+  const [teerr, setteerr] = useState(null);
 
   // useEffect(() => {
   //   const fetchUserId = async () => {
@@ -340,11 +341,13 @@ const Order = ({route, navigation}) => {
 
     // Check if today's date exists in the `allDates` array
     if (allDates.includes(today)) {
-      selectedPickerDate(today); // Set today's date as the default selected value
+      selectedPickerDate(today);
+      handleDateChange(today);
     }
   }, [allDates]);
 
   const onValueChange = itemValue => {
+    console.log(itemValue, 'itemValue');
     selectedPickerDate(itemValue);
     handleDateChange(itemValue); // Pass the selected value to your handler
   };
@@ -421,13 +424,12 @@ const Order = ({route, navigation}) => {
               </TouchableOpacity>
             )}
           />
-        ) : (
-          pickerData && (
-            <Text style={styles.noDataText}>
-              No routes available for this date
-            </Text>
-          )
-        )}
+        ) : // pickerData && (
+        //   <Text style={styles.noDataText}>
+        //     No routes available for this date
+        //   </Text>
+        // )
+        null}
       </View>
       {isLoading && <Loader />}
     </View>

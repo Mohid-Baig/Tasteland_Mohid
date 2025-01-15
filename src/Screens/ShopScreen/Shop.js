@@ -641,7 +641,9 @@ const AllShops = ({navigation, route}) => {
                   });
                   setMModalVisible(false);
                 }}>
-                <Text style={styles.modifyButtonText}>Modify</Text>
+                <Text style={[styles.modifyButtonText, {color: '#000'}]}>
+                  Modify
+                </Text>
               </TouchableOpacity>
             </>
           )}

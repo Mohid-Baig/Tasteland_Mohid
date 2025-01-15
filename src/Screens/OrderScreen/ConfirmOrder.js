@@ -45,7 +45,8 @@ const ConfirmOrder = ({route, navigation}) => {
 
   const cartItems = route.params?.cItems || useSelector(state => state.reducer);
   // const cartItems = route.params.cartItems;
-  // console.log(JSON.stringify(cartItems), 'hello motherfather--');
+
+  console.log(JSON.stringify(cartItems), 'hello motherfather--');
 
   useEffect(() => {
     // Reset state when the component mounts or receives new cartItems
@@ -64,11 +65,11 @@ const ConfirmOrder = ({route, navigation}) => {
       if (
         item &&
         item.itemss &&
-        item.itemss.product &&
-        !productNames.has(item.itemss.product.name)
+        item.itemss.pricing.product &&
+        !productNames.has(item.itemss.pricing.product.name)
       ) {
-        filteredData.push(item.itemss.product.name);
-        productNames.add(item.itemss.product.name);
+        filteredData.push(item.itemss.pricing.product.name);
+        productNames.add(item.itemss.pricing.product.name);
       }
     });
 
@@ -82,7 +83,7 @@ const ConfirmOrder = ({route, navigation}) => {
       let grossAmount = 0;
 
       cartItems.forEach(item => {
-        const tradePrice = item?.itemss?.trade_price || 0;
+        const tradePrice = item?.itemss?.pricing.trade_price || 0;
         const tradeOffer = item?.itemss?.trade_offer || 0;
         const cartonOrdered = item?.carton_ordered || 0;
         const boxOrdered = item?.box_ordered || 0;
@@ -182,7 +183,7 @@ const ConfirmOrder = ({route, navigation}) => {
     let totalCartons = 0;
 
     orderItems.forEach(item => {
-      const {box_in_carton} = item.itemss; // Number of boxes in a carton
+      const {box_in_carton} = item.itemss.pricing; // Number of boxes in a carton
       const boxOrdered = item.box_ordered; // Number of boxes ordered by the user
 
       // Calculate the value (number of cartons) for the item
@@ -198,7 +199,7 @@ const ConfirmOrder = ({route, navigation}) => {
     let totalCartons = 0;
 
     orderItems.forEach(item => {
-      const {box_in_carton} = item.itemss; // Number of boxes in a carton
+      const {box_in_carton} = item.itemss.pricing; // Number of boxes in a carton
       const boxOrdered = item.box_ordered; // Number of boxes ordered by the user
 
       // Calculate the value (number of cartons) for the item
@@ -276,18 +277,20 @@ const ConfirmOrder = ({route, navigation}) => {
       box_ordered,
       pricing_id,
       itemss: {
-        retail_price,
-        invoice_price,
-        trade_price,
-        pricing_gst,
-        fk_variant,
-        fk_product,
-        pieces,
-        box_in_carton,
-        product,
-        sku,
-        variant,
         trade_offer,
+        pricing: {
+          box_in_carton,
+          retail_price,
+          invoice_price,
+          trade_price,
+          pricing_gst,
+          fk_variant,
+          fk_product,
+          pieces,
+          product,
+          sku,
+          variant,
+        },
       },
       pack_in_box,
     } = item;
@@ -326,7 +329,7 @@ const ConfirmOrder = ({route, navigation}) => {
     let details = cartItems.map(item => ({
       carton_ordered: item.carton_ordered,
       box_ordered: item.box_ordered,
-      pricing_id: item.pricing_id,
+      pricing_id: item.itemss.pricing.id,
     }));
     const data = {
       date: formattedDate,
@@ -445,7 +448,6 @@ const ConfirmOrder = ({route, navigation}) => {
     const userId = await AsyncStorage.getItem('userId');
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
 
-    // Check network availability using NetInfo
     const networkInfo = await NetInfo.fetch();
     const networkAvailable = networkInfo.isConnected;
 
@@ -456,19 +458,21 @@ const ConfirmOrder = ({route, navigation}) => {
         pricing_id,
         itemss: {
           id,
-          retail_price,
-          invoice_price,
-          trade_price,
-          pricing_gst,
-          fk_variant,
-          fk_product,
-          pieces,
-          box_in_carton,
-          product,
-          sku,
-          variant,
           trade_offer,
-          gst_base,
+          pricing: {
+            retail_price,
+            invoice_price,
+            trade_price,
+            pricing_gst,
+            fk_variant,
+            fk_product,
+            pieces,
+            box_in_carton,
+            product,
+            sku,
+            variant,
+            gst_base,
+          },
         },
         pack_in_box,
       } = item;
@@ -501,7 +505,7 @@ const ConfirmOrder = ({route, navigation}) => {
         trade_offer,
         gst_rate: pricing_gst,
         gst_base: 0.0, // Fix potential undefined GST
-        pricing_id: id,
+        pricing_id: item.itemss.pricing.id,
         pack_in_box,
       };
     });
@@ -516,15 +520,11 @@ const ConfirmOrder = ({route, navigation}) => {
       cartItems: cartItems,
     };
 
-    // Create a unique identifier based on product.id and other key details
-    const uniqueKey = `${orderId}_${Store.id}_${data.details
-      .map(item => item.id)
-      .join('_')}`;
-
     try {
       console.log(JSON.stringify(data), 'Data to be updated');
+
       if (networkAvailable) {
-        // If network is available, update order via API
+        // Network available: Update the order via API
         const response = await instance.put(
           `/secondary_order/${orderId}`,
           JSON.stringify(data),
@@ -541,11 +541,8 @@ const ConfirmOrder = ({route, navigation}) => {
           `totalAmount_${userId}`,
         );
         let totalAmount = parseFloat(storedTotalAmount) || 0; // Initialize with 0 if not found
-
-        // Add current order amount to the total
         totalAmount += parseFloat(currentOrderAmount);
 
-        // Save updated total amount in AsyncStorage
         await AsyncStorage.setItem(
           `totalAmount_${userId}`,
           totalAmount.toString(),
@@ -557,15 +554,10 @@ const ConfirmOrder = ({route, navigation}) => {
           `totalCartons_${userId}`,
         );
         let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
-
-        // Retrieve the new calculated cartons
         const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
-
-        // Add the previous total to the new total
         const updatedTotalCartons = previousTotalCartons + newTotalCartons;
-        setTotalCartons(updatedTotalCartons);
 
-        // Save the updated total cartons back to AsyncStorage
+        setTotalCartons(updatedTotalCartons);
         await AsyncStorage.setItem(
           `totalCartons_${userId}`,
           updatedTotalCartons.toFixed(1),
@@ -577,7 +569,7 @@ const ConfirmOrder = ({route, navigation}) => {
         console.log(response.status, 'status');
         Alert.alert('Success', 'Order edited successfully!', [{text: 'OK'}]);
       } else {
-        // If no network, save to offline edit storage (editOrders)
+        // Offline: Save to offline edit storage
         const offlineEditOrders = await AsyncStorage.getItem(
           `offlineEditOrders_${userId}`,
         );
@@ -585,36 +577,24 @@ const ConfirmOrder = ({route, navigation}) => {
           ? JSON.parse(offlineEditOrders)
           : [];
 
-        // Check if the order with the same uniqueKey already exists
-        const existingOrderIndex = parsedOfflineEditOrders.findIndex(
-          order => order.uniqueKey === uniqueKey,
+        // Append the new order to the list
+        parsedOfflineEditOrders.push(data);
+
+        // Save the updated list to AsyncStorage
+        await AsyncStorage.setItem(
+          `offlineEditOrders_${userId}`,
+          JSON.stringify(parsedOfflineEditOrders),
         );
 
-        if (existingOrderIndex === -1) {
-          // If the order doesn't exist (not saved before), push it to offline storage
-          const orderWithUniqueKey = {...data, uniqueKey};
-          parsedOfflineEditOrders.push(orderWithUniqueKey);
-
-          // Save the updated offline edit orders list
-          await AsyncStorage.setItem(
-            `offlineEditOrders_${userId}`,
-            JSON.stringify(parsedOfflineEditOrders), // Correctly save the updated array
-          );
-
-          console.log('Order saved for offline update.');
-          Alert.alert('Info', 'No network. Order saved for offline edit.', [
-            {text: 'OK'},
-          ]);
-        } else {
-          console.log(
-            'Order with this unique key already exists in offline storage. Skipping save.',
-          );
-        }
+        console.log('Order saved for offline update.');
+        Alert.alert('Info', 'No network. Order saved for offline edit.', [
+          {text: 'OK'},
+        ]);
       }
     } catch (error) {
       console.log(error);
 
-      // Handle only saving to failed orders if the network is available but the API fails
+      // Handle saving to failed orders if the network is available but the API fails
       if (networkAvailable) {
         const uniqueOrderId = generateUniqueId();
 
@@ -626,15 +606,11 @@ const ConfirmOrder = ({route, navigation}) => {
           cartItems: cartItems,
           error: error.message || 'Order creation failed',
         };
-        await saveFailedOrder(userId, failedOrder); // Save in failedOrders if API fails
+
+        await saveFailedOrder(userId, failedOrder);
         Alert.alert('Error', 'An error occurred while updating the order.', [
           {text: 'OK'},
         ]);
-      } else {
-        // Do not save to failedOrders if offline; only save in editOrders
-        console.log(
-          'Order saved to offlineEditOrders, no entry in failedOrders.',
-        );
       }
     }
   };

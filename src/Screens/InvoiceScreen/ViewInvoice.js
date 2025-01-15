@@ -6,10 +6,11 @@ import {
   View,
   TouchableHighlight,
 } from 'react-native';
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {useSelector, useDispatch} from 'react-redux';
 import {Remove_All_Cart} from '../../Components/redux/constants';
+import {useFocusEffect} from '@react-navigation/native';
 const ViewInvoice = ({route, navigation}) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
@@ -22,11 +23,18 @@ const ViewInvoice = ({route, navigation}) => {
       dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
     };
   }, [dispatch]);
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     return () => {
+  //       dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
+  //     };
+  //   }, [dispatch]),
+  // );
 
   console.log(Gst, 'On local screen gst');
-  console.log(cartItems, '-----');
+  // console.log(cartItems, '-----');
 
-  console.log(singleDetail);
+  // console.log(singleDetail);
   // console.log(singleDetail.trade_offer);
   // console.log(orderBokerId);
   useEffect(() => {
@@ -113,7 +121,7 @@ const ViewInvoice = ({route, navigation}) => {
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Trade Offer</Text>
                       <Text style={styles.C1_text2}>
-                        {cartItems.trade_discount.toFixed(2)} (
+                        {Math.round(it.trade_price * (it.trade_offer / 100))} (
                         {it.trade_offer.toFixed(2)}
                         %)
                       </Text>
@@ -122,12 +130,19 @@ const ViewInvoice = ({route, navigation}) => {
                   <View style={styles.C1}>
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Gross Amount</Text>
-                      <Text style={styles.C1_text2}>{it.gross_price}</Text>
+                      <Text style={styles.C1_text2}>
+                        {Math.round(it.trade_price)}
+                      </Text>
                     </View>
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>After TO Amount</Text>
                       <Text style={styles.C1_text2}>
-                        {it.gross_price}--work
+                        {(
+                          it.trade_price *
+                            (it.box_ordered * it.carton_ordered +
+                              it.box_ordered) -
+                          (it.trade_offer / 100) * it.trade_price
+                        ).toFixed(2)}
                       </Text>
                     </View>
                   </View>

@@ -33,6 +33,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const cartItems = useSelector(state => state.reducer);
+  // console.log(JSON.stringify(cartItems), 'cartItems');
   const gstRef = useRef(0);
 
   useFocusEffect(
@@ -56,21 +57,22 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
         cartItems.forEach(item => {
           // Calculate Product Count
           Product_Count +=
-            item?.itemss?.trade_price *
+            item?.itemss?.pricing.trade_price *
               (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
-            (item?.itemss?.trade_offer / 100) * item?.itemss?.trade_price;
+            (item?.itemss?.trade_offer / 100) *
+              item?.itemss?.pricing.trade_price;
 
           // Calculate Gross Amount
           GrossAmount +=
-            item?.itemss?.trade_price *
+            item?.itemss?.pricing.trade_price *
             (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
 
           // GST Calculation based on gst_base value
-          if (item?.itemss?.gst_base === 'Retail Price') {
+          if (item?.itemss?.pricing.gst_base === 'Retail Price') {
             gst +=
-              item.itemss.retail_price *
+              item.itemss.pricing.retail_price *
               (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
-              (item?.itemss?.pricing_gst / 100);
+              (item?.itemss?.pricing.pricing_gst / 100);
           }
         });
 
@@ -105,16 +107,6 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
     FetchProduct();
     setDistributiveDiscount(0);
   }, []);
-
-  const getCurrentDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
-    const day = String(today.getDate()).padStart(2, '0');
-
-    return `${year}-${month}-${day}`;
-  };
-
   const FetchLocalAPi = async () => {
     const userId = await AsyncStorage.getItem('userId');
     try {
@@ -129,6 +121,15 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   useEffect(() => {
     FetchLocalAPi();
   }, []);
+
+  const getCurrentDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  };
 
   return (
     <View style={styles.main}>
@@ -148,12 +149,13 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
                 // Add items to cart first
                 item.details.forEach(val => {
                   let pro = allProducts.filter(
-                    valfil => valfil.id === val.pricing_id,
+                    valfil => valfil.pricing.id === val.pricing_id,
                   );
+                  console.log(pro, 'pro');
                   let items = {
                     carton_ordered: val.carton_ordered,
                     box_ordered: val.box_ordered,
-                    pricing_id: val.id,
+                    pricing_id: val.pricing_id,
                     itemss: pro[0],
                     pack_in_box: val.box_ordered,
                   };
