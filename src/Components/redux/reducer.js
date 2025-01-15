@@ -12,14 +12,10 @@ export const reducer = (state = initialState, action) => {
     case Add_To_Cart:
       if (!action.payload) return state;
 
-      console.log(state, 'state');
-
-      // Find if the item is already in the cart
       const existingIndex = state.findIndex(
         item => item.pricing_id === action.payload.pricing_id,
       );
 
-      // If both carton_ordered and box_ordered are zero, remove the item from the cart
       if (
         action.payload.carton_ordered === 0 &&
         action.payload.box_ordered === 0
@@ -30,16 +26,10 @@ export const reducer = (state = initialState, action) => {
       }
 
       if (existingIndex !== -1) {
-        // Update the existing item in the cart
         const updatedState = [...state];
-        updatedState[existingIndex] = {
-          ...updatedState[existingIndex],
-          carton_ordered: action.payload.carton_ordered,
-          box_ordered: action.payload.box_ordered,
-        };
+        updatedState[existingIndex] = action.payload;
         return updatedState;
       } else {
-        // Add a new item if it's not already in the cart
         return [...state, action.payload];
       }
 
@@ -49,9 +39,14 @@ export const reducer = (state = initialState, action) => {
     case Remove_All_Cart:
       return []; // Clear cart when action is dispatched
 
-    case Remove_From_Cart:
-      // Remove the item from the cart based on pricing_id
-      return state.filter(item => item.pricing_id !== action.payload);
+    case Remove_From_Cart: // Use the correct constant for removing
+      console.log('Current State:', state);
+      console.log('Removing Item with pricing_id:', action.payload);
+      const newState = state.filter(
+        item => item.details[0].pricing_id !== action.payload,
+      );
+      console.log('New State after deletion:', newState);
+      return newState;
 
     default:
       return state;

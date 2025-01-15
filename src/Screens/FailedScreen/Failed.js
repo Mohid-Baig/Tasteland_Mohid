@@ -17,6 +17,7 @@ import instance from '../../Components/BaseUrl';
 import ViewInvoice from '../InvoiceScreen/ViewInvoice';
 import {Remove_All_Cart} from '../../Components/redux/constants';
 import {useSelector, useDispatch} from 'react-redux';
+import {AddToCart} from '../../Components/redux/action';
 const FailedOrdersScreen = ({route, navigation}) => {
   const {userId} = route.params;
   const [failedOrders, setFailedOrders] = useState([]);
@@ -25,6 +26,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
   const [cartItems, setcartItems] = useState();
   const [details, setDetails] = useState();
   const [location, setLocation] = useState();
+  const [allProducts, setAllProducts] = useState([]);
   const dispatch = useDispatch();
 
   const formatDate = dateString => {
@@ -69,6 +71,33 @@ const FailedOrdersScreen = ({route, navigation}) => {
       console.error('Error loading failed orders:', error);
     }
   };
+
+  const getProduct = async () => {
+    setIsLoading(true);
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
+    try {
+      const response = await instance.get(
+        `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      setAllProducts(response.data);
+      // console.log(JSON.stringify(response.data), '---111----');
+      console.log('data of allProducts successfully coming');
+    } catch (error) {
+      console.log('Error', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getProduct();
+  }, []);
 
   const saveFailedOrders = async updatedOrders => {
     try {
@@ -308,6 +337,23 @@ const FailedOrdersScreen = ({route, navigation}) => {
                 'hello',
               );
               dispatch({type: Remove_All_Cart});
+              item.details.forEach(val => {
+                let pro = allProducts.filter(
+                  valfil => valfil.pricing.id === val.pricing_id,
+                );
+                console.log(JSON.stringify(pro), 'pro');
+                console.log(JSON.stringify(val), 'val');
+
+                let items = {
+                  carton_ordered: val.carton_ordered,
+                  box_ordered: val.box_ordered,
+                  pricing_id: val.pricing_id,
+                  itemss: pro[0],
+                  pack_in_box: val.box_ordered,
+                };
+                dispatch(AddToCart(items));
+              });
+
               navigation.navigate('CreateOrder', {
                 // cartItems: item,
                 existingOrderId: item.id,
@@ -321,7 +367,7 @@ const FailedOrdersScreen = ({route, navigation}) => {
                 },
                 Store: item.shop,
                 RouteDate: orderDate,
-                cItems: item.cartItems,
+                // cItems: item.cartItems,
               });
             }}>
             <MaterialIcons name="edit" color={'#16a4dd'} size={25} />
@@ -379,7 +425,9 @@ const FailedOrdersScreen = ({route, navigation}) => {
         }
         renderItem={renderItem}
       />
-      {isLoading ? <Loader /> : null}
+      {isLoading ? (
+        <Loader backgroundColor={''} indicatorColor={'#16a4dd'} />
+      ) : null}
     </View>
   );
 };

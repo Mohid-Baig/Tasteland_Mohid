@@ -228,7 +228,9 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
                   let pro = allProducts.filter(
                     valfil => valfil.pricing.id === val.pricing_id,
                   );
-                  console.log(pro, 'pro');
+                  console.log(JSON.stringify(pro), 'pro');
+                  console.log(JSON.stringify(val), 'val');
+
                   let items = {
                     carton_ordered: val.carton_ordered,
                     box_ordered: val.box_ordered,

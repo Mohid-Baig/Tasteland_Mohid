@@ -514,7 +514,8 @@ const ConfirmOrder = ({route, navigation}) => {
       id: orderId, // Use orderId to uniquely identify the order
       details: mergedCartItems,
       shop: Store,
-      date: new Date().toISOString(),
+      // date: new Date().toISOString(),
+      date: formattedDate,
       totalPrice: currentOrderAmount,
       totalCarton: TotalCarton,
       cartItems: cartItems,
