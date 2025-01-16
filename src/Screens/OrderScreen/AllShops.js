@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useMemo,
   useContext,
+  useRef,
   memo,
 } from 'react';
 import {
@@ -36,6 +37,10 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import GetLocation from 'react-native-get-location';
 import Loader from '../../Components/Loaders/Loader';
 import {black} from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import NetInfo from '@react-native-community/netinfo';
+import {Remove_All_Cart} from '../../Components/redux/constants';
+import {AddToCart} from '../../Components/redux/action';
+
 // let StockAlreadyExist = [];
 // const Add_Left_Stock = payload => {
 //   if (payload) {
@@ -280,8 +285,16 @@ const AllShops = ({navigation, route}) => {
   const [confirmBtn, setconfirmBtn] = useState(false);
   const [StockAlreadyExist, setStockAlreadyExist] = useState([]);
   const [rerender, setRerender] = useState(0);
+  const [gst, setGst] = useState(0);
+  const [totalprice, setTotalprice] = useState(0);
+  const [GrossAmount, setGrossAmount] = useState(0);
   const [MModalVisible, setMModalVisible] = useState(false);
   const [sselectedShop, setSSelectedShop] = useState(null);
+  const [alllProducts, setAlllProducts] = useState([]);
+  const [sending, setsending] = useState([]);
+  const [isOffline, setIsOffline] = useState(false);
+  const [offlineOrders, setOfflineOrders] = useState([]);
+  const gstRef = useRef(0);
 
   const Add_Left_Stock = useCallback(payload => {
     if (!payload) return;
@@ -616,69 +629,247 @@ const AllShops = ({navigation, route}) => {
   //   );
   // };
 
-  const renderItem = ({item, index}) => (
-    <View style={styles.listItem}>
-      <View>
-        <Text style={styles.storeName}>
-          {index + 1}. {item.name}
-        </Text>
-        <Text style={styles.storeType}>{item.category}</Text>
-      </View>
+  const FetchProduct = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const ProductDatakey = `ProductData_${userId}`;
+      const ProductDataJSON = await AsyncStorage.getItem(ProductDatakey);
+      const ProductData = JSON.parse(ProductDataJSON);
+      setAllProducts(ProductData);
+    } catch (error) {
+      console.error('Error getting data of all products', error);
+    }
+  };
 
-      <View style={styles.actions}>
-        <View
-          style={{
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginTop: 10,
-          }}>
-          <TouchableOpacity
-            style={[styles.button, {marginBottom: 5}]}
-            onPress={() => {
-              handleVisit(item);
-              setSingleId(item.id);
-            }}>
-            <Text style={styles.buttonText}>VISIT</Text>
-          </TouchableOpacity>
-          {item.pending_order > 0 ? (
-            <View
-              style={{
-                backgroundColor: 'red',
-                width: 70,
-                height: 15,
-                borderRadius: 10,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-              <Text style={{fontSize: 9, color: '#fff'}}>pending</Text>
-            </View>
-          ) : (
-            <View
-              style={{
-                backgroundColor: 'green',
-                width: 70,
-                height: 15,
-                borderRadius: 10,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-              <Text style={{fontSize: 9, color: '#fff'}}>No pending</Text>
-            </View>
-          )}
-        </View>
-        <View style={{width: 20}}></View>
-        <TouchableOpacity
-          style={styles.infoButton}
-          onPress={() => {
-            console.log(item, 'item');
-            setSSelectedShop(item); // Set the selected shop data
-            setMModalVisible(true); // Show the modal
-          }}>
-          <FontAwesome6 name={'circle-info'} size={20} color={'#2196f3'} />
-        </TouchableOpacity>
-      </View>
-    </View>
+  useEffect(() => {
+    FetchProduct();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen Focused - Resetting States');
+
+      // Reset states to avoid using old data
+      setTotalprice(0);
+      setGrossAmount(0);
+      setGst(0);
+      gstRef.current = 0;
+    }, []),
   );
+
+  const offline = async item => {
+    const userId = await AsyncStorage.getItem('userId');
+    const state = await NetInfo.fetch();
+
+    if (state.isConnected) {
+      handleVisit(item);
+      setSingleId(item.id);
+    } else {
+      const offlinePostOrders = await AsyncStorage.getItem(
+        `offlineOrders_${userId}`,
+      );
+
+      if (offlinePostOrders) {
+        const parsedOfflinePostOrders = JSON.parse(offlinePostOrders) || [];
+
+        if (
+          Array.isArray(parsedOfflinePostOrders) &&
+          parsedOfflinePostOrders.length > 0
+        ) {
+          let shopID;
+          let cartItems;
+          let details;
+
+          parsedOfflinePostOrders.forEach(it => {
+            console.log('Item in parsedOfflinePostOrders:', it);
+
+            if (it.shop && it.shop.id && it.cartItems) {
+              shopID = it.shop.id;
+              cartItems = it.cartItems;
+              details = it.details || [];
+            }
+          });
+
+          console.log('shopID:', shopID);
+          console.log('cartItems:', cartItems);
+          console.log('details:', details);
+
+          // dispatch({type: Remove_All_Cart});
+
+          details.forEach(val => {
+            let pro = allProducts.filter(
+              valfil => valfil.pricing.id === val.pricing_id,
+            );
+
+            let items = {
+              carton_ordered: val.carton_ordered,
+              box_ordered: val.box_ordered,
+              pricing_id: val.pricing_id,
+              itemss: pro[0],
+              pack_in_box: val.box_ordered,
+            };
+            dispatch(AddToCart(items));
+          });
+
+          if (item.id === shopID && cartItems) {
+            console.log('cartItems found, recalculating values');
+            let Product_Count = 0;
+            let GrossAmount = 0;
+            let gst = 0;
+
+            cartItems.forEach(item => {
+              Product_Count +=
+                item?.itemss?.pricing.trade_price *
+                  (item?.pack_in_box * item?.carton_ordered +
+                    item?.box_ordered) -
+                (item?.itemss?.trade_offer / 100) *
+                  item?.itemss?.pricing.trade_price;
+
+              GrossAmount +=
+                item?.itemss?.pricing.trade_price *
+                (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
+
+              if (item?.itemss?.pricing.gst_base === 'Retail Price') {
+                gst +=
+                  item.itemss.pricing.retail_price *
+                  (item?.pack_in_box * item?.carton_ordered +
+                    item?.box_ordered) *
+                  (item?.itemss?.pricing.pricing_gst / 100);
+              }
+            });
+
+            console.log('New GST Calculated:', gst);
+            setTotalprice(Product_Count);
+            setGrossAmount(GrossAmount);
+            setGst(gst);
+            gstRef.current = gst;
+
+            let sendiiing;
+            parsedOfflinePostOrders.forEach(itt => {
+              sendiiing = itt;
+            });
+
+            console.log('Current GST after setting:', gstRef.current);
+            navigation.navigate('ViewInvoice', {
+              cartItems: sendiiing,
+              Gst: gstRef.current,
+              grossAmount: GrossAmount,
+            });
+          } else {
+            handleVisit(item);
+            setSingleId(item.id);
+          }
+        } else {
+          handleVisit(item);
+          setSingleId(item.id);
+        }
+      } else {
+        handleVisit(item);
+        setSingleId(item.id);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const fetchOfflineOrders = async () => {
+      const userId = await AsyncStorage.getItem('userId');
+      const orders = await AsyncStorage.getItem(`offlineOrders_${userId}`);
+      setOfflineOrders(JSON.parse(orders) || []);
+    };
+
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      setIsOffline(!state.isConnected);
+    });
+
+    fetchOfflineOrders();
+
+    return () => {
+      unsubscribeNetInfo(); // Unsubscribe NetInfo when component unmounts
+    };
+  }, []);
+
+  // Render item with conditional button text
+  const renderItem = ({item, index}) => {
+    const matchingOrder = offlineOrders.find(
+      order => order.shop.id === item.id,
+    );
+
+    return (
+      <View style={styles.listItem}>
+        <View>
+          <Text style={styles.storeName}>
+            {index + 1}. {item.name}
+          </Text>
+          <Text style={styles.storeType}>{item.category}</Text>
+        </View>
+
+        <View style={styles.actions}>
+          <View
+            style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 10,
+            }}>
+            <TouchableOpacity
+              style={[styles.button, {marginBottom: 5}]}
+              onPress={() => {
+                console.log(item);
+                if (isOffline && matchingOrder) {
+                  console.log('Invoice Action for Offline Order');
+                  offline(item);
+                } else {
+                  console.log('Visit Action');
+                  handleVisit(item);
+                  setSingleId(item.id);
+                }
+              }}>
+              <Text style={styles.buttonText}>
+                {isOffline && matchingOrder ? 'INVOICE' : 'VISIT'}
+              </Text>
+            </TouchableOpacity>
+
+            {item.pending_order > 0 ? (
+              <View
+                style={{
+                  backgroundColor: 'red',
+                  width: 70,
+                  height: 15,
+                  borderRadius: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                <Text style={{fontSize: 9, color: '#fff'}}>pending</Text>
+              </View>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: 'green',
+                  width: 70,
+                  height: 15,
+                  borderRadius: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                <Text style={{fontSize: 9, color: '#fff'}}>No pending</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={{width: 20}}></View>
+
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() => {
+              console.log(item, 'item');
+              setSSelectedShop(item); // Set the selected shop data
+              setMModalVisible(true); // Show the modal
+            }}>
+            <FontAwesome6 name={'circle-info'} size={20} color={'#2196f3'} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
   const renderModal = () => (
     <Modal
       visible={MModalVisible}

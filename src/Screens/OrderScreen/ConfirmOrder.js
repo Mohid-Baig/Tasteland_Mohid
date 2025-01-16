@@ -223,7 +223,6 @@ const ConfirmOrder = ({route, navigation}) => {
     const distributor_id = await AsyncStorage.getItem('distribution_id');
     const fk_employee = await AsyncStorage.getItem('fk_employee');
 
-    // Generate unique ID for the order
     const uniqueOrderId = generateUniqueId();
 
     let orderDetails = cartItems.map(item => ({
@@ -238,6 +237,7 @@ const ConfirmOrder = ({route, navigation}) => {
       lat: currentLocation.latitude,
       detailss: orderDetails,
       totalPrice: currentOrderAmount,
+      todiscount: Math.round(GrossAmount - totalPrice),
       totalCarton: totalCarton,
       date: formattedDate,
       details: mergedCartItems,
@@ -255,6 +255,15 @@ const ConfirmOrder = ({route, navigation}) => {
         FinalDistributiveDiscount
       ).toFixed(2),
       gross_amount: GrossAmount.toFixed(2),
+      distributionTO:
+        GrossAmount -
+        totalPrice +
+        applySpecialDiscount +
+        FinalDistributiveDiscount,
+      distribution: FinalDistributiveDiscount,
+      special: applySpecialDiscount,
+      trade_price: cartItems.itemss?.pricing.trade_price,
+      trade_offer: cartItems.itemss?.trade_offer,
     };
 
     try {

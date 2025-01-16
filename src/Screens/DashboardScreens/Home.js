@@ -295,6 +295,10 @@ const Home = ({navigation}) => {
         },
       );
       console.log('data coming in name', response.data);
+      await AsyncStorage.setItem(
+        'DistributerName',
+        response?.data?.distribution?.name.toString(),
+      );
       setDistributerName(response?.data?.distribution?.name);
     } catch (error) {
       console.log('Error in getname', error);
@@ -1261,7 +1265,12 @@ const Home = ({navigation}) => {
           }}>
           <TouchableOpacity
             style={[styles.ButtonContainer, {width: 170}]}
-            onPress={() => navigation.navigate('Target')}>
+            onPress={() =>
+              navigation.navigate('Target', {
+                first: headingData.first_name,
+                last: headingData.last_name,
+              })
+            }>
             <Text style={[styles.BtnTopTxt, {marginLeft: 10}]}>
               VIEW Targets
             </Text>
