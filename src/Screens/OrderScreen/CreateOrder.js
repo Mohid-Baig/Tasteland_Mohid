@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  ToastAndroid,
 } from 'react-native';
 import React, {useState, useEffect, useRef, useCallback} from 'react';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -51,6 +52,46 @@ const CreateOrder = ({navigation, route}) => {
   // console.log(existingOrderId, 'Exsisting order id');
   // console.log(Invoiceitems, 'InvoiceItems');
   // Handle closing the Bottom Sheet
+
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      // await AsyncStorage.removeItem('AUTH_TOKEN');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+            },
+          },
+        ]);
+      } else {
+        console.log('Error in tokenRenew', error);
+      }
+    }
+  };
   const handleClosePress = useCallback(() => {
     bottomSheetRef.current?.close();
   }, []);
@@ -205,7 +246,16 @@ const CreateOrder = ({navigation, route}) => {
         }
       }
     } catch (error) {
-      console.log('Error', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -280,7 +330,16 @@ const CreateOrder = ({navigation, route}) => {
         }
       }
     } catch (error) {
-      console.log('Error', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -322,7 +381,16 @@ const CreateOrder = ({navigation, route}) => {
         }
       }
     } catch (error) {
-      console.log('Error', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }

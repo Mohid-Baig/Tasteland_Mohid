@@ -7,6 +7,7 @@ import {
   Text,
   Alert,
   PermissionsAndroid,
+  ToastAndroid,
 } from 'react-native';
 import {TextInput, Button} from 'react-native-paper';
 import {Picker} from '@react-native-picker/picker';
@@ -96,6 +97,48 @@ const AddNewShop = ({route}) => {
     'Phototstate',
   ];
 
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      // await AsyncStorage.removeItem('AUTH_TOKEN');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+              // console.log('ok token newnew');
+              // TokenRenew();
+            },
+          },
+        ]);
+      } else {
+        console.log('Error in tokenRenew', error);
+      }
+    }
+  };
+
   const fetchShopType = async () => {
     const userId = await AsyncStorage.getItem('userId');
     try {
@@ -148,7 +191,16 @@ const AddNewShop = ({route}) => {
         }
       }
     } catch (error) {
-      console.log('Error fetching shop data:', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -400,7 +452,16 @@ const AddNewShop = ({route}) => {
         }
       }
     } catch (error) {
-      console.log('Error in route territorial data:', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -525,7 +586,16 @@ const AddNewShop = ({route}) => {
           }
           console.log('Pending edit synced:', edit);
         } catch (error) {
-          console.error('Error syncing pending edit:', error);
+          if (error.response && error.response.status === 401) {
+            ToastAndroid.showWithGravity(
+              'Please Log in again',
+              ToastAndroid.LONG,
+              ToastAndroid.CENTER,
+            );
+            TokenRenew();
+          } else {
+            console.log('Error ', error);
+          }
           // Decide whether to continue or halt based on your requirements
           continue;
         }
@@ -751,7 +821,16 @@ const AddNewShop = ({route}) => {
         );
       }
     } catch (error) {
-      console.log('Error', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
       Alert.alert(
         'Error',
         'An error occurred while processing your request.',

@@ -7,6 +7,7 @@ import {
   Modal,
   Button,
   TouchableWithoutFeedback,
+  ToastAndroid,
 } from 'react-native';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
 import CalendarPicker from 'react-native-calendar-picker';
@@ -48,6 +49,48 @@ const InvoiceScreen = ({route}) => {
   const handleSheetChanges = useCallback(index => {
     console.log('Bottom Sheet index: ', index);
   }, []);
+
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      // await AsyncStorage.removeItem('AUTH_TOKEN');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+              // console.log('ok token newnew');
+              // TokenRenew();
+            },
+          },
+        ]);
+      } else {
+        console.log('Error in tokenRenew', error);
+      }
+    }
+  };
 
   const handleOutsidePress = () => {
     if (isPickerOpen) {
@@ -126,6 +169,16 @@ const InvoiceScreen = ({route}) => {
     } catch (error) {
       console.error('Error in territorial data:', error);
       console.log('Error in territorial data:', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }

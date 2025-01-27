@@ -7,6 +7,7 @@ import {
   Platform,
   FlatList,
   ScrollView,
+  ToastAndroid,
 } from 'react-native';
 import React, {useEffect, useState, useContext} from 'react';
 import OrderStatus from '../../Components/CreateOrderComponent.js/OrderStatus';
@@ -102,6 +103,47 @@ const ConfirmOrder = ({route, navigation}) => {
     }
   }, [cartItems]); // Ensure the effect runs only when cartItems change
 
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      // await AsyncStorage.removeItem('AUTH_TOKEN');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+              // console.log('ok token newnew');
+              // TokenRenew();
+            },
+          },
+        ]);
+      } else {
+        console.log('Error in tokenRenew', error);
+      }
+    }
+  };
   // Ensure that values are numbers and not NaN before rendering
   const safeNumber = value => {
     return !isNaN(value) && value !== null ? value : 0;
@@ -425,7 +467,16 @@ const ConfirmOrder = ({route, navigation}) => {
         ]);
       }
     } catch (error) {
-      console.log(error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
       const uniqueOrderId = generateUniqueId();
 
       const failedOrder = {
@@ -605,7 +656,16 @@ const ConfirmOrder = ({route, navigation}) => {
         ]);
       }
     } catch (error) {
-      console.log(error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
 
       // Handle saving to failed orders if the network is available but the API fails
       if (networkAvailable) {

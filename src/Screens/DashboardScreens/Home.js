@@ -224,17 +224,6 @@ const Home = ({navigation}) => {
           ToastAndroid.CENTER,
         );
         TokenRenew();
-        // Alert.alert('Session Expired', [
-        //   {
-        //     text: 'OK',
-        //     onPress: async () => {
-        //       // await AsyncStorage.removeItem('access_token');
-        //       // navigation.replace('Login');
-        //       // console.log('ok token newnew');
-        //       TokenRenew();
-        //     },
-        //   },
-        // ]);
       } else {
         console.log('Error in heading data', error);
       }

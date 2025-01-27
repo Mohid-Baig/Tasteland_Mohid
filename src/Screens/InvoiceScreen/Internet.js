@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   View,
+  ToastAndroid,
 } from 'react-native';
 import React, {useEffect, useState, useRef, useCallback} from 'react';
 import instance from '../../Components/BaseUrl';
@@ -35,6 +36,48 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   const cartItems = useSelector(state => state.reducer);
   // console.log(JSON.stringify(cartItems), 'cartItems');
   const gstRef = useRef(0);
+
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      // await AsyncStorage.removeItem('AUTH_TOKEN');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+              // console.log('ok token newnew');
+              // TokenRenew();
+            },
+          },
+        ]);
+      } else {
+        console.log('Error in tokenRenew', error);
+      }
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -109,7 +152,16 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       // console.log(JSON.stringify(response.data), '---111----');
       console.log('data of allProducts successfully coming');
     } catch (error) {
-      console.log('Error', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -189,6 +241,16 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       console.log('Data of InternetAPI successfully coming');
     } catch (error) {
       console.log('Error Caught in InternetAPI -------', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }
