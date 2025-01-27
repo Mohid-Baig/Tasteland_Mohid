@@ -1331,7 +1331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     textAlign: 'right',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-evenly',
   },
   menuOptions: {
     position: 'absolute',
