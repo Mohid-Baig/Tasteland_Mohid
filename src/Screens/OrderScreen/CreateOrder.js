@@ -230,28 +230,49 @@ const CreateOrder = ({navigation, route}) => {
         );
 
         console.log(response.data, 'distributerdiscount - -');
-        response.data.forEach(item => {
+
+        // Ensure the response is in array format
+        const discountData = Array.isArray(response.data)
+          ? response.data
+          : [response.data];
+
+        // Clear existing discount data
+        setDistributiveDiscount([]);
+
+        // Loop through the discount data to set distributive discounts
+        discountData.forEach(item => {
           if (
             item?.shop_type?.id === Store?.shop_type?.id ||
             Store?.fk_shop_type
           ) {
-            setDistributiveDiscount(item);
+            // Only set distributiveDiscount for the matching store/shop type
+            setDistributiveDiscount(prev => [...prev, item]); // Append item to the state
           }
         });
 
-        // Save the fetched data in AsyncStorage
+        // Save the fetched data in AsyncStorage for offline use
+        await AsyncStorage.setItem(
+          `discountSlabData_${userId}`,
+          JSON.stringify(discountData),
+        );
       } else {
         // If no internet, fetch from AsyncStorage
         const discountSlabKey = `discountSlabData_${userId}`;
         const storedDiscount = await AsyncStorage.getItem(discountSlabKey);
         if (storedDiscount) {
           const parsedDiscount = JSON.parse(storedDiscount);
+
+          // Clear existing discount data
+          setDistributiveDiscount([]);
+
+          // Loop through the stored discount data to set distributive discounts
           parsedDiscount.forEach(item => {
             if (
               item.shop_type?.id === Store.shop_type?.id ||
               Store.fk_shop_type
             ) {
-              setDistributiveDiscount(item);
+              // Set distributiveDiscount from stored data
+              setDistributiveDiscount(prev => [...prev, item]); // Append item to the state
             }
           });
         } else {
@@ -313,72 +334,117 @@ const CreateOrder = ({navigation, route}) => {
     getSpecialDiscount();
   }, []);
   useEffect(() => {
-    if (distributiveDiscount) {
-      if (
-        GrossAmount >= distributiveDiscount?.lower_limit &&
-        GrossAmount <= distributiveDiscount?.upper_limit
-      ) {
-        const discount = GrossAmount * (distributiveDiscount?.rate / 100);
-        // console.log(discount, 'val');
-        setFinalDistributiveDiscount(discount);
-      } else {
-        setFinalDistributiveDiscount(0);
-      }
-    }
-    if (SpecaialDiscount) {
-      // SpecaialDiscount.forEach((item, index) => {
-      //     if (item.fk_shop_type === Store.shop_type.id) {
-      //         if (GrossAmount >= item.gross_amount || GrossAmount >= item.gross_amount && GrossAmount >= item[index + 1].gross_amount) {
-      //             console.log(item.gross_amount, 'item.gross_amount ')
-      //         }
-      //     }
-      // })
+    // Debugging logs to track values
+    console.log('GrossAmount:', GrossAmount); // Logs the gross amount
+    console.log('Distributive Discount:', distributiveDiscount);
+    console.log('Special Discounts:', SpecaialDiscount);
+    console.log('Store:', Store);
 
-      let SpecDiscount = 0;
-      let finalDiscount = 0; // To store the highest applicable discount
-      SpecaialDiscount.forEach((item, index) => {
-        if (item?.fk_shop_type === Store?.fk_shop_type) {
-          // Compare the current item's gross amount with GrossAmount
-          if (GrossAmount >= item.gross_amount) {
-            // Check if the item has a rate-based or amount-based discount
-            if (item.rate) {
-              SpecDiscount = GrossAmount * (item.rate / 100);
-            } else if (item.amount) {
-              SpecDiscount = item.amount;
-            }
-            // Set the highest discount available
-            finalDiscount = Math.max(finalDiscount, SpecDiscount);
-            // Check if the next item exists and has a higher gross amount
-            if (
-              SpecaialDiscount[index + 1] &&
-              SpecaialDiscount[index + 1].fk_shop_type ===
-                (Store.shop_type?.id ? Store.shop_type.id : Store.fk_shop_type)
-            ) {
-              const nextItem = SpecaialDiscount[index + 1];
-              if (GrossAmount >= nextItem.gross_amount) {
-                if (nextItem.rate) {
-                  SpecDiscount = GrossAmount * (nextItem.rate / 100);
-                } else if (nextItem.amount) {
-                  SpecDiscount = nextItem.amount;
-                }
-                // Again, set the highest discount
-                finalDiscount = Math.max(finalDiscount, SpecDiscount);
-              }
-            }
-          }
+    if (
+      distributiveDiscount &&
+      Array.isArray(distributiveDiscount) &&
+      distributiveDiscount.length > 0
+    ) {
+      let distributiveDiscountApplied = false; // Flag to check if a discount is applied
+
+      // Loop through each distributive discount range
+      distributiveDiscount.forEach(discount => {
+        console.log('Checking Distributive Discount entry:', discount); // Log the full discount entry
+        console.log(
+          'Checking Distributive Discount limits:',
+          discount.lower_limit,
+          discount.upper_limit,
+        );
+
+        // Check if GrossAmount falls within the range
+        if (
+          GrossAmount >= discount?.lower_limit &&
+          GrossAmount <= discount?.upper_limit
+        ) {
+          const calculatedDiscount = GrossAmount * (discount?.rate / 100);
+          console.log(
+            `Calculated Distributive Discount for range ${discount.lower_limit}-${discount.upper_limit}:`,
+            calculatedDiscount,
+          );
+          setFinalDistributiveDiscount(calculatedDiscount);
+          distributiveDiscountApplied = true; // Set flag if discount is applied
         }
       });
-      // Apply the final discount if GrossAmount is over 2000
-      if (GrossAmount >= 2000) {
-        setApplySpecialDiscount(finalDiscount);
+
+      // If no distributive discount was applied, set it to 0
+      if (!distributiveDiscountApplied) {
+        console.log('No applicable distributive discount for this GrossAmount');
+        setFinalDistributiveDiscount(0);
       }
-      if (SpecaialDiscount.length > 0) {
-        if (GrossAmount < SpecaialDiscount[0].gross_amount) {
-          setApplySpecialDiscount(0);
-        }
-      }
+    } else {
+      console.log('No distributive discounts found or invalid structure');
+      setFinalDistributiveDiscount(0);
     }
-  }, [GrossAmount]);
+
+    // Handle special discounts
+    if (SpecaialDiscount && SpecaialDiscount.length > 0) {
+      let finalDiscount = 0; // Store the highest applicable discount
+
+      SpecaialDiscount.forEach((item, index) => {
+        console.log(`Checking Special Discount Item ID: ${item.id}`);
+        console.log(
+          `Item Gross Amount: ${item.gross_amount}, Item Rate: ${item.rate}, Item Amount: ${item.amount}`,
+        );
+        console.log(
+          `Current Gross Amount: ${GrossAmount}, Shop Type: ${Store?.fk_shop_type}`,
+        );
+
+        // Check if the item matches the shop type and gross amount condition
+        if (item?.fk_shop_type === Store?.fk_shop_type) {
+          console.log('Shop types match!');
+
+          if (GrossAmount >= item.gross_amount) {
+            let discount = 0;
+
+            if (item.rate) {
+              discount = GrossAmount * (item.rate / 100); // Calculate discount based on rate
+              console.log(
+                `Rate-based Discount for Item ID: ${item.id} = ${discount}`,
+              );
+            } else if (item.amount) {
+              discount = item.amount; // Apply flat amount if no rate
+              console.log(
+                `Amount-based Discount for Item ID: ${item.id} = ${discount}`,
+              );
+            }
+
+            // Set the highest discount
+            finalDiscount = Math.max(finalDiscount, discount);
+            console.log(
+              `Updated Final Discount after Item ID ${item.id}: ${finalDiscount}`,
+            );
+          } else {
+            console.log(
+              `GrossAmount ${GrossAmount} is less than required item.gross_amount ${item.gross_amount}`,
+            );
+          }
+        } else {
+          console.log(
+            `Shop type mismatch! Item shop type: ${item.fk_shop_type}, Store shop type: ${Store?.fk_shop_type}`,
+          );
+        }
+      });
+
+      // Set the calculated special discount
+      if (finalDiscount > 0) {
+        console.log('Final Special Discount Applied:', finalDiscount);
+        setApplySpecialDiscount(finalDiscount);
+      } else {
+        console.log('No applicable special discount after checking all items');
+        setApplySpecialDiscount(0);
+      }
+    } else {
+      // No special discounts found
+      console.log('No special discounts found');
+      setApplySpecialDiscount(0);
+    }
+  }, [GrossAmount, distributiveDiscount, SpecaialDiscount, Store]);
+
   return (
     <View style={styles.container}>
       <StatusBar

@@ -6,9 +6,28 @@ const ShowValues = ({
   Lefttxt,
   rightStyle,
   RightText,
-  percent,
+  percent, // Ensure percent is passed correctly
   gross,
 }) => {
+  // console.log('Received percent data:', percent);
+  // console.log('Gross value:', gross);
+
+  // Find the applicable discount based on the gross value
+  let displayRate = 0;
+
+  // Make sure percent is an array and has data
+  if (Array.isArray(percent) && percent.length > 0) {
+    percent.forEach(item => {
+      // Check if the gross falls within the range defined by lower_limit and upper_limit
+      if (gross >= item.lower_limit && gross <= item.upper_limit) {
+        displayRate = item.rate; // Set the rate from the matched item
+      }
+    });
+  }
+
+  // Fallback message if no matching rate is found
+  const rateText = displayRate > 0 ? `(${displayRate}%)` : '(0.0%)';
+
   return (
     <View
       style={{
@@ -24,13 +43,7 @@ const ShowValues = ({
         <View style={{width: '50%'}}>
           {percent ? (
             <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
-              {gross >= percent?.lower_limit &&
-              gross <= percent?.upper_limit ? (
-                <Text> ({percent.rate}%)</Text>
-              ) : (
-                <Text>(0.0%)</Text>
-              )}{' '}
-              {RightText}
+              {rateText} {/* Display dynamic rate */} {RightText}
             </Text>
           ) : (
             <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>

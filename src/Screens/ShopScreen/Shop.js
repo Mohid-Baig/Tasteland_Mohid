@@ -955,451 +955,475 @@ const AllShops = ({navigation, route}) => {
       }
     }
   };
+  // return (
+  //   <View style={styles.container}>
+  //     <StatusBar
+  //       backgroundColor="black"
+  //       barStyle="light-content"
+  //       translucent={false}
+  //     />
+
+  //     <FlatList
+  //       showsVerticalScrollIndicator={false}
+  //       data={filteredStores}
+  //       renderItem={renderItem}
+  //       keyExtractor={(item, index) => item.id.toString()}
+  //       contentContainerStyle={{paddingBottom: 80}}
+  //     />
+  //     {renderModal()}
+  //     <Modal
+  //       transparent={true}
+  //       visible={modalVisible}
+  //       animationType="none"
+  //       onRequestClose={closeModal}>
+  //       {/* <TouchableOpacity style={styles.modalOverlay} onPress={closeModal}> */}
+
+  //       <View style={styles.modalOverlay}>
+  //         <View style={styles.modalContent}>
+  //           {!markUnproductiveButton ? (
+  //             <View style={styles.Create_order_cont}>
+  //               <Text style={styles.modalText}>
+  //                 RECORD VISIT: {selectedStore?.name}
+  //               </Text>
+  //               <TouchableOpacity
+  //                 style={styles.createOrderButton}
+  //                 onPress={() => {
+  //                   navigation.navigate('CreateOrder', {
+  //                     Store: selectedStore,
+  //                     RouteDate: routeDate,
+  //                   });
+  //                   closeModal();
+  //                 }}>
+  //                 <Text style={styles.buttonText}>Create Order</Text>
+  //               </TouchableOpacity>
+  //               <TouchableOpacity
+  //                 style={styles.markUnproductiveButton}
+  //                 onPress={() => {
+  //                   setMarkUnproductiveButton(true);
+  //                 }}>
+  //                 <Text style={styles.buttonText}>Mark Unproductive Visit</Text>
+  //               </TouchableOpacity>
+  //               <View style={{flexDirection: 'row', width: '100%'}}>
+  //                 <TouchableOpacity onPress={closeModal}>
+  //                   <Text style={{color: 'red', marginTop: 20}}>Cancel</Text>
+  //                 </TouchableOpacity>
+  //                 <TouchableOpacity
+  //                   onPress={() => {
+  //                     closeModal();
+  //                   }}
+  //                   style={{marginLeft: 'auto'}}>
+  //                   <Text style={{color: 'red', marginTop: 20}}>Confirm</Text>
+  //                 </TouchableOpacity>
+  //               </View>
+  //             </View>
+  //           ) : (
+  //             <View style={styles.UnProductive_cont}>
+  //               <View style={styles.UnProductive_row}>
+  //                 <View style={styles.UnProductive_col}>
+  //                   <View style={{}}>
+  //                     <View style={styles.btn_parent_cont}>
+  //                       <TouchableOpacity
+  //                         style={[
+  //                           styles.btn_cont,
+  //                           view === 'Shop Closed' && styles.selected_btn,
+  //                         ]}
+  //                         onPress={() => handlePress('Shop Closed')}>
+  //                         <Text
+  //                           style={[
+  //                             styles.btn_txt,
+  //                             view === 'Shop Closed' && styles.selected_txt,
+  //                           ]}>
+  //                           Shop Closed
+  //                         </Text>
+  //                       </TouchableOpacity>
+
+  //                       <TouchableOpacity
+  //                         style={[
+  //                           styles.btn_cont,
+  //                           view === 'Customer Refused' && styles.selected_btn,
+  //                         ]}
+  //                         onPress={() => handlePress('Customer Refused')}>
+  //                         <Text
+  //                           style={[
+  //                             styles.btn_txt,
+  //                             view === 'Customer Refused' &&
+  //                               styles.selected_txt,
+  //                           ]}>
+  //                           Customer
+  //                         </Text>
+  //                         <Text
+  //                           style={[
+  //                             styles.btn_txt,
+  //                             view === 'Customer Refused' &&
+  //                               styles.selected_txt,
+  //                           ]}>
+  //                           Refused
+  //                         </Text>
+  //                       </TouchableOpacity>
+
+  //                       <TouchableOpacity
+  //                         style={[
+  //                           styles.btn_cont,
+  //                           view === 'Stock Already Exist' &&
+  //                             styles.selected_btn,
+  //                         ]}
+  //                         onPress={() => handlePress('Stock Already Exist')}>
+  //                         <Text
+  //                           style={[
+  //                             styles.btn_txt,
+  //                             view === 'Stock Already Exist' &&
+  //                               styles.selected_txt,
+  //                           ]}>
+  //                           Stock Already
+  //                         </Text>
+  //                         <Text
+  //                           style={[
+  //                             styles.btn_txt,
+  //                             view === 'Stock Already Exist' &&
+  //                               styles.selected_txt,
+  //                           ]}>
+  //                           Exist
+  //                         </Text>
+  //                       </TouchableOpacity>
+  //                     </View>
+
+  //                     {view === 'Shop Closed' && (
+  //                       <View style={styles.view_cont}>
+  //                         <Text style={{color: '#a0a0a0'}}>Reason :</Text>
+  //                         <View
+  //                           style={{
+  //                             borderBottomColor: '#000',
+  //                             borderBottomWidth: 1,
+  //                           }}>
+  //                           <TextInput
+  //                             style={{backgroundColor: '#fff', color: '#000'}}
+  //                             value={shopcloseReason}
+  //                             textColor={'#000'}
+  //                             // activeUnderlineColor='#3ef0c0'
+  //                             onChangeText={password =>
+  //                               setshopCloseReason(password)
+  //                             }
+  //                           />
+  //                         </View>
+  //                       </View>
+  //                     )}
+
+  //                     {view === 'Customer Refused' && (
+  //                       <View style={styles.view_cont}>
+  //                         <Text style={{color: '#a0a0a0'}}>Reason*:</Text>
+  //                         <View
+  //                           style={{
+  //                             borderBottomColor: '#000',
+  //                             borderBottomWidth: 1,
+  //                           }}>
+  //                           <TextInput
+  //                             style={{backgroundColor: '#fff', color: '#000'}}
+  //                             value={customerRefused}
+  //                             textColor={'#000'}
+  //                             // activeUnderlineColor='#3ef0c0'
+  //                             onChangeText={password =>
+  //                               setCustomerRefused(password)
+  //                             }
+  //                           />
+  //                         </View>
+  //                       </View>
+  //                     )}
+
+  //                     {view === 'Stock Already Exist' && (
+  //                       <View
+  //                         style={[
+  //                           styles.view_cont,
+  //                           {
+  //                             height: '88%',
+  //                             padding: 0,
+  //                             position: 'relative',
+  //                           },
+  //                         ]}>
+  //                         <View style={{}}>
+  //                           <View
+  //                             style={{
+  //                               width: '100%',
+  //                               flexDirection: 'row',
+  //                               height: 50,
+  //                               borderBottomWidth: 1,
+  //                               borderBottomColor: '#a0a0a0',
+  //                             }}>
+  //                             <TouchableOpacity
+  //                               style={{width: '80%', justifyContent: 'center'}}
+  //                               onPress={() => setSKUView(true)}>
+  //                               <Text style={{color: '#000'}}>Select SKU</Text>
+  //                             </TouchableOpacity>
+  //                             <View
+  //                               style={{
+  //                                 flexDirection: 'row',
+  //                                 alignItems: 'center',
+  //                                 justifyContent: 'space-between',
+  //                               }}>
+  //                               <TouchableOpacity
+  //                                 onPress={() => setSKUView(true)}>
+  //                                 <AntDesign
+  //                                   name="caretdown"
+  //                                   size={18}
+  //                                   color={'#000'}
+  //                                 />
+  //                               </TouchableOpacity>
+
+  //                               <TouchableOpacity
+  //                                 style={{marginLeft: 9}}
+  //                                 onPress={() => {
+  //                                   setExistingProduct([]);
+
+  //                                   // Remove from selectedProduct
+  //                                   setSelectedProduct([]);
+
+  //                                   // Remove from selectedSKUs
+  //                                   setSelectedSKUs([]);
+  //                                 }}>
+  //                                 <AntDesign
+  //                                   name="close"
+  //                                   size={18}
+  //                                   color={'#000'}
+  //                                 />
+  //                               </TouchableOpacity>
+  //                             </View>
+  //                           </View>
+  //                         </View>
+  //                         <View style={{height: '80%'}}>
+  //                           <FlatList
+  //                             showsVerticalScrollIndicator={false}
+  //                             data={selectedProduct}
+  //                             keyExtractor={(item, index) => index.toString()}
+  //                             renderItem={({item}) => (
+  //                               <AddSingleProduct
+  //                                 itemss={item}
+  //                                 boxInCtn={boxFilter(item.variant.name)}
+  //                                 del={id => {
+  //                                   // Remove from existingProduct
+  //                                   setExistingProduct(prevProducts =>
+  //                                     prevProducts.filter(
+  //                                       existingItem =>
+  //                                         existingItem.itemss.item.id !== id,
+  //                                     ),
+  //                                   );
+
+  //                                   // Remove from selectedProduct
+  //                                   setSelectedProduct(prevProducts =>
+  //                                     prevProducts.filter(
+  //                                       selectedItem => selectedItem.id !== id,
+  //                                     ),
+  //                                   );
+
+  //                                   // Remove from selectedSKUs
+  //                                   setSelectedSKUs(prevSKUs =>
+  //                                     prevSKUs.filter(skuId => skuId !== id),
+  //                                   );
+  //                                 }}
+  //                               />
+  //                             )}
+  //                           />
+  //                         </View>
+  //                         <View
+  //                           style={{
+  //                             flexDirection: 'row',
+  //                             position: 'absolute',
+  //                             bottom: 0,
+  //                             right: 0,
+  //                             width: 110,
+  //                             justifyContent: 'space-between',
+  //                           }}>
+  //                           <TouchableOpacity onPress={closeModal}>
+  //                             <Text style={{color: 'red'}}>Cancel</Text>
+  //                           </TouchableOpacity>
+  //                           <TouchableOpacity
+  //                             onPress={() => {
+  //                               getLocation();
+  //                             }}>
+  //                             <Text style={{color: '#a0a0a0'}}>Confirm</Text>
+  //                           </TouchableOpacity>
+  //                         </View>
+  //                       </View>
+  //                     )}
+  //                   </View>
+  //                 </View>
+  //                 {view !== 'Stock Already Exist' ? ( // Removed extra space
+  //                   <View style={{flexDirection: 'row', width: '100%'}}>
+  //                     <TouchableOpacity
+  //                       onPress={() => {
+  //                         setMarkUnproductiveButton(false);
+  //                       }}>
+  //                       <Text style={{color: 'red', marginTop: 20}}>
+  //                         Cancel
+  //                       </Text>
+  //                     </TouchableOpacity>
+  //                     <TouchableOpacity
+  //                       onPress={() => {
+  //                         getLocation();
+  //                       }}
+  //                       style={{marginLeft: 'auto'}}>
+  //                       <Text style={{color: 'red', marginTop: 20}}>
+  //                         Confirm
+  //                       </Text>
+  //                     </TouchableOpacity>
+  //                   </View>
+  //                 ) : (
+  //                   <View></View>
+  //                 )}
+  //               </View>
+  //             </View>
+  //           )}
+  //         </View>
+  //       </View>
+  //     </Modal>
+  //     <Modal
+  //       animationType="slide"
+  //       transparent={true}
+  //       visible={SKUview}
+  //       onRequestClose={closeSKUModal}>
+  //       <View style={styles.modalSKUContainer}>
+  //         <View style={styles.modalSKUContent}>
+  //           <View style={styles.container}>
+  //             <View style={{flexDirection: 'row'}}>
+  //               <View style={{width: '75%'}}>
+  //                 <Text style={styles.title}>Select SKU</Text>
+  //               </View>
+  //               <View
+  //                 style={{
+  //                   width: '25%',
+  //                   flexDirection: 'row',
+  //                   justifyContent: 'space-between',
+  //                 }}>
+  //                 <TouchableOpacity
+  //                   onPress={() => {
+  //                     closeSKUModal();
+  //                   }}>
+  //                   <View>
+  //                     <AntDesign name="close" size={20} color={'#a0a0a0'} />
+  //                   </View>
+  //                 </TouchableOpacity>
+  //                 <TouchableOpacity
+  //                   onPress={() => {
+  //                     closeSKUModal();
+  //                   }}>
+  //                   <Text style={{color: '#a0a0a0'}}>Done</Text>
+  //                 </TouchableOpacity>
+  //               </View>
+  //             </View>
+  //             {/* Search Input */}
+
+  //             <TextInput
+  //               style={styles.searchInput}
+  //               placeholder="Search SKU"
+  //               placeholderTextColor={'#000'}
+  //               value={searchQuery}
+  //               onChangeText={text => {
+  //                 setSearchQuery(text);
+  //                 filterProducts(text);
+  //               }}
+  //             />
+
+  //             {/* SKU List */}
+
+  //             <FlatList
+  //               showsVerticalScrollIndicator={false}
+  //               data={filteredProducts}
+  //               keyExtractor={(item, index) => index}
+  //               renderItem={({item}) => (
+  //                 <View style={styles.skuItem}>
+  //                   <View style={{width: '10%'}}>
+  //                     {/* {console.log(item)} */}
+  //                     <CheckBox
+  //                       value={selectedSKUs.includes(item.id)}
+  //                       tintColors={'#9E663C'}
+  //                       onCheckColor={'#6F763F'}
+  //                       onFillColor={'#4DABEC'}
+  //                       onTintColor={'#F4DCF8'}
+  //                       onValueChange={() => {
+  //                         toggleSelect(item.id),
+  //                           selectedSKUs.includes(item.id),
+  //                           setSelectedProduct(prevProducts => [
+  //                             ...prevProducts,
+  //                             item,
+  //                           ]);
+  //                       }}
+  //                     />
+  //                   </View>
+  //                   <TouchableOpacity
+  //                     style={{width: '90%'}}
+  //                     onPress={() => {
+  //                       selectedSKUs.includes(item.id);
+  //                       toggleSelect(item.id);
+  //                       // console.log(selectedProduct, 'pp')
+
+  //                       setSelectedProduct(prevProducts => [
+  //                         ...prevProducts,
+  //                         item,
+  //                       ]);
+  //                     }}>
+  //                     <Text
+  //                       style={
+  //                         styles.skuText
+  //                       }>{`${item.product.name} ${item.sku.name} ${item.variant.name}`}</Text>
+  //                   </TouchableOpacity>
+  //                 </View>
+  //               )}
+  //             />
+
+  //             {/* Save & Cancel Buttons */}
+  //             <View style={styles.buttonContainer}>
+  //               <TouchableOpacity
+  //                 onPress={() => {
+  //                   closeSKUModal();
+  //                 }}>
+  //                 {/* {console.log(selectedSKUs, 'selectedSKUs')} */}
+  //                 <Text style={{fontSize: 16}}>
+  //                   {selectedSKUs.length === 0 && (
+  //                     <Text style={{color: '#000'}}>
+  //                       Save without Selection
+  //                     </Text>
+  //                   )}
+  //                   {selectedSKUs.length === 1 && (
+  //                     <Text style={{color: '#000'}}>
+  //                       Save SKU "{selectedSKUs[0]}"
+  //                     </Text>
+  //                   )}
+  //                   {selectedSKUs.length > 1 && (
+  //                     <Text style={{color: '#000'}}>
+  //                       Save SKU ({selectedSKUs.length})
+  //                     </Text>
+  //                   )}
+  //                 </Text>
+  //               </TouchableOpacity>
+  //               {/* <Button title="Save SKU" onPress={() => console.log('Selected SKUs:', selectedSKUs)} /> */}
+  //             </View>
+  //           </View>
+  //         </View>
+  //         {isLoading ? <Loader /> : null}
+  //       </View>
+  //     </Modal>
+  //     <View style={styles.Add_cont}>
+  //       <View style={styles.Add_row}>
+  //         <TouchableOpacity
+  //           style={styles.Add_col}
+  //           onPress={() =>
+  //             navigation.navigate('AddNewShop', {
+  //               orderBokerId: orderBokerId,
+  //             })
+  //           }>
+  //           <FontAwesome6
+  //             name={'plus'}
+  //             color={'#fff'}
+  //             size={40}
+  //             style={{zIndex: 2}}
+  //           />
+  //         </TouchableOpacity>
+  //       </View>
+  //     </View>
+  //     {isLoading ? <Loader /> : null}
+  //   </View>
+  // );
+
   return (
     <View style={styles.container}>
-      <StatusBar
-        backgroundColor="black"
-        barStyle="light-content"
-        translucent={false}
-      />
-
-      <FlatList
-        showsVerticalScrollIndicator={false}
-        data={filteredStores}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => item.id.toString()}
-        contentContainerStyle={{paddingBottom: 80}}
-      />
-      {renderModal()}
-      <Modal
-        transparent={true}
-        visible={modalVisible}
-        animationType="none"
-        onRequestClose={closeModal}>
-        {/* <TouchableOpacity style={styles.modalOverlay} onPress={closeModal}> */}
-
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {!markUnproductiveButton ? (
-              <View style={styles.Create_order_cont}>
-                <Text style={styles.modalText}>
-                  RECORD VISIT: {selectedStore?.name}
-                </Text>
-                <TouchableOpacity
-                  style={styles.createOrderButton}
-                  onPress={() => {
-                    navigation.navigate('CreateOrder', {
-                      Store: selectedStore,
-                      RouteDate: routeDate,
-                    });
-                    closeModal();
-                  }}>
-                  <Text style={styles.buttonText}>Create Order</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.markUnproductiveButton}
-                  onPress={() => {
-                    setMarkUnproductiveButton(true);
-                  }}>
-                  <Text style={styles.buttonText}>Mark Unproductive Visit</Text>
-                </TouchableOpacity>
-                <View style={{flexDirection: 'row', width: '100%'}}>
-                  <TouchableOpacity onPress={closeModal}>
-                    <Text style={{color: 'red', marginTop: 20}}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      closeModal();
-                    }}
-                    style={{marginLeft: 'auto'}}>
-                    <Text style={{color: 'red', marginTop: 20}}>Confirm</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.UnProductive_cont}>
-                <View style={styles.UnProductive_row}>
-                  <View style={styles.UnProductive_col}>
-                    <View style={{}}>
-                      <View style={styles.btn_parent_cont}>
-                        <TouchableOpacity
-                          style={[
-                            styles.btn_cont,
-                            view === 'Shop Closed' && styles.selected_btn,
-                          ]}
-                          onPress={() => handlePress('Shop Closed')}>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Shop Closed' && styles.selected_txt,
-                            ]}>
-                            Shop Closed
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.btn_cont,
-                            view === 'Customer Refused' && styles.selected_btn,
-                          ]}
-                          onPress={() => handlePress('Customer Refused')}>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Customer Refused' &&
-                                styles.selected_txt,
-                            ]}>
-                            Customer
-                          </Text>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Customer Refused' &&
-                                styles.selected_txt,
-                            ]}>
-                            Refused
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.btn_cont,
-                            view === 'Stock Already Exist' &&
-                              styles.selected_btn,
-                          ]}
-                          onPress={() => handlePress('Stock Already Exist')}>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Stock Already Exist' &&
-                                styles.selected_txt,
-                            ]}>
-                            Stock Already
-                          </Text>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Stock Already Exist' &&
-                                styles.selected_txt,
-                            ]}>
-                            Exist
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      {view === 'Shop Closed' && (
-                        <View style={styles.view_cont}>
-                          <Text style={{color: '#a0a0a0'}}>Reason :</Text>
-                          <View
-                            style={{
-                              borderBottomColor: '#000',
-                              borderBottomWidth: 1,
-                            }}>
-                            <TextInput
-                              style={{backgroundColor: '#fff', color: '#000'}}
-                              value={shopcloseReason}
-                              textColor={'#000'}
-                              // activeUnderlineColor='#3ef0c0'
-                              onChangeText={password =>
-                                setshopCloseReason(password)
-                              }
-                            />
-                          </View>
-                        </View>
-                      )}
-
-                      {view === 'Customer Refused' && (
-                        <View style={styles.view_cont}>
-                          <Text style={{color: '#a0a0a0'}}>Reason*:</Text>
-                          <View
-                            style={{
-                              borderBottomColor: '#000',
-                              borderBottomWidth: 1,
-                            }}>
-                            <TextInput
-                              style={{backgroundColor: '#fff', color: '#000'}}
-                              value={customerRefused}
-                              textColor={'#000'}
-                              // activeUnderlineColor='#3ef0c0'
-                              onChangeText={password =>
-                                setCustomerRefused(password)
-                              }
-                            />
-                          </View>
-                        </View>
-                      )}
-
-                      {view === 'Stock Already Exist' && (
-                        <View
-                          style={[
-                            styles.view_cont,
-                            {
-                              height: '88%',
-                              padding: 0,
-                              position: 'relative',
-                            },
-                          ]}>
-                          <View style={{}}>
-                            <View
-                              style={{
-                                width: '100%',
-                                flexDirection: 'row',
-                                height: 50,
-                                borderBottomWidth: 1,
-                                borderBottomColor: '#a0a0a0',
-                              }}>
-                              <TouchableOpacity
-                                style={{width: '80%', justifyContent: 'center'}}
-                                onPress={() => setSKUView(true)}>
-                                <Text style={{color: '#000'}}>Select SKU</Text>
-                              </TouchableOpacity>
-                              <View
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                }}>
-                                <TouchableOpacity
-                                  onPress={() => setSKUView(true)}>
-                                  <AntDesign
-                                    name="caretdown"
-                                    size={18}
-                                    color={'#000'}
-                                  />
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                  style={{marginLeft: 9}}
-                                  onPress={() => {
-                                    setExistingProduct([]);
-
-                                    // Remove from selectedProduct
-                                    setSelectedProduct([]);
-
-                                    // Remove from selectedSKUs
-                                    setSelectedSKUs([]);
-                                  }}>
-                                  <AntDesign
-                                    name="close"
-                                    size={18}
-                                    color={'#000'}
-                                  />
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                          </View>
-                          <View style={{height: '80%'}}>
-                            <FlatList
-                              showsVerticalScrollIndicator={false}
-                              data={selectedProduct}
-                              keyExtractor={(item, index) => index.toString()}
-                              renderItem={({item}) => (
-                                <AddSingleProduct
-                                  itemss={item}
-                                  boxInCtn={boxFilter(item.variant.name)}
-                                  del={id => {
-                                    // Remove from existingProduct
-                                    setExistingProduct(prevProducts =>
-                                      prevProducts.filter(
-                                        existingItem =>
-                                          existingItem.itemss.item.id !== id,
-                                      ),
-                                    );
-
-                                    // Remove from selectedProduct
-                                    setSelectedProduct(prevProducts =>
-                                      prevProducts.filter(
-                                        selectedItem => selectedItem.id !== id,
-                                      ),
-                                    );
-
-                                    // Remove from selectedSKUs
-                                    setSelectedSKUs(prevSKUs =>
-                                      prevSKUs.filter(skuId => skuId !== id),
-                                    );
-                                  }}
-                                />
-                              )}
-                            />
-                          </View>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              position: 'absolute',
-                              bottom: 0,
-                              right: 0,
-                              width: 110,
-                              justifyContent: 'space-between',
-                            }}>
-                            <TouchableOpacity onPress={closeModal}>
-                              <Text style={{color: 'red'}}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => {
-                                getLocation();
-                              }}>
-                              <Text style={{color: '#a0a0a0'}}>Confirm</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                  {view !== 'Stock Already Exist' ? ( // Removed extra space
-                    <View style={{flexDirection: 'row', width: '100%'}}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setMarkUnproductiveButton(false);
-                        }}>
-                        <Text style={{color: 'red', marginTop: 20}}>
-                          Cancel
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => {
-                          getLocation();
-                        }}
-                        style={{marginLeft: 'auto'}}>
-                        <Text style={{color: 'red', marginTop: 20}}>
-                          Confirm
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View></View>
-                  )}
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={SKUview}
-        onRequestClose={closeSKUModal}>
-        <View style={styles.modalSKUContainer}>
-          <View style={styles.modalSKUContent}>
-            <View style={styles.container}>
-              <View style={{flexDirection: 'row'}}>
-                <View style={{width: '75%'}}>
-                  <Text style={styles.title}>Select SKU</Text>
-                </View>
-                <View
-                  style={{
-                    width: '25%',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      closeSKUModal();
-                    }}>
-                    <View>
-                      <AntDesign name="close" size={20} color={'#a0a0a0'} />
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      closeSKUModal();
-                    }}>
-                    <Text style={{color: '#a0a0a0'}}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              {/* Search Input */}
-
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search SKU"
-                placeholderTextColor={'#000'}
-                value={searchQuery}
-                onChangeText={text => {
-                  setSearchQuery(text);
-                  filterProducts(text);
-                }}
-              />
-
-              {/* SKU List */}
-
-              <FlatList
-                showsVerticalScrollIndicator={false}
-                data={filteredProducts}
-                keyExtractor={(item, index) => index}
-                renderItem={({item}) => (
-                  <View style={styles.skuItem}>
-                    <View style={{width: '10%'}}>
-                      {/* {console.log(item)} */}
-                      <CheckBox
-                        value={selectedSKUs.includes(item.id)}
-                        tintColors={'#9E663C'}
-                        onCheckColor={'#6F763F'}
-                        onFillColor={'#4DABEC'}
-                        onTintColor={'#F4DCF8'}
-                        onValueChange={() => {
-                          toggleSelect(item.id),
-                            selectedSKUs.includes(item.id),
-                            setSelectedProduct(prevProducts => [
-                              ...prevProducts,
-                              item,
-                            ]);
-                        }}
-                      />
-                    </View>
-                    <TouchableOpacity
-                      style={{width: '90%'}}
-                      onPress={() => {
-                        selectedSKUs.includes(item.id);
-                        toggleSelect(item.id);
-                        // console.log(selectedProduct, 'pp')
-
-                        setSelectedProduct(prevProducts => [
-                          ...prevProducts,
-                          item,
-                        ]);
-                      }}>
-                      <Text
-                        style={
-                          styles.skuText
-                        }>{`${item.product.name} ${item.sku.name} ${item.variant.name}`}</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              />
-
-              {/* Save & Cancel Buttons */}
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  onPress={() => {
-                    closeSKUModal();
-                  }}>
-                  {/* {console.log(selectedSKUs, 'selectedSKUs')} */}
-                  <Text style={{fontSize: 16}}>
-                    {selectedSKUs.length === 0 && (
-                      <Text style={{color: '#000'}}>
-                        Save without Selection
-                      </Text>
-                    )}
-                    {selectedSKUs.length === 1 && (
-                      <Text style={{color: '#000'}}>
-                        Save SKU "{selectedSKUs[0]}"
-                      </Text>
-                    )}
-                    {selectedSKUs.length > 1 && (
-                      <Text style={{color: '#000'}}>
-                        Save SKU ({selectedSKUs.length})
-                      </Text>
-                    )}
-                  </Text>
-                </TouchableOpacity>
-                {/* <Button title="Save SKU" onPress={() => console.log('Selected SKUs:', selectedSKUs)} /> */}
-              </View>
-            </View>
-          </View>
-          {isLoading ? <Loader /> : null}
-        </View>
-      </Modal>
       <View style={styles.Add_cont}>
         <View style={styles.Add_row}>
           <TouchableOpacity

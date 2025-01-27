@@ -97,7 +97,7 @@ const ViewInvoice = ({route, navigation}) => {
           {Detail.map(it => {
             return (
               <View style={styles.OrderDetail} key={it?.id}>
-                <Text style={{fontSize: 23, color: '#000', fontWeight: '700'}}>
+                <Text style={{fontSize: 23, color: '#000', fontWeight: '800'}}>
                   {it?.product}
                 </Text>
                 <View style={{marginTop: 25}}>
@@ -114,7 +114,9 @@ const ViewInvoice = ({route, navigation}) => {
                     </View>
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Trade Price</Text>
-                      <Text style={styles.C1_text2}>{it?.trade_price}</Text>
+                      <Text style={styles.C1_text2}>
+                        {(it?.trade_price).toFixed(2)}
+                      </Text>
                     </View>
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Trade Offer</Text>
@@ -129,18 +131,18 @@ const ViewInvoice = ({route, navigation}) => {
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Gross Amount</Text>
                       <Text style={styles.C1_text2}>
-                        {Math.round(it?.trade_price)}
+                        {(it?.trade_price).toFixed(2)}
                       </Text>
                     </View>
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>After TO Amount</Text>
                       <Text style={styles.C1_text2}>
-                        {Math.round(
+                        {(
                           it?.trade_price *
                             (it?.box_ordered * it?.carton_ordered +
                               it?.box_ordered) -
-                            (it?.trade_offer / 100) * it?.trade_price,
-                        )}
+                          (it?.trade_offer / 100) * it?.trade_price
+                        ).toFixed(2)}
                       </Text>
                     </View>
                   </View>
@@ -170,13 +172,13 @@ const ViewInvoice = ({route, navigation}) => {
             </View>
             <View style={{marginLeft: 15, justifyContent: 'center'}}>
               <Text style={styles.Text2}>
-                {Math.round(Gst)} ({singleDetail?.gst_rate})%
+                {Math.round(Gst)} ({singleDetail?.gst_rate}%)
               </Text>
               <Text style={styles.Text2}>
                 {Math.round(cartItems?.gross_amount)} (Inclusive of GST)
               </Text>
               <Text style={styles.Text2}>
-                {Math.round(cartItems?.trade_discount)}
+                {(cartItems?.trade_discount).toFixed(2)}
               </Text>
 
               <Text style={styles.Text2}>
@@ -198,14 +200,14 @@ const ViewInvoice = ({route, navigation}) => {
             </View>
             <View style={{marginLeft: 10}}>
               <Text style={styles.Text2}>
-                {Math.round(
+                {(
                   cartItems?.trade_discount +
-                    cartItems?.special_discount +
-                    cartItems?.discount,
-                )}
+                  cartItems?.special_discount +
+                  cartItems?.discount
+                ).toFixed(2)}
               </Text>
               <Text style={[styles.Text2, {fontWeight: 'bold'}]}>
-                {Math.round(TO_amount)}
+                {TO_amount.toFixed(2)}
               </Text>
             </View>
           </View>
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
   C1_text1: {
     fontSize: 16,
     color: '#000',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   C1_text2: {
     fontSize: 14,
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
   gstText: {
     fontSize: 16,
     color: '#000',
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   EditButton: {
     backgroundColor: '#16a4dd',

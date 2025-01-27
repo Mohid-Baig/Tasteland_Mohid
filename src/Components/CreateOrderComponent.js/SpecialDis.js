@@ -9,16 +9,24 @@ const SpecialDis = ({
   percent,
   gross,
 }) => {
-  const [per, setPer] = useState(0);
+  console.log('Received percent data:', percent);
+  console.log('Gross value:', gross);
 
-  // Update 'per' when 'percent' changes
+  const [rate, setRate] = useState(0);
+
   useEffect(() => {
     if (percent && percent.length > 0) {
+      // Loop through percent array to find the matching discount rate based on gross
       percent.forEach(it => {
-        setPer(it.rate); // This will set 'per' to the last item in 'percent'
+        if (gross >= it.gross_amount) {
+          setRate(it.rate); // Set the discount rate dynamically
+        }
       });
     }
-  }, [percent]); // Only run when 'percent' changes
+  }, [percent, gross]); // Trigger whenever percent or gross changes
+
+  // Default to 0 if no matching rate is found
+  const displayRate = rate > 0 ? `(${rate}%)` : '(0.0%)';
 
   return (
     <View
@@ -35,11 +43,7 @@ const SpecialDis = ({
         <View style={{width: '50%'}}>
           {percent ? (
             <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
-              {gross >= 2000 ? (
-                <Text> ({per}%)</Text> // Displaying the state variable 'per'
-              ) : (
-                <Text>(0.0%)</Text>
-              )}{' '}
+              {displayRate} {/* Display the dynamically calculated rate */}
               {RightText}
             </Text>
           ) : (
