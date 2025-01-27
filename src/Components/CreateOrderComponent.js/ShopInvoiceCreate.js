@@ -72,7 +72,7 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                 <View style={styles.row}>
                   <Text style={styles.label}>Trade Price</Text>
                   <Text style={styles.value}>
-                    {item.itemss.pricing.trade_price}
+                    {item.itemss.pricing.trade_price.toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.row}>
@@ -83,20 +83,20 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                         (item.itemss.trade_offer / 100),
                       2,
                     )}{' '}
-                    ({item.itemss.trade_offer})
+                    ({item.itemss.trade_offer}%)
                   </Text>
                 </View>
               </View>
               <View
                 style={{
                   flexDirection: 'row',
-                  justifyContent: 'center',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                 }}>
                 <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
                   <Text style={styles.label}>Gross Amount</Text>
                   <Text style={styles.value}>
-                    {Math.round(item.itemss.pricing.trade_price)}
+                    {item.itemss.pricing.trade_price.toFixed(2)}
                   </Text>
                 </View>
                 <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     marginBottom: 10,
     color: '#000',
   },
@@ -167,6 +167,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     color: '#000',
+    fontWeight: '800',
   },
   value: {
     fontSize: 14,

@@ -750,7 +750,7 @@ const AllShops = ({navigation, route}) => {
             });
 
             console.log('Current GST after setting:', gstRef.current);
-            navigation.navigate('ViewInvoice', {
+            navigation.navigate('AllShopsInvoice', {
               cartItems: sendiiing,
               Gst: gstRef.current,
               grossAmount: GrossAmount,

@@ -21,6 +21,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {AddToCart, RemoveAllCart} from '../../Components/redux/action';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import {calendarFormat} from 'moment';
+import SpecialDis from '../../Components/CreateOrderComponent.js/SpecialDis';
 const CreateOrder = ({navigation, route}) => {
   const [openclosesearch, setopenclosesearch] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
@@ -47,7 +48,7 @@ const CreateOrder = ({navigation, route}) => {
   // console.log(Store, '///');
   // console.log(items);
   // console.log(cartItems, 'cartItems');
-  console.log(existingOrderId, 'Exsisting order id');
+  // console.log(existingOrderId, 'Exsisting order id');
   // console.log(Invoiceitems, 'InvoiceItems');
   // Handle closing the Bottom Sheet
   const handleClosePress = useCallback(() => {
@@ -83,7 +84,7 @@ const CreateOrder = ({navigation, route}) => {
   // } else {
   //   cartItems = useSelector(state => state.reducer); // Assign conditionally
   // }
-  console.log(JSON.stringify(cartItems), 'cartItems...');
+  // console.log(JSON.stringify(cartItems), 'cartItems...');
   useEffect(() => {
     // console.log(cartItems, 'Item');
     if (cartItems.length > 0) {
@@ -102,10 +103,10 @@ const CreateOrder = ({navigation, route}) => {
         GrossAmount +=
           item?.itemss?.pricing?.trade_price *
           (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
-        console.log(
-          item?.itemss?.pricing?.gst_base,
-          'gst base console for time being',
-        );
+        // console.log(
+        //   item?.itemss?.pricing?.gst_base,
+        //   'gst base console for time being',
+        // );
         if (item?.itemss?.pricing?.gst_base === 'Retail Price') {
           gst =
             gst +
@@ -156,7 +157,15 @@ const CreateOrder = ({navigation, route}) => {
         );
 
         // console.log(response.data, '-----');
-        setAllProducts(response.data);
+        let products = [];
+        response.data.forEach(it => {
+          if (it.pricing.active == true) {
+            products.push(it);
+          }
+        });
+        setAllProducts(products);
+        // setAllProducts(response.data);
+
         const filteredData = [];
         const productNames = new Set();
         response.data.forEach(item => {
@@ -174,7 +183,13 @@ const CreateOrder = ({navigation, route}) => {
         const storedProducts = await AsyncStorage.getItem(pricingDataKey);
         if (storedProducts) {
           const parsedProducts = JSON.parse(storedProducts);
-          setAllProducts(parsedProducts);
+          let products = [];
+          parsedProducts.forEach(it => {
+            if (it.pricing.active == true) {
+              products.push(it);
+            }
+          });
+          setAllProducts(products);
           const filteredData = [];
           const productNames = new Set();
           parsedProducts.forEach(item => {
@@ -214,7 +229,7 @@ const CreateOrder = ({navigation, route}) => {
           },
         );
 
-        // console.log(response.data, 'distributerdiscount - -');
+        console.log(response.data, 'distributerdiscount - -');
         response.data.forEach(item => {
           if (
             item?.shop_type?.id === Store?.shop_type?.id ||
@@ -318,13 +333,11 @@ const CreateOrder = ({navigation, route}) => {
       //         }
       //     }
       // })
+
       let SpecDiscount = 0;
       let finalDiscount = 0; // To store the highest applicable discount
       SpecaialDiscount.forEach((item, index) => {
-        if (
-          item?.fk_shop_type === Store?.shop_type?.id ||
-          Store?.fk_shop_type
-        ) {
+        if (item?.fk_shop_type === Store?.fk_shop_type) {
           // Compare the current item's gross amount with GrossAmount
           if (GrossAmount >= item.gross_amount) {
             // Check if the item has a rate-based or amount-based discount
@@ -456,10 +469,14 @@ const CreateOrder = ({navigation, route}) => {
           <ShowValues
             Lefttxt={'Distribution Discount:'}
             RightText={FinalDistributiveDiscount.toFixed(2)}
+            percent={distributiveDiscount}
+            gross={GrossAmount.toFixed(2)}
           />
-          <ShowValues
+          <SpecialDis
             Lefttxt={'Special Discount:'}
             RightText={applySpecialDiscount.toFixed(2)}
+            percent={SpecaialDiscount}
+            gross={GrossAmount.toFixed(2)}
           />
           <ShowValues Lefttxt={'Total GST:'} RightText={gst.toFixed(2)} />
           <View style={styles.separator}></View>
@@ -499,6 +516,8 @@ const CreateOrder = ({navigation, route}) => {
                 GST: gst,
                 cItems: cartItems,
                 orderId: existingOrderId,
+                SpecaialDiscount: SpecaialDiscount,
+                distributiveDiscount: distributiveDiscount,
               });
             }}
             style={styles.createOrderButton}>

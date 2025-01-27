@@ -23,6 +23,7 @@ import ShowValues from '../../Components/CreateOrderComponent.js/ShowValues';
 import Loader from '../../Components/Loaders/Loader';
 import {Remove_All_Cart} from '../../Components/redux/constants';
 import NetInfo from '@react-native-community/netinfo';
+import SpecialDis from '../../Components/CreateOrderComponent.js/SpecialDis';
 
 const ConfirmOrder = ({route, navigation}) => {
   const [allProducts, setAllProducts] = useState([]);
@@ -36,6 +37,8 @@ const ConfirmOrder = ({route, navigation}) => {
     GST,
     orderId,
     RouteDate,
+    SpecaialDiscount,
+    distributiveDiscount,
   } = route.params;
   const [GrossAmount, setGrossAmount] = useState(0);
   const [totalPrice, setTotalprice] = useState(0);
@@ -684,10 +687,14 @@ const ConfirmOrder = ({route, navigation}) => {
           <ShowValues
             Lefttxt={'Distribution Discount:'}
             RightText={FinalDistributiveDiscount.toFixed(2)}
+            percent={distributiveDiscount}
+            gross={GrossAmount.toFixed(2)}
           />
-          <ShowValues
+          <SpecialDis
             Lefttxt={'Special Discount:'}
             RightText={applySpecialDiscount.toFixed(2)}
+            percent={SpecaialDiscount}
+            gross={GrossAmount.toFixed(2)}
           />
           <ShowValues Lefttxt={'Total GST:'} RightText={GST.toFixed(2)} />
         </View>

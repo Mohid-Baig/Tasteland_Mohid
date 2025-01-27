@@ -12,7 +12,7 @@ import {useSelector, useDispatch} from 'react-redux';
 import {Remove_All_Cart} from '../../Components/redux/constants';
 import {useFocusEffect} from '@react-navigation/native';
 
-const ViewInvoice = ({route, navigation}) => {
+const AllShopsInvoice = ({route, navigation}) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
   const [gstRate, setGSTrate] = useState();
@@ -38,11 +38,7 @@ const ViewInvoice = ({route, navigation}) => {
     }
   }, [cartItems]);
 
-  const TO_amount =
-    cartItems.gross_amount -
-    (cartItems?.trade_discount +
-      cartItems?.special_discount +
-      cartItems?.discount);
+  const TO_amount = cartItems?.net_amount;
 
   const formatDate = dateString => {
     if (!dateString) return '';
@@ -64,7 +60,7 @@ const ViewInvoice = ({route, navigation}) => {
             <Text style={styles.Text1}>Payment Done</Text>
           </View>
           <View style={{marginLeft: 25}}>
-            <Text style={styles.Text2}>{cartItems?.id}</Text>
+            <Text style={styles.Text2}>--</Text>
             {cartItems?.status ? (
               <View style={styles.pending}>
                 <Text style={[styles.Text2, {color: '#fff'}]}>
@@ -74,7 +70,7 @@ const ViewInvoice = ({route, navigation}) => {
             ) : (
               <View style={[styles.pending, {backgroundColor: '#fff'}]}></View>
             )}
-            <Text style={styles.Text2}>{String(cartItems?.payment_done)}</Text>
+            <Text style={styles.Text2}>--</Text>
           </View>
         </View>
 
@@ -140,7 +136,12 @@ const ViewInvoice = ({route, navigation}) => {
                             (it?.box_ordered * it?.carton_ordered +
                               it?.box_ordered) -
                             (it?.trade_offer / 100) * it?.trade_price,
-                        )}
+                        ) ??
+                          cartItems?.trade_price *
+                            (it?.box_ordered * it?.carton_ordered +
+                              it?.box_ordered) -
+                            (cartItems?.trade_offer / 100) *
+                              cartItems?.trade_price}
                       </Text>
                     </View>
                   </View>
@@ -176,18 +177,18 @@ const ViewInvoice = ({route, navigation}) => {
                 {Math.round(cartItems?.gross_amount)} (Inclusive of GST)
               </Text>
               <Text style={styles.Text2}>
-                {Math.round(cartItems?.trade_discount)}
+                {Math.round(cartItems?.todiscount)}
               </Text>
 
               <Text style={styles.Text2}>
-                {Math.round(cartItems?.discount)} (
+                {Math.round(cartItems?.distribution || 0)} (
                 {cartItems?.discount_rate != null
                   ? Math.round(cartItems?.discount_rate)
                   : 0}
                 %)
               </Text>
 
-              <Text style={styles.Text2}>{cartItems?.special_discount}</Text>
+              <Text style={styles.Text2}>{cartItems?.special || 0}</Text>
             </View>
           </View>
 
@@ -198,11 +199,7 @@ const ViewInvoice = ({route, navigation}) => {
             </View>
             <View style={{marginLeft: 10}}>
               <Text style={styles.Text2}>
-                {Math.round(
-                  cartItems?.trade_discount +
-                    cartItems?.special_discount +
-                    cartItems?.discount,
-                )}
+                {Math.round(cartItems?.distributionTO)}
               </Text>
               <Text style={[styles.Text2, {fontWeight: 'bold'}]}>
                 {Math.round(TO_amount)}
@@ -212,7 +209,7 @@ const ViewInvoice = ({route, navigation}) => {
         </View>
       </ScrollView>
 
-      {cartItems?.status.toLowerCase() === 'pending' && (
+      {(cartItems?.status === 'pending' || cartItems?.unid) && (
         <TouchableHighlight
           style={styles.EditButton}
           onPress={() => {
@@ -236,7 +233,7 @@ const ViewInvoice = ({route, navigation}) => {
     </View>
   );
 };
-export default ViewInvoice;
+export default AllShopsInvoice;
 const styles = StyleSheet.create({
   main: {
     // flex: 1,

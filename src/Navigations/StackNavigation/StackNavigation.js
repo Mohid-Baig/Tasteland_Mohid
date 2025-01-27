@@ -16,6 +16,7 @@ import ViewInvoice from '../../Screens/InvoiceScreen/ViewInvoice';
 import Failed from '../../Screens/FailedScreen/Failed';
 import Internet from '../../Screens/InvoiceScreen/Internet';
 import Target from '../../Screens/Target/Target';
+import AllShopsInvoice from '../../Screens/OrderScreen/AllShopsInvoice';
 export default function StackNavigation() {
   const Stack = createNativeStackNavigator();
   return (
@@ -89,6 +90,11 @@ export default function StackNavigation() {
         <Stack.Screen
           name="Target"
           component={Target}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="AllShopsInvoice"
+          component={AllShopsInvoice}
           options={{headerShown: false}}
         />
       </Stack.Navigator>

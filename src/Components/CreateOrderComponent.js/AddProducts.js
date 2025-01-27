@@ -80,10 +80,10 @@ const AddSingleProduct = React.memo(
     );
 
     const AddProduct = (carton, pack) => {
-      console.log(carton, pack, '-3-3');
+      // console.log(carton, pack, '-3-3');
       // console.log(itemss.id, 'itemms id');
       // console.log(boxInCtn, 'boxincation');
-      console.log(itemss, 'itemss');
+      // console.log(itemss, 'itemss');
       const item = {
         carton_ordered: carton,
         box_ordered: pack,
@@ -282,6 +282,8 @@ const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
 const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
   // console.log(datas.length, 'datas length');
   // console.log(allProduct.length, 'allProduct length');
+  // console.log(allProduct, 'allproduct');
+  // console.log(JSON.stringify(datas), 'data');
 
   const [ProductName, SetProductname] = useState([]);
   const order = useSelector(state => state.UnProductive_reducer, shallowEqual);
@@ -345,7 +347,6 @@ const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
         //   filteredProductName?.length,
         // );
         // console.log('Rendering item:', JSON.stringify(item));
-        // console.log(item.title, '--3-');
 
         return (
           <AccordionItem

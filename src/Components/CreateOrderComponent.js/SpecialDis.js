@@ -1,7 +1,7 @@
 import {StyleSheet, Text, View} from 'react-native';
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 
-const ShowValues = ({
+const SpecialDis = ({
   leftStyle,
   Lefttxt,
   rightStyle,
@@ -9,6 +9,17 @@ const ShowValues = ({
   percent,
   gross,
 }) => {
+  const [per, setPer] = useState(0);
+
+  // Update 'per' when 'percent' changes
+  useEffect(() => {
+    if (percent && percent.length > 0) {
+      percent.forEach(it => {
+        setPer(it.rate); // This will set 'per' to the last item in 'percent'
+      });
+    }
+  }, [percent]); // Only run when 'percent' changes
+
   return (
     <View
       style={{
@@ -24,9 +35,8 @@ const ShowValues = ({
         <View style={{width: '50%'}}>
           {percent ? (
             <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
-              {gross >= percent?.lower_limit &&
-              gross <= percent?.upper_limit ? (
-                <Text> ({percent.rate}%)</Text>
+              {gross >= 2000 ? (
+                <Text> ({per}%)</Text> // Displaying the state variable 'per'
               ) : (
                 <Text>(0.0%)</Text>
               )}{' '}
@@ -43,6 +53,6 @@ const ShowValues = ({
   );
 };
 
-export default ShowValues;
+export default SpecialDis;
 
 const styles = StyleSheet.create({});
