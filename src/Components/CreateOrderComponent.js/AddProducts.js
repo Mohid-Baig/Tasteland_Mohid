@@ -282,7 +282,7 @@ const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
 const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
   // console.log(datas.length, 'datas length');
   console.log(allProduct.length, 'allProduct length');
-  // console.log(allProduct, 'allproduct');
+  console.log(allProduct, 'allproduct');
   // console.log(JSON.stringify(datas.title), 'data');
 
   const [ProductName, SetProductname] = useState([]);
@@ -335,7 +335,7 @@ const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
     );
   }, [ProductName, search]);
 
-  // console.log('filteredProductName Length', filteredProductName?.length);
+  console.log('filteredProductName Length', filteredProductName?.length);
 
   return (
     <FlatList
@@ -358,10 +358,10 @@ const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
           />
         );
       }}
-      initialNumToRender={14} // Ensure the list starts with all 14 items
-      maxToRenderPerBatch={14} // Render all items per batch (no batching restriction)
-      windowSize={21} // Ensure we load items beyond the viewport
-      removeClippedSubviews={false} // Prevent clipping of items
+      initialNumToRender={filteredProductName.length}
+      maxToRenderPerBatch={filteredProductName.length}
+      windowSize={filteredProductName.length + 6}
+      removeClippedSubviews={false}
     />
   );
 };

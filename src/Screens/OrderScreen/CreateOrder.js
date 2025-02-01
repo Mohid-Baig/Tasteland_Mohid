@@ -201,7 +201,7 @@ const CreateOrder = ({navigation, route}) => {
 
         let products = [];
         response.data.forEach(it => {
-          if (it.pricing.active == true) {
+          if (it.pricing.active || it?.active == true) {
             products.push(it);
           }
         });
@@ -212,7 +212,7 @@ const CreateOrder = ({navigation, route}) => {
 
         const filteredData = [];
         const productNames = new Set();
-        response.data.forEach(item => {
+        products.forEach(item => {
           if (!productNames.has(item.pricing.product.name)) {
             filteredData.push(item.pricing.product.name);
             productNames.add(item.pricing.product.name);
@@ -236,7 +236,7 @@ const CreateOrder = ({navigation, route}) => {
           setAllProducts(products);
           const filteredData = [];
           const productNames = new Set();
-          parsedProducts.forEach(item => {
+          products.forEach(item => {
             if (!productNames.has(item.pricing.product.name)) {
               filteredData.push(item.pricing.product.name);
               productNames.add(item.pricing.product.name);
