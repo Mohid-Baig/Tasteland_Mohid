@@ -121,8 +121,8 @@ const ViewInvoice = ({route, navigation}) => {
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Trade Offer</Text>
                       <Text style={styles.C1_text2}>
-                        {Math.round(it?.trade_price * (it?.trade_offer / 100))}{' '}
-                        ({Math.round(it?.trade_offer)}
+                        {(it?.trade_price * (it?.trade_offer / 100)).toFixed(2)}{' '}
+                        ({(it?.trade_offer).toFixed(2)}
                         %)
                       </Text>
                     </View>
@@ -172,19 +172,19 @@ const ViewInvoice = ({route, navigation}) => {
             </View>
             <View style={{marginLeft: 15, justifyContent: 'center'}}>
               <Text style={styles.Text2}>
-                {Math.round(Gst)} ({singleDetail?.gst_rate}%)
+                {Gst.toFixed(2)} ({singleDetail?.gst_rate}%)
               </Text>
               <Text style={styles.Text2}>
-                {Math.round(cartItems?.gross_amount)} (Inclusive of GST)
+                {(cartItems?.gross_amount).toFixed(2)} (Inclusive of GST)
               </Text>
               <Text style={styles.Text2}>
                 {(cartItems?.trade_discount).toFixed(2)}
               </Text>
 
               <Text style={styles.Text2}>
-                {Math.round(cartItems?.discount)} (
+                {(cartItems?.discount).toFixed(2)} (
                 {cartItems?.discount_rate != null
-                  ? Math.round(cartItems?.discount_rate)
+                  ? (cartItems?.discount_rate).toFixed(2)
                   : 0}
                 %)
               </Text>

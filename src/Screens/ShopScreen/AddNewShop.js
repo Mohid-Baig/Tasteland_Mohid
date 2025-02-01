@@ -54,8 +54,8 @@ const AddNewShop = ({route}) => {
   const [isSynced, setIsSynced] = useState(false);
   const {orderBokerId} = route.params;
   const [edited, isEdited] = useState(false);
-  const [longitude, setLongitude] = useState(null);
-  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState();
+  const [latitude, setLatitude] = useState();
   // console.log('Received orderBokerId in AddNewShop:', orderBokerId);
   // const  orderBokerId  =AsyncStorage.getItem('orderBokerId');
   // console.log(orderBokerId, 'orderBokerId');
@@ -880,8 +880,8 @@ const AddNewShop = ({route}) => {
       setShelf(Item.shelf);
       setntn(Item.ntn);
       isEdited(true);
-      setLatitude(Item.lat);
-      setLongitude(Item.lng);
+      setLatitude(Item.lat !== null && Item.lat !== undefined ? Item.lat : 5);
+      setLongitude(Item.lng !== null && Item.lng !== undefined ? Item.lng : 5);
     }
   }, [route.params]);
 
@@ -1102,14 +1102,14 @@ const AddNewShop = ({route}) => {
           cursorColor="#2196f3"
           activeUnderlineColor="#2196f3"
         />
-        {shopLocation && shopLocation.latitude && shopLocation.longitude ? (
+        {shopLocation.latitude && shopLocation.longitude ? (
           <MapView
             style={styles.map}
             initialRegion={{
               latitude: shopLocation.latitude,
               longitude: shopLocation.longitude,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005,
             }}>
             <Marker coordinate={shopLocation} />
           </MapView>

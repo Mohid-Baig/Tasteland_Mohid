@@ -197,13 +197,16 @@ const CreateOrder = ({navigation, route}) => {
           },
         );
 
-        // console.log(response.data, '-----');
+        // console.log(JSON.stringify(response.data), '-----');
+
         let products = [];
         response.data.forEach(it => {
           if (it.pricing.active == true) {
             products.push(it);
           }
         });
+        console.log(JSON.stringify(products), 'products');
+        console.log(products.length, 'products length');
         setAllProducts(products);
         // setAllProducts(response.data);
 

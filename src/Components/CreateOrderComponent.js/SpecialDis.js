@@ -26,7 +26,7 @@ const SpecialDis = ({
   }, [percent, gross]); // Trigger whenever percent or gross changes
 
   // Default to 0 if no matching rate is found
-  const displayRate = rate > 0 ? `(${rate}%)` : '(0.0%)';
+  const displayRate = rate > 0 ? `(${rate.toFixed(2)}%)` : '(0.00%)';
 
   return (
     <View

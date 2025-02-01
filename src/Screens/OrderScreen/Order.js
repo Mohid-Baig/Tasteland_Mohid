@@ -343,8 +343,16 @@ const Order = ({route, navigation}) => {
     if (allDates.includes(today)) {
       selectedPickerDate(today);
       handleDateChange(today);
+
+      // Check if there are any routes for today's date
+      const routesForToday = allroute.filter(
+        routeItem => routeItem.date === today,
+      );
+      if (routesForToday.length > 0) {
+        setshops(routesForToday); // Set the routes for today
+      }
     }
-  }, [allDates]);
+  }, [allDates, allroute]);
 
   const onValueChange = itemValue => {
     console.log(itemValue, 'itemValue');

@@ -83,44 +83,47 @@ import {AddToCart} from '../../Components/redux/action';
 
 const AddSingleProduct = memo(
   ({boxInCtn, itemss, del, StockAlreadyExist, Add_Left_Stock}) => {
-    console.log('Rendering AddSingleProduct component');
-    console.log(boxInCtn, 'boxinctn');
-    console.log(itemss, 'itemss');
-    console.log(del, 'del');
     const [Pack, setPack] = useState(0);
     const [carton, setCarton] = useState(0);
     const [addOn, setAddOn] = useState('pack');
 
     useEffect(() => {
+      console.log('StockAlreadyExist:', JSON.stringify(StockAlreadyExist));
       const existingProduct = StockAlreadyExist.find(
-        sku => sku.itemss?.id === itemss.id,
+        sku => sku.itemss?.pricing.id === itemss.pricing.id,
       );
       if (existingProduct) {
+        console.log('Existing Product:', existingProduct);
         setPack(existingProduct.box_ordered || 0);
         setCarton(existingProduct.carton_ordered || 0);
       } else {
         setPack(0);
         setCarton(0);
       }
-    }, [StockAlreadyExist, itemss.id]);
+    }, [StockAlreadyExist, itemss.pricing.id]);
+
     const AddProduct = useCallback(() => {
-      // useCallback here
       let item = {
         carton_ordered: carton,
         box_ordered: Pack,
-        pricing_id: itemss.id,
+        pricing_id: itemss.pricing.id,
         itemss: itemss,
         pack_in_box: boxInCtn,
       };
+      console.log('Adding Product:', item);
       Add_Left_Stock(item);
     }, [Pack, carton, itemss, Add_Left_Stock, boxInCtn]);
 
-    const handleDelete = id => {
-      del(id);
-      removeById(id);
-    };
+    const handleDelete = useCallback(
+      id => {
+        console.log('Deleting Product with ID:', id);
+        del(id);
+        removeById(id);
+      },
+      [del],
+    );
 
-    const handlePackChange = txt => {
+    const handlePackChange = useCallback(txt => {
       let num = parseInt(txt);
       if (isNaN(num)) {
         setPack(0);
@@ -129,9 +132,9 @@ const AddSingleProduct = memo(
       } else {
         setPack(num);
       }
-    };
+    }, []);
 
-    const handleCartonChange = txt => {
+    const handleCartonChange = useCallback(txt => {
       let num = parseInt(txt);
       if (isNaN(num)) {
         setCarton(0);
@@ -140,30 +143,33 @@ const AddSingleProduct = memo(
       } else {
         setCarton(num);
       }
-    };
+    }, []);
 
-    const AddSub = val => {
-      if (val === 'Add') {
-        if (addOn === 'pack') {
-          setPack(prevPack => {
-            if (prevPack >= boxInCtn) {
-              setCarton(prevCarton => prevCarton + 1);
-              return 0;
-            } else {
-              return prevPack + 1;
-            }
-          });
-        } else if (addOn === 'carton') {
-          setCarton(prevCarton => prevCarton + 1);
+    const AddSub = useCallback(
+      val => {
+        if (val === 'Add') {
+          if (addOn === 'pack') {
+            setPack(prevPack => {
+              if (prevPack >= boxInCtn) {
+                setCarton(prevCarton => prevCarton + 1);
+                return 0;
+              } else {
+                return prevPack + 1;
+              }
+            });
+          } else if (addOn === 'carton') {
+            setCarton(prevCarton => prevCarton + 1);
+          }
+        } else if (val === 'Sub') {
+          if (addOn === 'pack') {
+            setPack(prevPack => Math.max(prevPack - 1, 0)); // Ensure non-negative
+          } else if (addOn === 'carton') {
+            setCarton(prevCarton => Math.max(prevCarton - 1, 0)); // Ensure non-negative
+          }
         }
-      } else if (val === 'Sub') {
-        if (addOn === 'pack') {
-          setPack(prevPack => Math.max(prevPack - 1, 0)); // Ensure non-negative
-        } else if (addOn === 'carton') {
-          setCarton(prevCarton => Math.max(prevCarton - 1, 0)); // Ensure non-negative
-        }
-      }
-    };
+      },
+      [addOn, boxInCtn],
+    );
 
     useEffect(() => {
       if (Pack >= boxInCtn) {
@@ -176,11 +182,11 @@ const AddSingleProduct = memo(
         setCarton(ctn);
         setPack(val);
       }
-    }, [Pack]);
+    }, [Pack, boxInCtn]);
 
     useEffect(() => {
       AddProduct();
-    }, [Pack, carton]);
+    }, [Pack, carton, AddProduct]);
 
     return (
       <View
@@ -190,7 +196,7 @@ const AddSingleProduct = memo(
           borderBottomWidth: 1,
         }}>
         <Text style={{color: '#000', fontSize: 13}}>
-          {`${itemss.product.name} ${itemss.sku.name} ${itemss.variant.name}`}
+          {`${itemss.pricing.product.name} ${itemss.pricing.sku.name} ${itemss.pricing.variant.name}`}
         </Text>
         <View
           style={{
@@ -202,7 +208,7 @@ const AddSingleProduct = memo(
             name="delete"
             size={25}
             color={'red'}
-            onPress={() => handleDelete(itemss.id)}
+            onPress={() => handleDelete(itemss.pricing.id)}
           />
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
             <TouchableOpacity
@@ -295,9 +301,13 @@ const AllShops = ({navigation, route}) => {
   const [isOffline, setIsOffline] = useState(false);
   const [offlineOrders, setOfflineOrders] = useState([]);
   const gstRef = useRef(0);
+  // console.log(selectedProduct, 'selectedproduct');
+  // console.log(existingProduct, 'exsistikj0');
+  // console.log(selectedSKUs, 'sesku');
 
   const Add_Left_Stock = useCallback(payload => {
     if (!payload) return;
+    console.log(payload, 'payload of add legt stock');
 
     setStockAlreadyExist(prevStock => {
       const existingIndex = prevStock.findIndex(
@@ -326,7 +336,7 @@ const AllShops = ({navigation, route}) => {
 
   const removeById = useCallback(id => {
     setStockAlreadyExist(prevStock =>
-      prevStock.filter(stock => stock.itemss.id !== id),
+      prevStock.filter(stock => stock.itemss.pricing.id !== id),
     );
     setRerender(prev => prev + 1);
   }, []);
@@ -635,7 +645,14 @@ const AllShops = ({navigation, route}) => {
       const ProductDatakey = `ProductData_${userId}`;
       const ProductDataJSON = await AsyncStorage.getItem(ProductDatakey);
       const ProductData = JSON.parse(ProductDataJSON);
-      setAllProducts(ProductData);
+      let products = [];
+      ProductData.forEach(it => {
+        if (it.pricing.active == true) {
+          products.push(it);
+        }
+      });
+      setAllProducts(products);
+      setFilteredProducts(products);
     } catch (error) {
       console.error('Error getting data of all products', error);
     }
@@ -698,13 +715,13 @@ const AllShops = ({navigation, route}) => {
 
           details.forEach(val => {
             let pro = allProducts.filter(
-              valfil => valfil.pricing.id === val.pricing_id,
+              valfil => valfil.pricing.id === val.pricing.id,
             );
 
             let items = {
               carton_ordered: val.carton_ordered,
               box_ordered: val.box_ordered,
-              pricing_id: val.pricing_id,
+              pricing_id: val.pricing.id,
               itemss: pro[0],
               pack_in_box: val.box_ordered,
             };
@@ -950,19 +967,29 @@ const AllShops = ({navigation, route}) => {
   const getProduct = async () => {
     setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
     try {
       const response = await instance.get(
-        '/pricing/all?sort_alphabetically=true&active=true',
+        `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
         },
       );
-
-      setAllProducts(response.data);
-      setFilteredProducts(response.data);
-      //   console.log(JSON.stringify(response.data), 'Hello');
+      // console.log(
+      //   JSON.stringify(response.data),
+      //   'response of get products in All shops',
+      // );
+      let products = [];
+      response.data.forEach(it => {
+        if (it.pricing.active == true) {
+          products.push(it);
+        }
+      });
+      setAllProducts(products);
+      setFilteredProducts(products);
+      // console.log(JSON.stringify(response.data), 'Hello');
       console.log('getProduct api successful');
     } catch (error) {
       if (error.response && error.response.status === 401) {
@@ -998,16 +1025,16 @@ const AllShops = ({navigation, route}) => {
   useEffect(() => {
     // Whenever the selectedSKUs change, we can update the list of products for unmarking
     let productsForUnmark = allProducts.filter(product =>
-      selectedSKUs.includes(product.id),
+      selectedSKUs.includes(product.pricing.id),
     );
 
-    console.log(productsForUnmark, 'Product set');
+    // console.log(productsForUnmark, 'Product set');
   }, [selectedSKUs]); // This useEffect runs when selectedSKUs changes
 
   const filterProducts = query => {
     if (query) {
       const filtered = allProducts.filter(item =>
-        item.product.name.toLowerCase().includes(query.toLowerCase()),
+        item.pricing.product.name.toLowerCase().includes(query.toLowerCase()),
       );
       setFilteredProducts(filtered);
     } else {
@@ -1120,24 +1147,28 @@ const AllShops = ({navigation, route}) => {
             // }
           ],
         };
-
-        const response = await instance.post(
-          '/unproductive_visit',
-          JSON.stringify(data),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-              Authorization: `Bearer ${authToken}`,
+        if (shopcloseReason) {
+          const response = await instance.post(
+            '/unproductive_visit',
+            JSON.stringify(data),
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                Authorization: `Bearer ${authToken}`,
+              },
             },
-          },
-        );
-        console.log(response.data);
-        console.log(response.status);
-        incrementTotalVisits();
-        closeModal();
+          );
+          console.log(response.data);
+          console.log(response.status);
+          incrementTotalVisits();
+          closeModal();
+        } else {
+          Alert.alert('Add Reason');
+          setModalVisible(false);
+        }
       } catch (error) {
-        incrementTotalVisits();
+        // incrementTotalVisits();
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1156,7 +1187,7 @@ const AllShops = ({navigation, route}) => {
         if (error.response && error.response.status === 400) {
           Alert.alert(
             'Error',
-            'Please Check if your input is empty or Check if any order is pending',
+            'Please Check if your input is empty or Check if any order or reason is pending',
           );
         }
       }
@@ -1179,24 +1210,28 @@ const AllShops = ({navigation, route}) => {
         };
 
         console.log(JSON.stringify(data), 'Data');
-
-        const response = await instance.post(
-          '/unproductive_visit',
-          JSON.stringify(data),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-              Authorization: `Bearer ${authToken}`,
+        if (customerRefused) {
+          const response = await instance.post(
+            '/unproductive_visit',
+            JSON.stringify(data),
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                Authorization: `Bearer ${authToken}`,
+              },
             },
-          },
-        );
-        console.log(response.data);
-        console.log(response.status);
-        closeModal();
-        incrementTotalVisits();
+          );
+          console.log(response.data);
+          console.log(response.status);
+          closeModal();
+          incrementTotalVisits();
+        } else {
+          Alert.alert('Add Reason');
+          setModalVisible(false);
+        }
       } catch (error) {
-        incrementTotalVisits();
+        // incrementTotalVisits();
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1214,7 +1249,7 @@ const AllShops = ({navigation, route}) => {
         }
         if (error.response && error.response.status === 400) {
           Alert.alert(
-            'Please Check is your input is empty or Check if any order is pending',
+            'Please Check is your input is empty or Check if any order or reason is pending',
           );
         }
       }
@@ -1226,7 +1261,7 @@ const AllShops = ({navigation, route}) => {
         details.push({
           carton: item.carton_ordered,
           box: item.box_ordered,
-          fk_pricing: item.pricing_id,
+          fk_pricing: item.itemss.fk_pricing,
         });
       });
       try {
@@ -1260,7 +1295,7 @@ const AllShops = ({navigation, route}) => {
         closeModal();
         incrementTotalVisits();
       } catch (error) {
-        incrementTotalVisits();
+        // incrementTotalVisits();
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1585,28 +1620,36 @@ const AllShops = ({navigation, route}) => {
                               showsVerticalScrollIndicator={false}
                               data={selectedProduct} // Ensure this contains the expected data
                               keyExtractor={(item, index) =>
-                                item?.id?.toString() || index.toString()
+                                item?.pricing.id?.toString() || index.toString()
                               }
                               renderItem={({item}) => (
                                 <AddSingleProduct
                                   itemss={item}
-                                  boxInCtn={boxFilter(item.variant.name)}
+                                  boxInCtn={boxFilter(
+                                    item.pricing.variant.name,
+                                  )}
                                   StockAlreadyExist={StockAlreadyExist} // Pass StockAlreadyExist as prop
                                   Add_Left_Stock={Add_Left_Stock}
                                   del={id => {
                                     console.log(
                                       'Delete called for SKU with id:',
                                       id,
+                                      existingProduct,
+                                      'expr',
+                                      selectedProduct,
+                                      'selepr',
+                                      selectedSKUs,
                                     );
                                     setExistingProduct(prevProducts =>
                                       prevProducts.filter(
                                         existingItem =>
-                                          existingItem.itemss.item.id !== id,
+                                          existingItem.itemss.pricing.id !== id,
                                       ),
                                     );
                                     setSelectedProduct(prevProducts =>
                                       prevProducts.filter(
-                                        selectedItem => selectedItem.id !== id,
+                                        selectedItem =>
+                                          selectedItem.pricing.id !== id,
                                       ),
                                     );
                                     setSelectedSKUs(prevSKUs =>
@@ -1726,10 +1769,10 @@ const AllShops = ({navigation, route}) => {
                   <View style={styles.skuItem}>
                     <View style={{width: '10%'}}>
                       <CheckBox
-                        value={selectedSKUs.includes(item.id)}
+                        value={selectedSKUs.includes(item.pricing.id)}
                         onValueChange={() => {
                           console.log(item, 'item in toggle search');
-                          toggleSelect(item.id); // Update SKU selection on press
+                          toggleSelect(item.pricing.id); // Update SKU selection on press
                           setSelectedProduct(prevProducts => [
                             ...prevProducts,
                             item,
@@ -1741,14 +1784,14 @@ const AllShops = ({navigation, route}) => {
                       style={{width: '90%'}}
                       onPress={() => {
                         console.log(item, 'item in toggle search');
-                        toggleSelect(item.id); // Update SKU selection on press
+                        toggleSelect(item.pricing.id); // Update SKU selection on press
                         setSelectedProduct(prevProducts => [
                           ...prevProducts,
                           item,
                         ]);
                       }}>
                       <Text style={styles.skuText}>
-                        {`${item.product.name} ${item.sku.name} ${item.variant.name}`}
+                        {`${item.pricing.product.name} ${item.pricing.sku.name} ${item.pricing.variant.name}`}
                       </Text>
                     </TouchableOpacity>
                   </View>

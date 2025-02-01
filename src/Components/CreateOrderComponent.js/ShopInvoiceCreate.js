@@ -78,12 +78,11 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                 <View style={styles.row}>
                   <Text style={styles.label}>Trade Offer</Text>
                   <Text style={styles.value}>
-                    {Math.round(
+                    {(
                       item.itemss.pricing.trade_price *
-                        (item.itemss.trade_offer / 100),
-                      2,
-                    )}{' '}
-                    ({item.itemss.trade_offer}%)
+                      (item.itemss.trade_offer / 100)
+                    ).toFixed(2)}{' '}
+                    ({item.itemss.trade_offer.toFixed(2)}%)
                   </Text>
                 </View>
               </View>

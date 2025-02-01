@@ -26,7 +26,7 @@ const ShowValues = ({
   }
 
   // Fallback message if no matching rate is found
-  const rateText = displayRate > 0 ? `(${displayRate}%)` : '(0.0%)';
+  const rateText = displayRate > 0 ? `(${displayRate.toFixed(2)}%)` : '(0.00%)';
 
   return (
     <View

@@ -281,9 +281,9 @@ const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
 
 const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
   // console.log(datas.length, 'datas length');
-  // console.log(allProduct.length, 'allProduct length');
+  console.log(allProduct.length, 'allProduct length');
   // console.log(allProduct, 'allproduct');
-  // console.log(JSON.stringify(datas), 'data');
+  // console.log(JSON.stringify(datas.title), 'data');
 
   const [ProductName, SetProductname] = useState([]);
   const order = useSelector(state => state.UnProductive_reducer, shallowEqual);
@@ -347,6 +347,7 @@ const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
         //   filteredProductName?.length,
         // );
         // console.log('Rendering item:', JSON.stringify(item));
+        // console.log(item.title, 'Title');
 
         return (
           <AccordionItem
