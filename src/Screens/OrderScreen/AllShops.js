@@ -33,6 +33,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import instance from '../../Components/BaseUrl';
 import CheckBox from '@react-native-community/checkbox';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import GetLocation from 'react-native-get-location';
 import Loader from '../../Components/Loaders/Loader';
@@ -275,7 +276,7 @@ const AllShops = ({navigation, route}) => {
   const [Selectedroute, setSelectedRoute] = useState('');
   const [routeDate, setRouteDate] = useState('');
   const [toggleBtn, settoggleBtn] = useState('');
-  const [view, setView] = useState('Shop Closed'); // State to manage which view to show
+  const [view, setView] = useState('Shop Closed');
   const [shopcloseReason, setshopCloseReason] = useState(null);
   const [allProducts, setAllProducts] = useState([]);
   const [SKUview, setSKUView] = useState(false);
@@ -827,25 +828,34 @@ const AllShops = ({navigation, route}) => {
               alignItems: 'center',
               marginTop: 10,
             }}>
-            <TouchableOpacity
-              style={[styles.button, {marginBottom: 5}]}
-              onPress={() => {
-                console.log(item);
-                if (isOffline && matchingOrder) {
-                  console.log('Invoice Action for Offline Order');
-                  offline(item);
-                } else {
-                  console.log('Visit Action');
-                  handleVisit(item);
-                  setSingleId(item.id);
-                }
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
               }}>
-              <Text style={styles.buttonText}>
-                {isOffline && matchingOrder ? 'INVOICE' : 'VISIT'}
-              </Text>
-            </TouchableOpacity>
-
-            {item.pending_order > 0 ? (
+              {item.pending_order > 0 || matchingOrder ? (
+                <FontAwesome name="check" size={25} color={'green'} />
+              ) : null}
+              <TouchableOpacity
+                style={[styles.button, {marginBottom: 5}]}
+                onPress={() => {
+                  console.log(item);
+                  if (isOffline && matchingOrder) {
+                    console.log('Invoice Action for Offline Order');
+                    offline(item);
+                  } else {
+                    console.log('Visit Action');
+                    handleVisit(item);
+                    setSingleId(item.id);
+                  }
+                }}>
+                <Text style={styles.buttonText}>
+                  {isOffline && matchingOrder ? 'INVOICE' : 'VISIT'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {/* {item.pending_order > 0 ? (
               <View
                 style={{
                   backgroundColor: 'red',
@@ -869,7 +879,7 @@ const AllShops = ({navigation, route}) => {
                 }}>
                 <Text style={{fontSize: 9, color: '#fff'}}>No pending</Text>
               </View>
-            )}
+            )} */}
           </View>
 
           <View style={{width: 20}}></View>
