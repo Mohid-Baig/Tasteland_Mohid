@@ -539,7 +539,8 @@ const Home = ({navigation}) => {
           }
 
           const postorderId = response.data.id;
-          await updateStoredOrderIds(userId, postorderId);
+          const shop_id = order.shop.id;
+          await updateStoredOrderIds(userId, postorderId, shop_id);
 
           const storedTotalAmount = await AsyncStorage.getItem(
             `totalAmount_${userId}`,
@@ -676,7 +677,7 @@ const Home = ({navigation}) => {
     }
   };
 
-  const updateStoredOrderIds = async (userId, newOrderId) => {
+  const updateStoredOrderIds = async (userId, newOrderId, shopId) => {
     try {
       // Use a transaction to ensure atomicity
       await AsyncStorage.setItem(
@@ -692,20 +693,25 @@ const Home = ({navigation}) => {
                     postorderIds = [];
                   }
                 } catch (e) {
-                  console.error('error in parsing', e);
+                  console.error('Error in parsing:', e);
                 }
               }
-              postorderIds.push(newOrderId);
+
+              // Add the new orderId and shopId as an object
+              postorderIds.push({orderId: newOrderId, shopId: shopId});
               return postorderIds;
             },
           ),
         ),
       );
-      console.log(`Order ID ${newOrderId} added successfully.`);
+      console.log(
+        `Order ID ${newOrderId} and Shop ID ${shopId} added successfully.`,
+      );
     } catch (error) {
       console.error('Error updating stored order IDs:', error);
     }
   };
+
   const saveFailedOrder = async (userId, failedOrder) => {
     try {
       const key = `failedOrders_${userId}`;

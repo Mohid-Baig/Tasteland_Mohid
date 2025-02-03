@@ -460,6 +460,9 @@ const ConfirmOrder = ({route, navigation}) => {
         console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
 
         console.log('Post Data', response.data);
+        const postorderId = response.data.id;
+        const shop_id = Store.id;
+        await updateStoredOrderIds(userId, postorderId, shop_id);
         Alert.alert('Success', 'Order Created successfully!', [
           {
             text: 'OK',
@@ -687,7 +690,40 @@ const ConfirmOrder = ({route, navigation}) => {
       }
     }
   };
+  const updateStoredOrderIds = async (userId, newOrderId, shopId) => {
+    try {
+      // Use a transaction to ensure atomicity
+      await AsyncStorage.setItem(
+        `postorderId_${userId}`,
+        JSON.stringify(
+          await AsyncStorage.getItem(`postorderId_${userId}`).then(
+            storedOrderIds => {
+              let postorderIds = [];
+              if (storedOrderIds) {
+                try {
+                  postorderIds = JSON.parse(storedOrderIds);
+                  if (!Array.isArray(postorderIds)) {
+                    postorderIds = [];
+                  }
+                } catch (e) {
+                  console.error('Error in parsing:', e);
+                }
+              }
 
+              // Add the new orderId and shopId as an object
+              postorderIds.push({orderId: newOrderId, shopId: shopId});
+              return postorderIds;
+            },
+          ),
+        ),
+      );
+      console.log(
+        `Order ID ${newOrderId} and Shop ID ${shopId} added successfully.`,
+      );
+    } catch (error) {
+      console.error('Error updating stored order IDs:', error);
+    }
+  };
   const saveFailedOrder = async (userId, failedOrder) => {
     try {
       const key = `failedOrders_${userId}`;

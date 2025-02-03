@@ -301,6 +301,8 @@ const AllShops = ({navigation, route}) => {
   const [sending, setsending] = useState([]);
   const [isOffline, setIsOffline] = useState(false);
   const [offlineOrders, setOfflineOrders] = useState([]);
+  const [unproductiveShops, setUnproductiveShops] = useState([]);
+  const [matchingOrderID, setMatchingOrderID] = useState();
   const gstRef = useRef(0);
   // console.log(selectedProduct, 'selectedproduct');
   // console.log(existingProduct, 'exsistikj0');
@@ -642,18 +644,21 @@ const AllShops = ({navigation, route}) => {
 
   const FetchProduct = async () => {
     const userId = await AsyncStorage.getItem('userId');
+    const state = await NetInfo.fetch();
     try {
-      const ProductDatakey = `ProductData_${userId}`;
-      const ProductDataJSON = await AsyncStorage.getItem(ProductDatakey);
-      const ProductData = JSON.parse(ProductDataJSON);
-      let products = [];
-      ProductData.forEach(it => {
-        if (it.pricing.active == true) {
-          products.push(it);
-        }
-      });
-      setAllProducts(products);
-      setFilteredProducts(products);
+      if (!state.isConnected) {
+        const ProductDatakey = `ProductData_${userId}`;
+        const ProductDataJSON = await AsyncStorage.getItem(ProductDatakey);
+        const ProductData = JSON.parse(ProductDataJSON);
+        let products = [];
+        ProductData?.forEach(it => {
+          if (it.pricing.active == true) {
+            products.push(it);
+          }
+        });
+        setAllProducts(products);
+        setFilteredProducts(products);
+      }
     } catch (error) {
       console.error('Error getting data of all products', error);
     }
@@ -682,6 +687,7 @@ const AllShops = ({navigation, route}) => {
     if (state.isConnected) {
       handleVisit(item);
       setSingleId(item.id);
+      handleVisitButtonClick(item.id);
     } else {
       const offlinePostOrders = await AsyncStorage.getItem(
         `offlineOrders_${userId}`,
@@ -776,14 +782,17 @@ const AllShops = ({navigation, route}) => {
           } else {
             handleVisit(item);
             setSingleId(item.id);
+            handleVisitButtonClick(item.id);
           }
         } else {
           handleVisit(item);
           setSingleId(item.id);
+          handleVisitButtonClick(item.id);
         }
       } else {
         handleVisit(item);
         setSingleId(item.id);
+        handleVisitButtonClick(item.id);
       }
     }
   };
@@ -805,13 +814,100 @@ const AllShops = ({navigation, route}) => {
       unsubscribeNetInfo(); // Unsubscribe NetInfo when component unmounts
     };
   }, []);
+  useEffect(() => {
+    const matchOrderID = async () => {
+      const userId = await AsyncStorage.getItem('userId');
+      const matching = await AsyncStorage.getItem(`postorderId_${userId}`);
+      setMatchingOrderID(JSON.parse(matching) || []);
+      console.log(matching, 'matching');
+    };
+    matchOrderID();
+  }, []);
 
-  // Render item with conditional button text
+  // Function to store unproductive shops
+  const storeUnproductiveShops = async shopId => {
+    if (!shopId) {
+      console.log('Invalid shop ID, not saving to AsyncStorage');
+      return; // Exit early if shopId is invalid
+    }
+
+    const userId = await AsyncStorage.getItem('userId');
+
+    try {
+      // Get existing unproductive shops from AsyncStorage
+      const existingShops = await AsyncStorage.getItem(
+        `unproductiveShops_${userId}`,
+      );
+      const unproductiveShops = existingShops ? JSON.parse(existingShops) : [];
+
+      // Add the new shop to the array
+      const updatedShops = [...unproductiveShops, shopId];
+
+      // Save the updated array back to AsyncStorage
+      await AsyncStorage.setItem(
+        `unproductiveShops_${userId}`,
+        JSON.stringify(updatedShops),
+      );
+
+      console.log('Unproductive shops saved to AsyncStorage:', updatedShops);
+    } catch (error) {
+      console.log('Error saving unproductive shops:', error);
+    }
+  };
+
+  // Function to load unproductive shops when the component mounts
+  const loadUnproductiveShops = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const storedShops = await AsyncStorage.getItem(
+        `unproductiveShops_${userId}`,
+      );
+      if (storedShops !== null) {
+        const parsedShops = JSON.parse(storedShops);
+        if (Array.isArray(parsedShops)) {
+          setUnproductiveShops(parsedShops); // Set the unproductive shops state with stored data
+        } else {
+          console.log('Unexpected data format in AsyncStorage');
+        }
+      }
+    } catch (error) {
+      console.log('Error loading unproductive shops:', error);
+    }
+  };
+
+  // useEffect to load shops on mount, without singleId as a dependency
+  useEffect(() => {
+    loadUnproductiveShops();
+  }, []); // Empty dependency array ensures it runs only on component mount
+
+  // Function to handle shop visit button click and set singleId
+  const handleVisitButtonClick = shopId => {
+    if (!shopId) {
+      console.log('Invalid shop ID, not visiting');
+      return;
+    }
+
+    setUnproductiveShops(prev => {
+      const updatedShops = [...prev, shopId];
+      storeUnproductiveShops(shopId); // Save the shop ID to AsyncStorage
+      return updatedShops;
+    });
+  };
+
   const renderItem = ({item, index}) => {
     const matchingOrder = offlineOrders.find(
       order => order.shop.id === item.id,
     );
+    const isUnproductive = unproductiveShops.includes(item.id);
+    const matchingOrderbyID = Array.isArray(matchingOrderID)
+      ? matchingOrderID.find(order => order.shopId === item.id)
+      : null;
 
+    // if (matchingOrderbyID) {
+    //   console.log('Matching order found:', matchingOrderbyID);
+    // } else {
+    //   console.log('No matching order found for shopId:', item.id);
+    // }
     return (
       <View style={styles.listItem}>
         <View>
@@ -834,56 +930,61 @@ const AllShops = ({navigation, route}) => {
                 justifyContent: 'center',
                 alignItems: 'center',
               }}>
-              {item.pending_order > 0 || matchingOrder ? (
+              {matchingOrderbyID || matchingOrder ? (
                 <FontAwesome name="check" size={25} color={'green'} />
+              ) : isUnproductive ? (
+                <FontAwesome name="check" size={25} color={'red'} />
               ) : null}
-              <TouchableOpacity
-                style={[styles.button, {marginBottom: 5}]}
-                onPress={() => {
-                  console.log(item);
-                  if (isOffline && matchingOrder) {
-                    console.log('Invoice Action for Offline Order');
-                    offline(item);
-                  } else {
-                    console.log('Visit Action');
-                    handleVisit(item);
-                    setSingleId(item.id);
-                  }
-                }}>
-                <Text style={styles.buttonText}>
-                  {isOffline && matchingOrder ? 'INVOICE' : 'VISIT'}
-                </Text>
-              </TouchableOpacity>
+              <View style={{marginLeft: 10}}>
+                <TouchableOpacity
+                  style={[styles.button, {marginBottom: 5}]}
+                  onPress={() => {
+                    console.log(item);
+                    if (isOffline && matchingOrder) {
+                      console.log('Invoice Action for Offline Order');
+                      offline(item);
+                    } else {
+                      console.log('Visit Action');
+                      handleVisit(item);
+                      setSingleId(item.id); // Set selected shop's ID
+                    }
+                  }}>
+                  <Text style={styles.buttonText}>
+                    {isOffline && matchingOrder ? 'INVOICE' : 'VISIT'}
+                  </Text>
+                </TouchableOpacity>
+                {item.pending_order > 0 ? (
+                  <View
+                    style={{
+                      backgroundColor: 'red',
+                      width: 70,
+                      height: 15,
+                      borderRadius: 10,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text style={{fontSize: 9, color: '#fff'}}>pending</Text>
+                  </View>
+                ) : (
+                  <View
+                    style={{
+                      backgroundColor: 'green',
+                      width: 70,
+                      height: 15,
+                      borderRadius: 10,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Text style={{fontSize: 9, color: '#fff'}}>No pending</Text>
+                  </View>
+                )}
+              </View>
             </View>
-            {/* {item.pending_order > 0 ? (
-              <View
-                style={{
-                  backgroundColor: 'red',
-                  width: 70,
-                  height: 15,
-                  borderRadius: 10,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}>
-                <Text style={{fontSize: 9, color: '#fff'}}>pending</Text>
-              </View>
-            ) : (
-              <View
-                style={{
-                  backgroundColor: 'green',
-                  width: 70,
-                  height: 15,
-                  borderRadius: 10,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}>
-                <Text style={{fontSize: 9, color: '#fff'}}>No pending</Text>
-              </View>
-            )} */}
           </View>
 
           <View style={{width: 20}}></View>
 
+          {/* Info button to show more details in a modal */}
           <TouchableOpacity
             style={styles.infoButton}
             onPress={() => {
@@ -1173,6 +1274,11 @@ const AllShops = ({navigation, route}) => {
           console.log(response.status);
           incrementTotalVisits();
           closeModal();
+          setUnproductiveShops(prev => {
+            const updatedShops = [...prev, singleId];
+            storeUnproductiveShops(singleId);
+            return updatedShops;
+          });
         } else {
           Alert.alert('Add Reason');
           setModalVisible(false);
@@ -1236,6 +1342,11 @@ const AllShops = ({navigation, route}) => {
           console.log(response.status);
           closeModal();
           incrementTotalVisits();
+          setUnproductiveShops(prev => {
+            const updatedShops = [...prev, singleId];
+            storeUnproductiveShops(singleId);
+            return updatedShops;
+          });
         } else {
           Alert.alert('Add Reason');
           setModalVisible(false);
@@ -1304,6 +1415,11 @@ const AllShops = ({navigation, route}) => {
         console.log(response.status);
         closeModal();
         incrementTotalVisits();
+        setUnproductiveShops(prev => {
+          const updatedShops = [...prev, singleId];
+          storeUnproductiveShops(singleId);
+          return updatedShops;
+        });
       } catch (error) {
         // incrementTotalVisits();
         if (error.response && error.response.status === 401) {
