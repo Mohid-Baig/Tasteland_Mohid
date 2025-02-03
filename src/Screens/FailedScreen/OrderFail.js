@@ -18,6 +18,7 @@ import ViewInvoice from '../InvoiceScreen/ViewInvoice';
 import {Remove_All_Cart} from '../../Components/redux/constants';
 import {useSelector, useDispatch} from 'react-redux';
 import {AddToCart} from '../../Components/redux/action';
+import NetInfo from '@react-native-community/netinfo';
 const FailedOrdersScreen = ({route, navigation, userId}) => {
   //   const {userId} = route.params;
   const [failedOrders, setFailedOrders] = useState([]);
@@ -71,25 +72,88 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
       console.error('Error loading failed orders:', error);
     }
   };
-
+  const TokenRenew = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const refreshToken = await AsyncStorage.getItem('refresh_token');
+    const payload = {
+      refresh_token: refreshToken,
+    };
+    console.log(refreshToken);
+    try {
+      const response = await instance.post('/login/renew_token', payload, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      console.log(response.data, 'Token after refreashing');
+      const AuthToken = response.data.access_token;
+      await AsyncStorage.setItem('AUTH_TOKEN', AuthToken);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        Alert.alert('Session Expired', 'Please Login Again', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await AsyncStorage.removeItem('refresh_token');
+              navigation.replace('Login');
+            },
+          },
+        ]);
+      } else {
+        console.log('Error', error);
+      }
+    }
+  };
   const getProduct = async () => {
     setIsLoading(true);
+    const state = await NetInfo.fetch(); // Check network connectivity
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const userId = await AsyncStorage.getItem('userId');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
     try {
-      const response = await instance.get(
-        `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
+      if (state.isConnected) {
+        // If there's network, fetch data from API
+        const response = await instance.get(
+          `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
           },
-        },
-      );
-      setAllProducts(response.data);
-      // console.log(JSON.stringify(response.data), '---111----');
-      console.log('data of allProducts successfully coming');
+        );
+
+        // console.log(JSON.stringify(response.data), '-----');
+
+        setAllProducts(response.data);
+      } else {
+        // If no internet, fetch from AsyncStorage
+        const pricingDataKey = `pricingData_${userId}`;
+        const storedProducts = await AsyncStorage.getItem(pricingDataKey);
+        if (storedProducts) {
+          const parsedProducts = JSON.parse(storedProducts);
+
+          setAllProducts(parsedProducts);
+        } else {
+          console.log('No products in AsyncStorage');
+        }
+      }
     } catch (error) {
-      console.log('Error', error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Please Log in again',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error ', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -225,7 +289,16 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
         );
       }
     } catch (error) {
-      console.log(error);
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Session Expired',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error in get product of failed screen', error);
+      }
       Alert.alert('Error', 'An error occurred while processing your request.');
     } finally {
       setIsLoading(false);
@@ -271,7 +344,16 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
         Alert.alert('Error', 'An error occurred while updating the order.');
       }
     } catch (error) {
-      console.log(error, 'error in updating fail edit data');
+      if (error.response && error.response.status === 401) {
+        ToastAndroid.showWithGravity(
+          'Session Expired',
+          ToastAndroid.LONG,
+          ToastAndroid.CENTER,
+        );
+        TokenRenew();
+      } else {
+        console.log('Error in get product of failed screen', error);
+      }
     } finally {
       setIsLoading(false);
     }

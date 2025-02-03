@@ -1241,6 +1241,7 @@ const AllShops = ({navigation, route}) => {
   const PostReason = async currentLocation => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const fk_employee = await AsyncStorage.getItem('fk_employee');
+    const userId = await AsyncStorage.getItem('userId');
     if (view === 'Shop Closed') {
       try {
         const data = {
@@ -1285,6 +1286,20 @@ const AllShops = ({navigation, route}) => {
         }
       } catch (error) {
         // incrementTotalVisits();
+        const data = {
+          reason: shopcloseReason,
+          rejection_type: 'closed',
+          lat: currentLocation.latitude,
+          lng: currentLocation.longitude,
+          fk_shop: singleId,
+          fk_employee: fk_employee,
+          details: [],
+        };
+        const failunorder = {
+          View: 'Shop Closed',
+          Data: data,
+        };
+        saveFailedUnproductive(userId, failunorder);
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1352,7 +1367,26 @@ const AllShops = ({navigation, route}) => {
           setModalVisible(false);
         }
       } catch (error) {
-        // incrementTotalVisits();
+        const data = {
+          reason: customerRefused,
+          rejection_type: 'refused',
+          lat: currentLocation.latitude,
+          lng: currentLocation.longitude,
+          fk_shop: singleId,
+          fk_employee: fk_employee,
+          details: [
+            // {
+            //     "box": 0,
+            //     "carton": 0,
+            //     "fk_pricing": 0
+            // }
+          ],
+        };
+        const failunorder = {
+          View: 'Customer Refused',
+          Data: data,
+        };
+        saveFailedUnproductive(userId, failunorder);
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1421,7 +1455,20 @@ const AllShops = ({navigation, route}) => {
           return updatedShops;
         });
       } catch (error) {
-        // incrementTotalVisits();
+        const data = {
+          reason: customerRefused,
+          rejection_type: 'stock_exists',
+          lat: currentLocation.latitude,
+          lng: currentLocation.longitude,
+          fk_shop: singleId,
+          fk_employee: fk_employee,
+          details: details,
+        };
+        const failunorder = {
+          View: 'Stock Already Exist',
+          Data: data,
+        };
+        saveFailedUnproductive(userId, failunorder);
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1443,6 +1490,24 @@ const AllShops = ({navigation, route}) => {
           );
         }
       }
+    }
+  };
+  const saveFailedUnproductive = async (userId, UnproductiveOrder) => {
+    try {
+      const key = `failedUnProductiveOrders_${userId}`;
+      const existingFailedOrders = await AsyncStorage.getItem(key);
+      let failedUnProductiveOrders = existingFailedOrders
+        ? JSON.parse(existingFailedOrders)
+        : [];
+
+      // Add the new failed order
+      failedUnProductiveOrders.push(UnproductiveOrder);
+
+      // Save back to AsyncStorage
+      await AsyncStorage.setItem(key, JSON.stringify(UnproductiveOrder));
+      console.log('failedUnProductiveOrders order saved successfully');
+    } catch (error) {
+      console.error('Error saving failedUnProductiveOrders order:', error);
     }
   };
   return (
