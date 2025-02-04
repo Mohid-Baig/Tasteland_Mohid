@@ -1517,6 +1517,7 @@ const AllShops = ({navigation, route}) => {
           } else {
             Alert.alert('Add Reason');
             setModalVisible(false);
+            setIsLoading(false);
           }
         } else {
           const data = {
@@ -1638,6 +1639,7 @@ const AllShops = ({navigation, route}) => {
           } else {
             Alert.alert('Add Reason');
             setModalVisible(false);
+            setIsLoading(false);
           }
         } else {
           const data = {
