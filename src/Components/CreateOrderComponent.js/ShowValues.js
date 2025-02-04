@@ -11,7 +11,7 @@ const ShowValues = ({
 }) => {
   // console.log('Received percent data:', percent);
   // console.log('Gross value:', gross);
-
+  // console.log(RightText, 'right text');
   // Find the applicable discount based on the gross value
   let displayRate = 0;
 

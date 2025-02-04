@@ -9,8 +9,8 @@ const SpecialDis = ({
   percent,
   gross,
 }) => {
-  console.log('Received percent data:', percent);
-  console.log('Gross value:', gross);
+  // console.log('Received percent data:', percent);
+  // console.log('Gross value:', gross);
 
   const [rate, setRate] = useState(0);
 

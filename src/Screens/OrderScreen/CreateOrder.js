@@ -37,6 +37,7 @@ const CreateOrder = ({navigation, route}) => {
   const [FinalDistributiveDiscount, setFinalDistributiveDiscount] = useState(0);
   const [SpecaialDiscount, setSpecialDiscount] = useState([]);
   const [applySpecialDiscount, setApplySpecialDiscount] = useState(0);
+  const [TOdiscount, setTodiscount] = useState(0);
   const [edited, isEdited] = useState(false);
   const dispatch = useDispatch();
   const [gst, setGst] = useState(0);
@@ -158,11 +159,13 @@ const CreateOrder = ({navigation, route}) => {
           // console.log(GrossAmount, '==');
         }
       });
+      // console.log(Product_Count, 'Product_Count');
       setTotalprice(Product_Count);
       setGrossAmount(GrossAmount);
       setSelectedProductData(cartItems);
       setGst(gst);
-      // console.log(Product_Count,"Product Count");
+      // console.log(Product_Count, 'Product Count');
+      // console.log(GrossAmount, 'GrossAmount');
       // dispatch(AddToCart(filteredData));
     } else {
       setTotalprice(0);
@@ -171,6 +174,24 @@ const CreateOrder = ({navigation, route}) => {
       setGst(0);
     }
   }, [cartItems]);
+
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      let discountSum = 0;
+      cartItems.forEach(item => {
+        const itemDiscount =
+          (item?.itemss?.trade_offer / 100) *
+          item?.itemss?.pricing?.trade_price *
+          (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
+        discountSum += itemDiscount;
+      });
+      setTodiscount(discountSum);
+      console.log('TO_Discount:', discountSum);
+    } else {
+      setTodiscount(0);
+    }
+  }, [cartItems]);
+
   const updateSearch = search => {
     // setSearch(search);
     setSearchText(search);
@@ -185,6 +206,32 @@ const CreateOrder = ({navigation, route}) => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const userId = await AsyncStorage.getItem('userId');
     const distributor_id = await AsyncStorage.getItem('distribution_id');
+
+    const processProducts = data => {
+      let products = [];
+      data.forEach(it => {
+        if (it.pricing.active || it?.active == true) {
+          products.push(it);
+        }
+      });
+
+      // console.log(JSON.stringify(products), 'products');
+      // console.log(products.length, 'products length');
+
+      setAllProducts(products);
+
+      const filteredData = [];
+      const productNames = new Set();
+      products.forEach(item => {
+        if (!productNames.has(item.pricing.product.name)) {
+          filteredData.push(item.pricing.product.name);
+          productNames.add(item.pricing.product.name);
+        }
+      });
+
+      SetProductname(filteredData);
+    };
+
     try {
       if (state.isConnected) {
         // If there's network, fetch data from API
@@ -197,53 +244,19 @@ const CreateOrder = ({navigation, route}) => {
           },
         );
 
-        // console.log(JSON.stringify(response.data), '-----');
+        processProducts(response.data);
 
-        let products = [];
-        response.data.forEach(it => {
-          if (it.pricing.active || it?.active == true) {
-            products.push(it);
-          }
-        });
-        console.log(JSON.stringify(products), 'products');
-        console.log(products.length, 'products length');
-        setAllProducts(products);
-        // setAllProducts(response.data);
-
-        const filteredData = [];
-        const productNames = new Set();
-        products.forEach(item => {
-          if (!productNames.has(item.pricing.product.name)) {
-            filteredData.push(item.pricing.product.name);
-            productNames.add(item.pricing.product.name);
-          }
-        });
-        SetProductname(filteredData);
-
-        // Save the fetched data in AsyncStorage
+        // Optionally save the fetched data to AsyncStorage
+        // const pricingDataKey = `pricingData_${userId}`;
+        // await AsyncStorage.setItem(pricingDataKey, JSON.stringify(response.data));
       } else {
         // If no internet, fetch from AsyncStorage
         const pricingDataKey = `pricingData_${userId}`;
         const storedProducts = await AsyncStorage.getItem(pricingDataKey);
+
         if (storedProducts) {
           const parsedProducts = JSON.parse(storedProducts);
-          let products = [];
-          parsedProducts.forEach(it => {
-            if (it.pricing.active == true) {
-              products.push(it);
-            }
-          });
-          setAllProducts(products);
-          const filteredData = [];
-          const productNames = new Set();
-          products.forEach(item => {
-            if (!productNames.has(item.pricing.product.name)) {
-              filteredData.push(item.pricing.product.name);
-              productNames.add(item.pricing.product.name);
-            }
-          });
-          // console.log(filteredData, 'filteredData');
-          SetProductname(filteredData);
+          processProducts(parsedProducts);
         } else {
           console.log('No products in AsyncStorage');
         }
@@ -263,7 +276,6 @@ const CreateOrder = ({navigation, route}) => {
       setIsLoading(false);
     }
   };
-
   const getDistributionDiscount = async () => {
     setIsLoading(true);
     const state = await NetInfo.fetch(); // Check network connectivity
@@ -406,10 +418,10 @@ const CreateOrder = ({navigation, route}) => {
   }, []);
   useEffect(() => {
     // Debugging logs to track values
-    console.log('GrossAmount:', GrossAmount); // Logs the gross amount
-    console.log('Distributive Discount:', distributiveDiscount);
-    console.log('Special Discounts:', SpecaialDiscount);
-    console.log('Store:', Store);
+    // console.log('GrossAmount:', GrossAmount); // Logs the gross amount
+    // console.log('Distributive Discount:', distributiveDiscount);
+    // console.log('Special Discounts:', SpecaialDiscount);
+    // console.log('Store:', Store);
 
     if (
       distributiveDiscount &&
@@ -420,12 +432,12 @@ const CreateOrder = ({navigation, route}) => {
 
       // Loop through each distributive discount range
       distributiveDiscount.forEach(discount => {
-        console.log('Checking Distributive Discount entry:', discount); // Log the full discount entry
-        console.log(
-          'Checking Distributive Discount limits:',
-          discount.lower_limit,
-          discount.upper_limit,
-        );
+        // console.log('Checking Distributive Discount entry:', discount); // Log the full discount entry
+        // console.log(
+        //   'Checking Distributive Discount limits:',
+        //   discount.lower_limit,
+        //   discount.upper_limit,
+        // );
 
         // Check if GrossAmount falls within the range
         if (
@@ -433,10 +445,10 @@ const CreateOrder = ({navigation, route}) => {
           GrossAmount <= discount?.upper_limit
         ) {
           const calculatedDiscount = GrossAmount * (discount?.rate / 100);
-          console.log(
-            `Calculated Distributive Discount for range ${discount.lower_limit}-${discount.upper_limit}:`,
-            calculatedDiscount,
-          );
+          // console.log(
+          //   `Calculated Distributive Discount for range ${discount.lower_limit}-${discount.upper_limit}:`,
+          //   calculatedDiscount,
+          // );
           setFinalDistributiveDiscount(calculatedDiscount);
           distributiveDiscountApplied = true; // Set flag if discount is applied
         }
@@ -444,11 +456,11 @@ const CreateOrder = ({navigation, route}) => {
 
       // If no distributive discount was applied, set it to 0
       if (!distributiveDiscountApplied) {
-        console.log('No applicable distributive discount for this GrossAmount');
+        // console.log('No applicable distributive discount for this GrossAmount');
         setFinalDistributiveDiscount(0);
       }
     } else {
-      console.log('No distributive discounts found or invalid structure');
+      // console.log('No distributive discounts found or invalid structure');
       setFinalDistributiveDiscount(0);
     }
 
@@ -457,61 +469,61 @@ const CreateOrder = ({navigation, route}) => {
       let finalDiscount = 0; // Store the highest applicable discount
 
       SpecaialDiscount.forEach((item, index) => {
-        console.log(`Checking Special Discount Item ID: ${item.id}`);
-        console.log(
-          `Item Gross Amount: ${item.gross_amount}, Item Rate: ${item.rate}, Item Amount: ${item.amount}`,
-        );
-        console.log(
-          `Current Gross Amount: ${GrossAmount}, Shop Type: ${Store?.fk_shop_type}`,
-        );
+        // console.log(`Checking Special Discount Item ID: ${item.id}`);
+        // console.log(
+        //   `Item Gross Amount: ${item.gross_amount}, Item Rate: ${item.rate}, Item Amount: ${item.amount}`,
+        // );
+        // console.log(
+        //   `Current Gross Amount: ${GrossAmount}, Shop Type: ${Store?.fk_shop_type}`,
+        // );
 
         // Check if the item matches the shop type and gross amount condition
         if (item?.fk_shop_type === Store?.fk_shop_type) {
-          console.log('Shop types match!');
+          // console.log('Shop types match!');
 
           if (GrossAmount >= item.gross_amount) {
             let discount = 0;
 
             if (item.rate) {
               discount = GrossAmount * (item.rate / 100); // Calculate discount based on rate
-              console.log(
-                `Rate-based Discount for Item ID: ${item.id} = ${discount}`,
-              );
+              // console.log(
+              //   `Rate-based Discount for Item ID: ${item.id} = ${discount}`,
+              // );
             } else if (item.amount) {
               discount = item.amount; // Apply flat amount if no rate
-              console.log(
-                `Amount-based Discount for Item ID: ${item.id} = ${discount}`,
-              );
+              // console.log(
+              //   `Amount-based Discount for Item ID: ${item.id} = ${discount}`,
+              // );
             }
 
             // Set the highest discount
             finalDiscount = Math.max(finalDiscount, discount);
-            console.log(
-              `Updated Final Discount after Item ID ${item.id}: ${finalDiscount}`,
-            );
+            // console.log(
+            //   `Updated Final Discount after Item ID ${item.id}: ${finalDiscount}`,
+            // );
           } else {
-            console.log(
-              `GrossAmount ${GrossAmount} is less than required item.gross_amount ${item.gross_amount}`,
-            );
+            // console.log(
+            //   `GrossAmount ${GrossAmount} is less than required item.gross_amount ${item.gross_amount}`,
+            // );
           }
         } else {
-          console.log(
-            `Shop type mismatch! Item shop type: ${item.fk_shop_type}, Store shop type: ${Store?.fk_shop_type}`,
-          );
+          // console.log(
+          //   `Shop type mismatch! Item shop type: ${item.fk_shop_type}, Store shop type: ${Store?.fk_shop_type}`,
+          // );
         }
       });
 
       // Set the calculated special discount
       if (finalDiscount > 0) {
-        console.log('Final Special Discount Applied:', finalDiscount);
+        // console.log('Final Special Discount Applied:', finalDiscount);
         setApplySpecialDiscount(finalDiscount);
       } else {
-        console.log('No applicable special discount after checking all items');
+        // console.log('No applicable special discount after checking all items');
         setApplySpecialDiscount(0);
       }
     } else {
       // No special discounts found
-      console.log('No special discounts found');
+      // console.log('No special discounts found');
       setApplySpecialDiscount(0);
     }
   }, [GrossAmount, distributiveDiscount, SpecaialDiscount, Store]);
@@ -588,12 +600,13 @@ const CreateOrder = ({navigation, route}) => {
         <View>
           <View style={styles.confirmOrderHeader}>
             <Text style={styles.confirmOrderText}>Confirm Order</Text>
-            <MaterialCommunityIcons
-              name="delete"
-              size={30}
-              color={'#a0a0a0'}
-              onPress={() => dispatch(RemoveAllCart())}
-            />
+            <TouchableOpacity onPress={() => dispatch(RemoveAllCart())}>
+              <MaterialCommunityIcons
+                name="delete"
+                size={30}
+                color={'#a0a0a0'}
+              />
+            </TouchableOpacity>
           </View>
           <View style={styles.orderDetails}>
             <Text style={styles.orderStoreName}>{Store.name}</Text>
@@ -601,7 +614,8 @@ const CreateOrder = ({navigation, route}) => {
           </View>
           <ShowValues
             Lefttxt={'T.O Discount:'}
-            RightText={(GrossAmount - totalPrice).toFixed(2)}
+            // RightText={(GrossAmount - totalPrice).toFixed(2)}
+            RightText={TOdiscount.toFixed(2)}
           />
           <ShowValues
             Lefttxt={'Distribution Discount:'}
@@ -625,8 +639,7 @@ const CreateOrder = ({navigation, route}) => {
           <ShowValues
             Lefttxt={'Total Discount:'}
             RightText={(
-              GrossAmount -
-              totalPrice +
+              TOdiscount +
               applySpecialDiscount +
               FinalDistributiveDiscount
             ).toFixed(2)}
@@ -634,10 +647,14 @@ const CreateOrder = ({navigation, route}) => {
           />
           <ShowValues
             Lefttxt={'Net Amount:'}
+            // RightText={(
+            //   totalPrice -
+            //   applySpecialDiscount -
+            //   FinalDistributiveDiscount
+            // ).toFixed(2)}
             RightText={(
-              totalPrice -
-              applySpecialDiscount -
-              FinalDistributiveDiscount
+              GrossAmount -
+              (TOdiscount + applySpecialDiscount + FinalDistributiveDiscount)
             ).toFixed(2)}
             leftStyle={styles.boldText}
             rightStyle={styles.boldText}

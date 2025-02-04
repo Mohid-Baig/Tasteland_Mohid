@@ -281,8 +281,8 @@ const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
 
 const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
   // console.log(datas.length, 'datas length');
-  console.log(allProduct.length, 'allProduct length');
-  console.log(allProduct, 'allproduct');
+  // console.log(allProduct.length, 'allProduct length');
+  // console.log(allProduct, 'allproduct');
   // console.log(JSON.stringify(datas.title), 'data');
 
   const [ProductName, SetProductname] = useState([]);
@@ -335,7 +335,7 @@ const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
     );
   }, [ProductName, search]);
 
-  console.log('filteredProductName Length', filteredProductName?.length);
+  // console.log('filteredProductName Length', filteredProductName?.length);
 
   return (
     <FlatList
