@@ -1105,6 +1105,7 @@ const AllShops = ({navigation, route}) => {
       };
       // loadUnproductiveShops();
       fetchData();
+      loadUnproductiveOfflineOrders();
     }, []),
   ); // Empty dependency array ensures it runs only on component mount
 
