@@ -1464,8 +1464,6 @@ const AllShops = ({navigation, route}) => {
         Alert.alert('Error', 'Unable to fetch location. Please try again.');
       }
       console.warn(error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -1477,6 +1475,7 @@ const AllShops = ({navigation, route}) => {
     if (view === 'Shop Closed') {
       try {
         if (state.isConnected) {
+          setIsLoading(true);
           const data = {
             reason: shopcloseReason,
             rejection_type: 'closed',
@@ -1513,6 +1512,7 @@ const AllShops = ({navigation, route}) => {
               storeUnproductiveShops(singleId);
               return updatedShops;
             });
+            setIsLoading(false);
           } else {
             Alert.alert('Add Reason');
             setModalVisible(false);
@@ -1547,6 +1547,8 @@ const AllShops = ({navigation, route}) => {
             ],
           );
           closeModal();
+          incrementTotalVisits();
+          setIsLoading(false);
         }
       } catch (error) {
         // incrementTotalVisits();
@@ -1564,6 +1566,9 @@ const AllShops = ({navigation, route}) => {
           Data: data,
         };
         saveFailedUnproductive(userId, failunorder);
+        closeModal();
+        setIsLoading(false);
+        Alert.alert('Error', 'Error posting reason');
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1589,6 +1594,7 @@ const AllShops = ({navigation, route}) => {
     } else if (view === 'Customer Refused') {
       try {
         if (state.isConnected) {
+          setIsLoading(true);
           const data = {
             reason: customerRefused,
             rejection_type: 'refused',
@@ -1627,6 +1633,7 @@ const AllShops = ({navigation, route}) => {
               storeUnproductiveShops(singleId);
               return updatedShops;
             });
+            setIsLoading(false);
           } else {
             Alert.alert('Add Reason');
             setModalVisible(false);
@@ -1661,6 +1668,8 @@ const AllShops = ({navigation, route}) => {
             ],
           );
           closeModal();
+          incrementTotalVisits();
+          setIsLoading(false);
         }
       } catch (error) {
         const data = {
@@ -1683,6 +1692,9 @@ const AllShops = ({navigation, route}) => {
           Data: data,
         };
         saveFailedUnproductive(userId, failunorder);
+        closeModal();
+        setIsLoading(false);
+        Alert.alert('Error', 'Error posting Reason');
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1719,6 +1731,7 @@ const AllShops = ({navigation, route}) => {
         console.log('Detail', details);
         console.log(StockAlreadyExist, 'StockAlreadyexsists');
         if (state.isConnected) {
+          setIsLoading(true);
           const data = {
             reason: customerRefused,
             rejection_type: 'stock_exists',
@@ -1751,6 +1764,7 @@ const AllShops = ({navigation, route}) => {
             storeUnproductiveShops(singleId);
             return updatedShops;
           });
+          setIsLoading(false);
         } else {
           const data = {
             reason: customerRefused,
@@ -1774,7 +1788,9 @@ const AllShops = ({navigation, route}) => {
               },
             ],
           );
+          incrementTotalVisits();
           closeModal();
+          setIsLoading(false);
         }
       } catch (error) {
         const data = {
@@ -1791,6 +1807,9 @@ const AllShops = ({navigation, route}) => {
           Data: data,
         };
         saveFailedUnproductive(userId, failunorder);
+        closeModal();
+        setIsLoading(false);
+        Alert.alert('Error', 'Error posting products');
         if (error.response && error.response.status === 401) {
           ToastAndroid.showWithGravity(
             'Session Expired',
@@ -1962,429 +1981,447 @@ const AllShops = ({navigation, route}) => {
         onRequestClose={closeModal}>
         {/* <TouchableOpacity style={styles.modalOverlay} onPress={closeModal}> */}
 
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {!markUnproductiveButton ? (
-              <View style={styles.Create_order_cont}>
-                <Text style={styles.modalText}>
-                  RECORD VISIT: {selectedStore?.name}
-                </Text>
-                <TouchableOpacity
-                  style={styles.createOrderButton}
-                  onPress={() => {
-                    // incrementTotalVisits();
-                    navigation.navigate('CreateOrder', {
-                      Store: selectedStore,
-                      RouteDate: routeDate,
-                    });
-                    closeModal();
-                  }}>
-                  <Text style={styles.buttonText}>Create Order</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.markUnproductiveButton}
-                  onPress={() => {
-                    setMarkUnproductiveButton(true);
-                  }}>
-                  <Text style={styles.buttonText}>Mark Unproductive Visit</Text>
-                </TouchableOpacity>
-                <View style={{flexDirection: 'row', width: '100%'}}>
-                  <TouchableOpacity onPress={closeModal}>
-                    <Text style={{color: 'red', marginTop: 20}}>Cancel</Text>
+        {isLoading ? (
+          <Loader />
+        ) : (
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {!markUnproductiveButton ? (
+                <View style={styles.Create_order_cont}>
+                  <Text style={styles.modalText}>
+                    RECORD VISIT: {selectedStore?.name}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.createOrderButton}
+                    onPress={() => {
+                      // incrementTotalVisits();
+                      navigation.navigate('CreateOrder', {
+                        Store: selectedStore,
+                        RouteDate: routeDate,
+                      });
+                      closeModal();
+                    }}>
+                    <Text style={styles.buttonText}>Create Order</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={closeModal}
-                    style={{marginLeft: 'auto'}}>
-                    <Text style={{color: 'red', marginTop: 20}}>Confirm</Text>
+                    style={styles.markUnproductiveButton}
+                    onPress={() => {
+                      setMarkUnproductiveButton(true);
+                    }}>
+                    <Text style={styles.buttonText}>
+                      Mark Unproductive Visit
+                    </Text>
                   </TouchableOpacity>
+                  <View style={{flexDirection: 'row', width: '100%'}}>
+                    <TouchableOpacity onPress={closeModal}>
+                      <Text style={{color: 'red', marginTop: 20}}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={closeModal}
+                      style={{marginLeft: 'auto'}}>
+                      <Text style={{color: 'red', marginTop: 20}}>Confirm</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ) : (
-              <View style={styles.UnProductive_cont}>
-                <View style={styles.UnProductive_row}>
-                  <View style={styles.UnProductive_col}>
-                    <View style={{}}>
-                      <View style={styles.btn_parent_cont}>
-                        <TouchableOpacity
-                          style={[
-                            styles.btn_cont,
-                            view === 'Shop Closed' && styles.selected_btn,
-                          ]}
-                          onPress={() => handlePress('Shop Closed')}>
-                          <Text
+              ) : (
+                <View style={styles.UnProductive_cont}>
+                  <View style={styles.UnProductive_row}>
+                    <View style={styles.UnProductive_col}>
+                      <View style={{}}>
+                        <View style={styles.btn_parent_cont}>
+                          <TouchableOpacity
                             style={[
-                              styles.btn_txt,
-                              view === 'Shop Closed' && styles.selected_txt,
+                              styles.btn_cont,
+                              view === 'Shop Closed' && styles.selected_btn,
+                            ]}
+                            onPress={() => handlePress('Shop Closed')}>
+                            <Text
+                              style={[
+                                styles.btn_txt,
+                                view === 'Shop Closed' && styles.selected_txt,
+                              ]}>
+                              Shop Closed
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.btn_cont,
+                              view === 'Customer Refused' &&
+                                styles.selected_btn,
+                            ]}
+                            onPress={() => handlePress('Customer Refused')}>
+                            <Text
+                              style={[
+                                styles.btn_txt,
+                                view === 'Customer Refused' &&
+                                  styles.selected_txt,
+                              ]}>
+                              Customer
+                            </Text>
+                            <Text
+                              style={[
+                                styles.btn_txt,
+                                view === 'Customer Refused' &&
+                                  styles.selected_txt,
+                              ]}>
+                              Refused
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.btn_cont,
+                              view === 'Stock Already Exist' &&
+                                styles.selected_btn,
+                            ]}
+                            onPress={() => handlePress('Stock Already Exist')}>
+                            <Text
+                              style={[
+                                styles.btn_txt,
+                                view === 'Stock Already Exist' &&
+                                  styles.selected_txt,
+                              ]}>
+                              Stock Already
+                            </Text>
+                            <Text
+                              style={[
+                                styles.btn_txt,
+                                view === 'Stock Already Exist' &&
+                                  styles.selected_txt,
+                              ]}>
+                              Exist
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {view === 'Shop Closed' && (
+                          <View style={styles.view_cont}>
+                            <Text style={{color: '#a0a0a0'}}>Reason :</Text>
+                            <View
+                              style={{
+                                borderBottomColor: '#000',
+                                borderBottomWidth: 1,
+                              }}>
+                              <TextInput
+                                style={{backgroundColor: '#fff', color: '#000'}}
+                                value={shopcloseReason}
+                                textColor={'#000'}
+                                // activeUnderlineColor='#3ef0c0'
+                                onChangeText={password =>
+                                  setshopCloseReason(password)
+                                }
+                              />
+                            </View>
+                          </View>
+                        )}
+
+                        {view === 'Customer Refused' && (
+                          <View style={styles.view_cont}>
+                            <Text style={{color: '#a0a0a0'}}>Reason*:</Text>
+                            <View
+                              style={{
+                                borderBottomColor: '#000',
+                                borderBottomWidth: 1,
+                              }}>
+                              <TextInput
+                                style={{backgroundColor: '#fff', color: '#000'}}
+                                value={customerRefused}
+                                textColor={'#000'}
+                                // activeUnderlineColor='#3ef0c0'
+                                onChangeText={password =>
+                                  setCustomerRefused(password)
+                                }
+                              />
+                            </View>
+                          </View>
+                        )}
+
+                        {view === 'Stock Already Exist' && (
+                          <View
+                            style={[
+                              styles.view_cont,
+                              {
+                                height: '88%',
+                                padding: 0,
+                                position: 'relative',
+                              },
                             ]}>
-                            Shop Closed
+                            <View style={{}}>
+                              <View
+                                style={{
+                                  width: '100%',
+                                  flexDirection: 'row',
+                                  height: 50,
+                                  borderBottomWidth: 1,
+                                  borderBottomColor: '#a0a0a0',
+                                }}>
+                                <TouchableOpacity
+                                  style={{
+                                    width: '80%',
+                                    justifyContent: 'center',
+                                  }}
+                                  onPress={() => setSKUView(true)}>
+                                  <Text style={{color: '#000'}}>
+                                    Select SKU
+                                  </Text>
+                                </TouchableOpacity>
+                                <View
+                                  style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                  }}>
+                                  <TouchableOpacity
+                                    onPress={() => setSKUView(true)}>
+                                    <AntDesign
+                                      name="caretdown"
+                                      size={18}
+                                      color={'#000'}
+                                    />
+                                  </TouchableOpacity>
+
+                                  <TouchableOpacity
+                                    style={{marginLeft: 9}}
+                                    onPress={() => {
+                                      setExistingProduct([]);
+
+                                      // Remove from selectedProduct
+                                      setSelectedProduct([]);
+
+                                      // Remove from selectedSKUs
+                                      setSelectedSKUs([]);
+                                    }}>
+                                    <AntDesign
+                                      name="close"
+                                      size={18}
+                                      color={'#000'}
+                                    />
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            </View>
+                            <View style={{height: '80%'}}>
+                              <FlatList
+                                showsVerticalScrollIndicator={false}
+                                data={selectedProduct} // Ensure this contains the expected data
+                                keyExtractor={(item, index) =>
+                                  item?.pricing.id?.toString() ||
+                                  index.toString()
+                                }
+                                renderItem={({item}) => (
+                                  <AddSingleProduct
+                                    itemss={item}
+                                    boxInCtn={boxFilter(
+                                      item.pricing.variant.name,
+                                    )}
+                                    StockAlreadyExist={StockAlreadyExist} // Pass StockAlreadyExist as prop
+                                    Add_Left_Stock={Add_Left_Stock}
+                                    del={id => {
+                                      console.log(
+                                        'Delete called for SKU with id:',
+                                        id,
+                                        existingProduct,
+                                        'expr',
+                                        selectedProduct,
+                                        'selepr',
+                                        selectedSKUs,
+                                      );
+                                      setExistingProduct(prevProducts =>
+                                        prevProducts.filter(
+                                          existingItem =>
+                                            existingItem.itemss.pricing.id !==
+                                            id,
+                                        ),
+                                      );
+                                      setSelectedProduct(prevProducts =>
+                                        prevProducts.filter(
+                                          selectedItem =>
+                                            selectedItem.pricing.id !== id,
+                                        ),
+                                      );
+                                      setSelectedSKUs(prevSKUs =>
+                                        prevSKUs.filter(skuId => skuId !== id),
+                                      );
+                                    }}
+                                  />
+                                )}
+                              />
+                            </View>
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                position: 'absolute',
+                                bottom: 0,
+                                right: 0,
+                                width: 110,
+                                justifyContent: 'space-between',
+                              }}>
+                              <TouchableOpacity onPress={closeModal}>
+                                <Text style={{color: 'red'}}>Cancel</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  getLocation();
+                                }}>
+                                <Text style={{color: '#a0a0a0'}}>Confirm</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                    {view !== 'Stock Already Exist' ? ( // Removed extra space
+                      <View style={{flexDirection: 'row', width: '100%'}}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setMarkUnproductiveButton(false);
+                          }}>
+                          <Text style={{color: 'red', marginTop: 20}}>
+                            Cancel
                           </Text>
                         </TouchableOpacity>
-
                         <TouchableOpacity
-                          style={[
-                            styles.btn_cont,
-                            view === 'Customer Refused' && styles.selected_btn,
-                          ]}
-                          onPress={() => handlePress('Customer Refused')}>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Customer Refused' &&
-                                styles.selected_txt,
-                            ]}>
-                            Customer
-                          </Text>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Customer Refused' &&
-                                styles.selected_txt,
-                            ]}>
-                            Refused
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.btn_cont,
-                            view === 'Stock Already Exist' &&
-                              styles.selected_btn,
-                          ]}
-                          onPress={() => handlePress('Stock Already Exist')}>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Stock Already Exist' &&
-                                styles.selected_txt,
-                            ]}>
-                            Stock Already
-                          </Text>
-                          <Text
-                            style={[
-                              styles.btn_txt,
-                              view === 'Stock Already Exist' &&
-                                styles.selected_txt,
-                            ]}>
-                            Exist
+                          onPress={() => {
+                            getLocation();
+                          }}
+                          style={{marginLeft: 'auto'}}>
+                          <Text style={{color: 'red', marginTop: 20}}>
+                            Confirm
                           </Text>
                         </TouchableOpacity>
                       </View>
-
-                      {view === 'Shop Closed' && (
-                        <View style={styles.view_cont}>
-                          <Text style={{color: '#a0a0a0'}}>Reason :</Text>
-                          <View
-                            style={{
-                              borderBottomColor: '#000',
-                              borderBottomWidth: 1,
-                            }}>
-                            <TextInput
-                              style={{backgroundColor: '#fff', color: '#000'}}
-                              value={shopcloseReason}
-                              textColor={'#000'}
-                              // activeUnderlineColor='#3ef0c0'
-                              onChangeText={password =>
-                                setshopCloseReason(password)
-                              }
-                            />
-                          </View>
-                        </View>
-                      )}
-
-                      {view === 'Customer Refused' && (
-                        <View style={styles.view_cont}>
-                          <Text style={{color: '#a0a0a0'}}>Reason*:</Text>
-                          <View
-                            style={{
-                              borderBottomColor: '#000',
-                              borderBottomWidth: 1,
-                            }}>
-                            <TextInput
-                              style={{backgroundColor: '#fff', color: '#000'}}
-                              value={customerRefused}
-                              textColor={'#000'}
-                              // activeUnderlineColor='#3ef0c0'
-                              onChangeText={password =>
-                                setCustomerRefused(password)
-                              }
-                            />
-                          </View>
-                        </View>
-                      )}
-
-                      {view === 'Stock Already Exist' && (
-                        <View
-                          style={[
-                            styles.view_cont,
-                            {
-                              height: '88%',
-                              padding: 0,
-                              position: 'relative',
-                            },
-                          ]}>
-                          <View style={{}}>
-                            <View
-                              style={{
-                                width: '100%',
-                                flexDirection: 'row',
-                                height: 50,
-                                borderBottomWidth: 1,
-                                borderBottomColor: '#a0a0a0',
-                              }}>
-                              <TouchableOpacity
-                                style={{width: '80%', justifyContent: 'center'}}
-                                onPress={() => setSKUView(true)}>
-                                <Text style={{color: '#000'}}>Select SKU</Text>
-                              </TouchableOpacity>
-                              <View
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                }}>
-                                <TouchableOpacity
-                                  onPress={() => setSKUView(true)}>
-                                  <AntDesign
-                                    name="caretdown"
-                                    size={18}
-                                    color={'#000'}
-                                  />
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                  style={{marginLeft: 9}}
-                                  onPress={() => {
-                                    setExistingProduct([]);
-
-                                    // Remove from selectedProduct
-                                    setSelectedProduct([]);
-
-                                    // Remove from selectedSKUs
-                                    setSelectedSKUs([]);
-                                  }}>
-                                  <AntDesign
-                                    name="close"
-                                    size={18}
-                                    color={'#000'}
-                                  />
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                          </View>
-                          <View style={{height: '80%'}}>
-                            <FlatList
-                              showsVerticalScrollIndicator={false}
-                              data={selectedProduct} // Ensure this contains the expected data
-                              keyExtractor={(item, index) =>
-                                item?.pricing.id?.toString() || index.toString()
-                              }
-                              renderItem={({item}) => (
-                                <AddSingleProduct
-                                  itemss={item}
-                                  boxInCtn={boxFilter(
-                                    item.pricing.variant.name,
-                                  )}
-                                  StockAlreadyExist={StockAlreadyExist} // Pass StockAlreadyExist as prop
-                                  Add_Left_Stock={Add_Left_Stock}
-                                  del={id => {
-                                    console.log(
-                                      'Delete called for SKU with id:',
-                                      id,
-                                      existingProduct,
-                                      'expr',
-                                      selectedProduct,
-                                      'selepr',
-                                      selectedSKUs,
-                                    );
-                                    setExistingProduct(prevProducts =>
-                                      prevProducts.filter(
-                                        existingItem =>
-                                          existingItem.itemss.pricing.id !== id,
-                                      ),
-                                    );
-                                    setSelectedProduct(prevProducts =>
-                                      prevProducts.filter(
-                                        selectedItem =>
-                                          selectedItem.pricing.id !== id,
-                                      ),
-                                    );
-                                    setSelectedSKUs(prevSKUs =>
-                                      prevSKUs.filter(skuId => skuId !== id),
-                                    );
-                                  }}
-                                />
-                              )}
-                            />
-                          </View>
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              position: 'absolute',
-                              bottom: 0,
-                              right: 0,
-                              width: 110,
-                              justifyContent: 'space-between',
-                            }}>
-                            <TouchableOpacity onPress={closeModal}>
-                              <Text style={{color: 'red'}}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => {
-                                getLocation();
-                              }}>
-                              <Text style={{color: '#a0a0a0'}}>Confirm</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      )}
-                    </View>
+                    ) : (
+                      <View></View>
+                    )}
                   </View>
-                  {view !== 'Stock Already Exist' ? ( // Removed extra space
-                    <View style={{flexDirection: 'row', width: '100%'}}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setMarkUnproductiveButton(false);
-                        }}>
-                        <Text style={{color: 'red', marginTop: 20}}>
-                          Cancel
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => {
-                          getLocation();
-                        }}
-                        style={{marginLeft: 'auto'}}>
-                        <Text style={{color: 'red', marginTop: 20}}>
-                          Confirm
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View></View>
-                  )}
                 </View>
-              </View>
-            )}
+              )}
+            </View>
           </View>
-        </View>
+        )}
       </Modal>
       <Modal
         animationType="slide"
         transparent={true}
         visible={SKUview}
         onRequestClose={closeSKUModal}>
-        <View style={styles.modalSKUContainer}>
-          <View style={styles.modalSKUContent}>
-            <View style={styles.container}>
-              <View style={{flexDirection: 'row'}}>
-                <View style={{width: '75%'}}>
-                  <Text style={styles.title}>Select SKU</Text>
-                </View>
-                <View
-                  style={{
-                    width: '25%',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      closeSKUModal();
+        {isLoading ? (
+          <Loader />
+        ) : (
+          <View style={styles.modalSKUContainer}>
+            <View style={styles.modalSKUContent}>
+              <View style={styles.container}>
+                <View style={{flexDirection: 'row'}}>
+                  <View style={{width: '75%'}}>
+                    <Text style={styles.title}>Select SKU</Text>
+                  </View>
+                  <View
+                    style={{
+                      width: '25%',
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
                     }}>
-                    <View>
-                      <AntDesign name="close" size={20} color={'#a0a0a0'} />
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      closeSKUModal();
-                    }}>
-                    <Text style={{color: '#a0a0a0'}}>Done</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        closeSKUModal();
+                      }}>
+                      <View>
+                        <AntDesign name="close" size={20} color={'#a0a0a0'} />
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        closeSKUModal();
+                      }}>
+                      <Text style={{color: '#a0a0a0'}}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-              {/* Search Input */}
+                {/* Search Input */}
 
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search SKU"
-                placeholderTextColor={'#000'}
-                value={searchQuery}
-                onChangeText={text => {
-                  setSearchQuery(text);
-                  filterProducts(text);
-                }}
-              />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search SKU"
+                  placeholderTextColor={'#000'}
+                  value={searchQuery}
+                  onChangeText={text => {
+                    setSearchQuery(text);
+                    filterProducts(text);
+                  }}
+                />
 
-              {/* SKU List */}
+                {/* SKU List */}
 
-              <FlatList
-                showsVerticalScrollIndicator={false}
-                data={filteredProducts}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({item}) => (
-                  <View style={styles.skuItem}>
-                    <View style={{width: '10%'}}>
-                      <CheckBox
-                        value={selectedSKUs.includes(item.pricing.id)}
-                        onValueChange={() => {
+                <FlatList
+                  showsVerticalScrollIndicator={false}
+                  data={filteredProducts}
+                  keyExtractor={(item, index) => index.toString()}
+                  renderItem={({item}) => (
+                    <View style={styles.skuItem}>
+                      <View style={{width: '10%'}}>
+                        <CheckBox
+                          value={selectedSKUs.includes(item.pricing.id)}
+                          onValueChange={() => {
+                            console.log(item, 'item in toggle search');
+                            toggleSelect(item.pricing.id); // Update SKU selection on press
+                            setSelectedProduct(prevProducts => [
+                              ...prevProducts,
+                              item,
+                            ]);
+                          }}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        style={{width: '90%'}}
+                        onPress={() => {
                           console.log(item, 'item in toggle search');
                           toggleSelect(item.pricing.id); // Update SKU selection on press
                           setSelectedProduct(prevProducts => [
                             ...prevProducts,
                             item,
                           ]);
-                        }}
-                      />
+                        }}>
+                        <Text style={styles.skuText}>
+                          {`${item.pricing.product.name} ${item.pricing.sku.name} ${item.pricing.variant.name}`}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                      style={{width: '90%'}}
-                      onPress={() => {
-                        console.log(item, 'item in toggle search');
-                        toggleSelect(item.pricing.id); // Update SKU selection on press
-                        setSelectedProduct(prevProducts => [
-                          ...prevProducts,
-                          item,
-                        ]);
-                      }}>
-                      <Text style={styles.skuText}>
-                        {`${item.pricing.product.name} ${item.pricing.sku.name} ${item.pricing.variant.name}`}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              />
+                  )}
+                />
 
-              {/* Save & Cancel Buttons */}
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  onPress={() => {
-                    closeSKUModal();
-                  }}>
-                  {/* {console.log(selectedSKUs, 'selectedSKUs')} */}
-                  <Text style={{fontSize: 16}}>
-                    {selectedSKUs.length === 0 && (
-                      <Text style={{color: '#000'}}>
-                        Save without Selection
-                      </Text>
-                    )}
-                    {selectedSKUs.length === 1 && (
-                      <Text style={{color: '#000'}}>
-                        Save SKU "{selectedSKUs[0]}"
-                      </Text>
-                    )}
-                    {selectedSKUs.length > 1 && (
-                      <Text style={{color: '#000'}}>
-                        Save SKU ({selectedSKUs.length})
-                      </Text>
-                    )}
-                  </Text>
-                </TouchableOpacity>
-                {/* <Button title="Save SKU" onPress={() => console.log('Selected SKUs:', selectedSKUs)} /> */}
+                {/* Save & Cancel Buttons */}
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      closeSKUModal();
+                    }}>
+                    {/* {console.log(selectedSKUs, 'selectedSKUs')} */}
+                    <Text style={{fontSize: 16}}>
+                      {selectedSKUs.length === 0 && (
+                        <Text style={{color: '#000'}}>
+                          Save without Selection
+                        </Text>
+                      )}
+                      {selectedSKUs.length === 1 && (
+                        <Text style={{color: '#000'}}>
+                          Save SKU "{selectedSKUs[0]}"
+                        </Text>
+                      )}
+                      {selectedSKUs.length > 1 && (
+                        <Text style={{color: '#000'}}>
+                          Save SKU ({selectedSKUs.length})
+                        </Text>
+                      )}
+                    </Text>
+                  </TouchableOpacity>
+                  {/* <Button title="Save SKU" onPress={() => console.log('Selected SKUs:', selectedSKUs)} /> */}
+                </View>
               </View>
             </View>
+            {isLoading ? <Loader /> : null}
           </View>
-          {isLoading ? <Loader /> : null}
-        </View>
+        )}
       </Modal>
 
       {isLoading ? <Loader /> : null}
