@@ -25,9 +25,9 @@ const AllShopsInvoice = ({route, navigation}) => {
     };
   }, [dispatch]);
 
-  console.log(cartItems.gross_amount, 'grossamount');
-  console.log(Gst, 'On local screen gst');
-  console.log(JSON.stringify(cartItems), '-----');
+  // console.log(cartItems.gross_amount, 'grossamount');
+  // console.log(Gst, 'On local screen gst');
+  // console.log(JSON.stringify(cartItems), '-----');
 
   useEffect(() => {
     if (cartItems?.details) {
@@ -110,12 +110,14 @@ const AllShopsInvoice = ({route, navigation}) => {
                     </View>
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Trade Price</Text>
-                      <Text style={styles.C1_text2}>{it?.trade_price}</Text>
+                      <Text style={styles.C1_text2}>
+                        {(it?.trade_price).toFixed(2)}
+                      </Text>
                     </View>
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Trade Offer</Text>
                       <Text style={styles.C1_text2}>
-                        {Math.round(it?.trade_price * (it?.trade_offer / 100))}{' '}
+                        {(it?.trade_price * (it?.trade_offer / 100)).toFixed(2)}{' '}
                         ({Math.round(it?.trade_offer)}
                         %)
                       </Text>
@@ -125,7 +127,7 @@ const AllShopsInvoice = ({route, navigation}) => {
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Gross Amount</Text>
                       <Text style={styles.C1_text2}>
-                        {Math.round(it?.trade_price)}
+                        {(it?.trade_price).toFixed(2)}
                       </Text>
                     </View>
                     <View style={styles.centre}>
@@ -171,13 +173,13 @@ const AllShopsInvoice = ({route, navigation}) => {
             </View>
             <View style={{marginLeft: 15, justifyContent: 'center'}}>
               <Text style={styles.Text2}>
-                {Math.round(Gst)} ({singleDetail?.gst_rate})%
+                {Gst.toFixed(2)} ({singleDetail?.gst_rate})%
               </Text>
               <Text style={styles.Text2}>
-                {Math.round(cartItems?.gross_amount)} (Inclusive of GST)
+                {cartItems?.gross_amount} (Inclusive of GST)
               </Text>
               <Text style={styles.Text2}>
-                {Math.round(cartItems?.todiscount)}
+                {(cartItems?.todiscount).toFixed(2)}
               </Text>
 
               <Text style={styles.Text2}>
@@ -188,7 +190,9 @@ const AllShopsInvoice = ({route, navigation}) => {
                 %)
               </Text>
 
-              <Text style={styles.Text2}>{cartItems?.special || 0}</Text>
+              <Text style={styles.Text2}>
+                {(cartItems?.special).toFixed(2) || 0}
+              </Text>
             </View>
           </View>
 

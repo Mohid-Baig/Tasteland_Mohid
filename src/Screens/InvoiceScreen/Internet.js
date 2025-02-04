@@ -292,6 +292,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
                   );
                   console.log(JSON.stringify(pro), 'pro');
                   console.log(JSON.stringify(val), 'val');
+                  console.log(JSON.stringify(item.details), 'details');
 
                   let items = {
                     carton_ordered: val.carton_ordered,

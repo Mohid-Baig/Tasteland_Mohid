@@ -126,7 +126,7 @@ const CreateOrder = ({navigation, route}) => {
   // } else {
   //   cartItems = useSelector(state => state.reducer); // Assign conditionally
   // }
-  // console.log(JSON.stringify(cartItems), 'cartItems...');
+  console.log(JSON.stringify(cartItems), 'cartItems...');
   useEffect(() => {
     // console.log(cartItems, 'Item');
     if (cartItems.length > 0) {

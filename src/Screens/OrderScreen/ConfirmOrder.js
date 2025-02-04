@@ -44,6 +44,7 @@ const ConfirmOrder = ({route, navigation}) => {
   const [GrossAmount, setGrossAmount] = useState(0);
   const [totalPrice, setTotalprice] = useState(0);
   const [TotalCarton, setTotalCartons] = useState(0);
+  const [isButtonVisible, setIsButtonVisible] = useState(true);
   const isEditingOrder = !!orderId;
   const dispatch = useDispatch();
 
@@ -103,6 +104,21 @@ const ConfirmOrder = ({route, navigation}) => {
     }
   }, [cartItems]); // Ensure the effect runs only when cartItems change
 
+  const incrementTotalVisits = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) return; // Ensure userId is available
+
+    const totalVisitsKey = `totalVisits_${userId}`;
+    const visits = await AsyncStorage.getItem(totalVisitsKey);
+    const totalVisits = parseInt(visits) || 0;
+    const newTotal = totalVisits + 1;
+
+    // Update the total visits in AsyncStorage
+    await AsyncStorage.setItem(totalVisitsKey, newTotal.toString());
+
+    // Show success message or do something else
+  };
+
   const TokenRenew = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const refreshToken = await AsyncStorage.getItem('refresh_token');
@@ -148,6 +164,7 @@ const ConfirmOrder = ({route, navigation}) => {
   const safeNumber = value => {
     return !isNaN(value) && value !== null ? value : 0;
   };
+
   const requestLocationPermission = async () => {
     try {
       if (Platform.OS === 'android') {
@@ -209,6 +226,15 @@ const ConfirmOrder = ({route, navigation}) => {
       }
       console.warn(error);
     }
+  };
+
+  useEffect(() => {
+    setIsButtonVisible(true); // Reset the button to visible when the screen is revisited
+  }, []);
+
+  const handleButtonPress = () => {
+    getLocation(); // Call your function
+    setIsButtonVisible(false); // Hide the button after press
   };
 
   const currentTime = moment().format('HH:mm:ss.SSS'); // Get the current time with milliseconds
@@ -318,6 +344,7 @@ const ConfirmOrder = ({route, navigation}) => {
 
       offlineOrders.push(offlineOrder);
       await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
+      incrementTotalVisits();
       Alert.alert('Order Saved', 'Order has been saved locally for syncing.', [
         {
           text: 'ok',
@@ -468,7 +495,9 @@ const ConfirmOrder = ({route, navigation}) => {
         );
 
         console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
-
+        if (response.status == 200) {
+          incrementTotalVisits();
+        }
         console.log('Post Data', response.data);
         const postorderId = response.data.id;
         const shop_id = Store.id;
@@ -768,20 +797,7 @@ const ConfirmOrder = ({route, navigation}) => {
       console.error('Error saving failed order:', error);
     }
   };
-  const incrementTotalVisits = async () => {
-    const userId = await AsyncStorage.getItem('userId');
-    if (!userId) return; // Ensure userId is available
 
-    const totalVisitsKey = `totalVisits_${userId}`;
-    const visits = await AsyncStorage.getItem(totalVisitsKey);
-    const totalVisits = parseInt(visits) || 0;
-    const newTotal = totalVisits + 1;
-
-    // Update the total visits in AsyncStorage
-    await AsyncStorage.setItem(totalVisitsKey, newTotal.toString());
-
-    // Show success message or do something else
-  };
   return (
     <View style={{flex: 1, position: 'relative'}}>
       <ScrollView
@@ -862,24 +878,23 @@ const ConfirmOrder = ({route, navigation}) => {
           padding: 10,
           backgroundColor: '#f5f5f5',
         }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#407BFF',
-            paddingVertical: 12,
-            borderRadius: 10,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          onPress={() => {
-            getLocation();
-            incrementTotalVisits();
-          }}>
-          <AntDesign name="shoppingcart" size={24} color="#fff" />
-          <Text style={{color: '#fff', marginLeft: 10}}>
-            {!orderId ? 'Confirm Order' : 'Edit Order'}
-          </Text>
-        </TouchableOpacity>
+        {isButtonVisible && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#407BFF',
+              paddingVertical: 12,
+              borderRadius: 10,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={handleButtonPress}>
+            <AntDesign name="shoppingcart" size={24} color="#fff" />
+            <Text style={{color: '#fff', marginLeft: 10}}>
+              {!orderId ? 'Confirm Order' : 'Edit Order'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
       {isLoading ? <Loader /> : null}
     </View>

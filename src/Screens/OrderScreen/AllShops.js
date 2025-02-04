@@ -307,6 +307,7 @@ const AllShops = ({navigation, route}) => {
   const [isConnected, setIsConnected] = useState(true);
   const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
   const [OrderBokerId, setorderBokerId] = useState();
+  const [cartITT, setCariTT] = useState();
   const gstRef = useRef(0);
   // console.log(selectedProduct, 'selectedproduct');
   // console.log(existingProduct, 'exsistikj0');
@@ -879,35 +880,49 @@ const AllShops = ({navigation, route}) => {
           let shopID;
           let cartItems;
           let details;
+          let itemss = {}; // Initialize as an empty array
 
           parsedOfflinePostOrders.forEach(it => {
-            console.log('Item in parsedOfflinePostOrders:', it);
+            console.log('Item in parsedOfflinePostOrders:', JSON.stringify(it));
 
             if (it.shop && it.shop.id && it.cartItems) {
               shopID = it.shop.id;
               cartItems = it.cartItems;
               details = it.details || [];
+
+              // Using map instead of forEach to ensure itemss gets populated properly
+              if (it.cartItems) {
+                it.cartItems.forEach(cartItem => {
+                  itemss = cartItem.itemss; // Merges all `itemss` objects into one
+                });
+              }
             }
           });
 
-          console.log('shopID:', shopID);
-          console.log('cartItems:', cartItems);
-          console.log('details:', details);
+          // console.log('shopID:', shopID);
+          // console.log('cartItems:', cartItems);
+          // console.log('details:', details);
+          console.log('itemss:', itemss); // Log to verify the correct structure of itemss
 
           // dispatch({type: Remove_All_Cart});
 
           details.forEach(val => {
             let pro = allProducts.filter(
-              valfil => valfil.pricing.id === val.pricing.id,
+              valfil => (
+                console.log(valfil.pricing.id, 'allproduct id'),
+                valfil.pricing_id === val.pricing_id
+              ),
             );
-
+            console.log(val.pricing_id);
+            console.log(pro, 'kejle');
             let items = {
               carton_ordered: val.carton_ordered,
               box_ordered: val.box_ordered,
-              pricing_id: val.pricing.id,
-              itemss: pro[0],
+              pricing_id: val.pricing_id,
+              itemss: itemss, // Ensure that itemss is properly passed
               pack_in_box: val.box_ordered,
             };
+
             dispatch(AddToCart(items));
           });
 
