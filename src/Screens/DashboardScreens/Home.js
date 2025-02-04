@@ -467,6 +467,12 @@ const Home = ({navigation}) => {
       const parsedOfflineEditOrders = offlineEditOrders
         ? JSON.parse(offlineEditOrders)
         : [];
+      const OffliUnproductiveorders = await AsyncStorage.getItem(
+        `OfflinefailedUnProductiveOrders_${userId}`,
+      );
+      const parsedUNProductiveOrders = OffliUnproductiveorders
+        ? JSON.parse(OffliUnproductiveorders)
+        : [];
 
       // Check if parsed data is iterable
       if (!Array.isArray(parsedOrders)) {
@@ -487,6 +493,13 @@ const Home = ({navigation}) => {
           parsedOfflineEditOrders,
         );
         throw new Error('Offline edit orders are not iterable.');
+      }
+      if (!Array.isArray(parsedUNProductiveOrders)) {
+        console.error(
+          'Offline unproductive Orders is not an array:',
+          parsedUNProductiveOrders,
+        );
+        throw new Error('Offline unproductive orders are not iterable.');
       }
 
       // Sync Failed Orders
@@ -651,6 +664,54 @@ const Home = ({navigation}) => {
           OrderSyncErrors = true;
         }
       }
+      for (const order of parsedUNProductiveOrders) {
+        const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+        try {
+          const payload = {
+            reason: order.reason,
+            rejection_type: order.rejection_type,
+            lat: order.lat,
+            lng: order.lng,
+            fk_shop: order.fk_shop,
+            fk_employee: order.fk_employee,
+            details:
+              order.details && order.details.length > 0
+                ? order.details.map(item => ({
+                    carton: item.carton || 0,
+                    box: item.box || 0,
+                    fk_pricing: item.fk_pricing || 0,
+                  }))
+                : [],
+          };
+
+          const response = await instance.post(
+            '/unproductive_visit',
+            JSON.stringify(payload),
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                Authorization: `Bearer ${authToken}`,
+              },
+            },
+          );
+          console.log(response.status);
+        } catch (error) {
+          if (error.response && error.response.status === 401) {
+            ToastAndroid.showWithGravity(
+              'Please Log in again',
+              ToastAndroid.LONG,
+              ToastAndroid.CENTER,
+            );
+            TokenRenew();
+          }
+          saveFailedUnproductive(userId, order);
+          await AsyncStorage.removeItem(
+            `OfflinefailedUnProductiveOrders_${userId}`,
+          );
+          OrderSyncErrors = true;
+        }
+      }
 
       await fetchAndStoreTerritorialData();
       await fetchAndStoreDiscountSlabData();
@@ -756,6 +817,36 @@ const Home = ({navigation}) => {
       console.log(`Updated Total Cartons in Storage: ${updatedTotalCartons}`); // Confirmation statement
     } catch (e) {
       console.error('Failed to add carton value to storage:', e);
+    }
+  };
+  const saveFailedUnproductive = async (userId, UnproductiveOrder) => {
+    try {
+      const key = `failedUnProductiveOrders_${userId}`;
+      const existingFailedOrders = await AsyncStorage.getItem(key);
+
+      // Initialize failedUnProductiveOrders as an empty array if nothing is found
+      let failedUnProductiveOrders = [];
+
+      // If existingFailedOrders is not null and is a valid JSON string, parse it
+      if (existingFailedOrders) {
+        try {
+          failedUnProductiveOrders = JSON.parse(existingFailedOrders);
+          if (!Array.isArray(failedUnProductiveOrders)) {
+            failedUnProductiveOrders = [];
+          }
+        } catch (e) {
+          console.error('Error parsing existing orders', e);
+        }
+      }
+
+      // Add the new failed order to the array
+      failedUnProductiveOrders.push(UnproductiveOrder);
+
+      // Save the updated array back to AsyncStorage
+      await AsyncStorage.setItem(key, JSON.stringify(failedUnProductiveOrders));
+      console.log('failedUnProductiveOrders order saved successfully');
+    } catch (error) {
+      console.error('Error saving failedUnProductiveOrders order:', error);
     }
   };
   const fetchAndStoreTerritorialData = async () => {

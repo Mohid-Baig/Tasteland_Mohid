@@ -318,7 +318,17 @@ const ConfirmOrder = ({route, navigation}) => {
 
       offlineOrders.push(offlineOrder);
       await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
-      Alert.alert('Order Saved', 'Order has been saved locally for syncing.');
+      Alert.alert('Order Saved', 'Order has been saved locally for syncing.', [
+        {
+          text: 'ok',
+          onPress: () => {
+            navigation.navigate('AllShops', {
+              RouteDate: RouteDate,
+            }),
+              console.log(RouteDate, 'RouteDate');
+          },
+        },
+      ]);
     } catch (error) {
       console.error('Failed to save order offline:', error);
       Alert.alert('Error', 'Failed to save the order locally.');
@@ -462,12 +472,18 @@ const ConfirmOrder = ({route, navigation}) => {
         console.log('Post Data', response.data);
         const postorderId = response.data.id;
         const shop_id = Store.id;
-        await updateStoredOrderIds(userId, postorderId, shop_id);
         Alert.alert('Success', 'Order Created successfully!', [
           {
             text: 'OK',
+            onPress: () => {
+              navigation.navigate('AllShops', {
+                RouteDate: RouteDate,
+              }),
+                console.log(RouteDate, 'RouteDate');
+            },
           },
         ]);
+        await updateStoredOrderIds(userId, postorderId, shop_id);
       }
     } catch (error) {
       if (error.response && error.response.status === 401) {
@@ -504,7 +520,17 @@ const ConfirmOrder = ({route, navigation}) => {
       };
 
       await saveFailedOrder(userId, failedOrder);
-      Alert.alert('Error', 'An error occurred while processing your request.');
+      Alert.alert('Error', 'An error occurred while processing your request.', [
+        {
+          text: 'ok',
+          onPress: () => {
+            navigation.navigate('AllShops', {
+              RouteDate: RouteDate,
+            }),
+              console.log(RouteDate, 'RouteDate');
+          },
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }

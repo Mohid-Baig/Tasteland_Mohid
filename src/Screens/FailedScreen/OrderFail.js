@@ -475,7 +475,7 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
       {failedOrders.length > 0 ? (
         <View>
           <View style={styles.headerContainer}>
-            <Text style={styles.headerText}>Failed Requests</Text>
+            <Text style={styles.headerText}>Failed Orders</Text>
           </View>
           <TouchableOpacity
             style={[styles.DeleteContainer]}

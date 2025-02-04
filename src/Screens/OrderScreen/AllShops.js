@@ -303,6 +303,10 @@ const AllShops = ({navigation, route}) => {
   const [offlineOrders, setOfflineOrders] = useState([]);
   const [unproductiveShops, setUnproductiveShops] = useState([]);
   const [matchingOrderID, setMatchingOrderID] = useState();
+  const [unOfflineShops, setunOfflineShops] = useState();
+  const [isConnected, setIsConnected] = useState(true);
+  const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
+  const [OrderBokerId, setorderBokerId] = useState();
   const gstRef = useRef(0);
   // console.log(selectedProduct, 'selectedproduct');
   // console.log(existingProduct, 'exsistikj0');
@@ -450,12 +454,184 @@ const AllShops = ({navigation, route}) => {
     Remove_Left_Stock();
   };
 
+  const fetchOfflineRouteData = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const territorialDataKey = `territorialData_${userId}`;
+      const territorialDataJson = await AsyncStorage.getItem(
+        territorialDataKey,
+      );
+      if (territorialDataJson !== null) {
+        const territorialData = JSON.parse(territorialDataJson);
+        console.log('Offline Territorial Data:', territorialData);
+        return territorialData;
+      } else {
+        console.log('No offline data found for key:', territorialDataKey);
+      }
+    } catch (error) {
+      console.error('Error fetching offline territorial data:', error);
+    }
+    return null;
+  };
+  const getMondayToSundayWeek = date => {
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    const monday = 1;
+    let daysUntilMonday = dayOfWeek - monday;
+    if (daysUntilMonday < 0) {
+      daysUntilMonday += 7;
+    }
+    const startDate = new Date(dateObj);
+    startDate.setDate(dateObj.getDate() - daysUntilMonday);
+
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+
+    return {startDate, endDate};
+  };
+
+  const formatDateToYYYYMMDD = date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure 2 digits
+    const day = String(date.getDate()).padStart(2, '0'); // Ensure 2 digits
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
-    const {Shops, RouteName, RouteDate} = route.params;
-    setStores(Shops);
-    setFilteredStores(Shops);
-    setSelectedRoute(RouteName);
+    const currentDate = new Date();
+    if (currentDate) {
+      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      setWeekDates({
+        startDate: formatDateToYYYYMMDD(startDate),
+        endDate: formatDateToYYYYMMDD(endDate),
+      });
+    }
+  }, []);
+
+  const getTerritorial = async () => {
+    setIsLoading(true);
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const {Shops, RouteName, RouteDate, orderBokerId} = route.params;
+    const orderbookerID = await AsyncStorage.getItem('orderBokerId');
+    try {
+      console.log(
+        `/radar_flutter/territorial/${orderbookerID}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
+      );
+      const response = await instance.get(
+        `/radar_flutter/territorial/${orderbookerID}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+      const rawTerritorialData = response.data;
+      response.data.pjp_shops.forEach(it => {
+        if (it?.pjp_date == RouteDate) {
+          it?.pjp_shops?.route_shops?.forEach(item => {
+            if (it?.pjp_shops?.route_shops?.length > 0) {
+              setSelectedRoute(item?.route);
+              setStores(item?.shops);
+              setFilteredStores(item?.shops);
+              console.log('Data successfully set');
+            }
+          });
+        }
+      });
+    } catch (error) {
+      console.log('Error fetching territorial data:', error);
+      Alert.alert('Error', 'Failed to fetch data from the server.', [
+        {
+          text: 'ok',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const state = await NetInfo.fetch();
+      setIsConnected(state.isConnected);
+
+      if (state.isConnected) {
+        console.log('Device is online. Fetching data from API.');
+        await getTerritorial();
+      } else {
+        console.log('Device is offline. Loading data from AsyncStorage.');
+        const offlineData = await fetchOfflineRouteData(); // Use the offline function here
+        if (offlineData) {
+          offlineData.pjp_shops.forEach(it => {
+            if (it?.pjp_date == RouteDate) {
+              it?.pjp_shops?.route_shops?.forEach(item => {
+                if (it?.pjp_shops?.route_shops?.length > 0) {
+                  setSelectedRoute(item?.route);
+                  setStores(item?.shops);
+                  setFilteredStores(item?.shops);
+                  console.log('Data successfully set');
+                }
+              });
+            }
+          });
+        } else {
+          Alert.alert(
+            'No offline data available',
+            'Please connect to the internet to fetch fresh data.',
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const wasConnected = isConnected;
+      setIsConnected(state.isConnected);
+      console.log(
+        'Network connectivity changed:',
+        state.isConnected ? 'Online' : 'Offline',
+      );
+
+      // Optional: If the device reconnects, fetch fresh data
+      if (!wasConnected && state.isConnected) {
+        console.log('Device reconnected. Fetching fresh data.');
+        loadData();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isConnected]);
+  const {Shops, RouteName, RouteDate} = route.params;
+
+  useEffect(() => {
+    // console.log('Shops:', Shops);
+    // console.log('RouteName:', RouteName);
+    // if (!Shops || !RouteName) {
+    if (weekDates.startDate && weekDates.endDate && orderBokerId) {
+      loadData();
+      // }
+    }
+  }, [RouteDate, weekDates, orderBokerId]);
+
+  useEffect(() => {
+    const {Shops, RouteName, RouteDate, orderBokerId} = route.params;
+    // console.log(Shops);
+    // console.log(RouteName, 'RouteName in aaaallshops');
+    // console.log(RouteDate);
+    // setStores(Shops);
+    // setFilteredStores(Shops);
+    // setSelectedRoute(RouteName);
     setRouteDate(RouteDate);
+    // setorderBokerId(orderBokerId);
   }, [route]);
 
   useFocusEffect(
@@ -797,34 +973,39 @@ const AllShops = ({navigation, route}) => {
     }
   };
 
-  useEffect(() => {
-    const fetchOfflineOrders = async () => {
-      const userId = await AsyncStorage.getItem('userId');
-      const orders = await AsyncStorage.getItem(`offlineOrders_${userId}`);
-      setOfflineOrders(JSON.parse(orders) || []);
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const fetchOfflineOrders = async () => {
+        const userId = await AsyncStorage.getItem('userId');
+        const orders = await AsyncStorage.getItem(`offlineOrders_${userId}`);
+        setOfflineOrders(JSON.parse(orders) || []);
+      };
 
-    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
-      setIsOffline(!state.isConnected);
-    });
+      const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+        setIsOffline(!state.isConnected);
+      });
 
-    fetchOfflineOrders();
+      fetchOfflineOrders();
 
-    return () => {
-      unsubscribeNetInfo(); // Unsubscribe NetInfo when component unmounts
-    };
-  }, []);
-  useEffect(() => {
-    const matchOrderID = async () => {
-      const userId = await AsyncStorage.getItem('userId');
-      const matching = await AsyncStorage.getItem(`postorderId_${userId}`);
-      setMatchingOrderID(JSON.parse(matching) || []);
-      console.log(matching, 'matching');
-    };
-    matchOrderID();
-  }, []);
+      return () => {
+        unsubscribeNetInfo(); // Unsubscribe NetInfo when component unmounts
+      };
+    }, []), // Empty dependency array ensures this only runs when the screen is focused
+  );
 
-  // Function to store unproductive shops
+  // Second useEffect converted to useFocusEffect
+  useFocusEffect(
+    useCallback(() => {
+      const matchOrderID = async () => {
+        const userId = await AsyncStorage.getItem('userId');
+        const matching = await AsyncStorage.getItem(`postorderId_${userId}`);
+        setMatchingOrderID(JSON.parse(matching) || []);
+        console.log(matching, 'matching');
+      };
+      matchOrderID();
+    }, []), // Empty dependency array ensures this only runs when the screen is focused
+  );
+
   const storeUnproductiveShops = async shopId => {
     if (!shopId) {
       console.log('Invalid shop ID, not saving to AsyncStorage');
@@ -855,7 +1036,6 @@ const AllShops = ({navigation, route}) => {
     }
   };
 
-  // Function to load unproductive shops when the component mounts
   const loadUnproductiveShops = async () => {
     const userId = await AsyncStorage.getItem('userId');
     try {
@@ -874,11 +1054,59 @@ const AllShops = ({navigation, route}) => {
       console.log('Error loading unproductive shops:', error);
     }
   };
+  const loadUnproductiveOfflineOrders = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const storedShops = await AsyncStorage.getItem(
+        `OfflinefailedUnProductiveOrders_${userId}`,
+      );
+      if (storedShops !== null) {
+        const parsedShops = JSON.parse(storedShops);
+        if (Array.isArray(parsedShops)) {
+          setunOfflineShops(parsedShops); // Set the unproductive shops state with stored data
+        } else {
+          console.log('Unexpected data format in AsyncStorage');
+        }
+      }
+    } catch (error) {
+      console.log('Error loading unproductive offline orders:', error);
+    }
+  };
 
-  // useEffect to load shops on mount, without singleId as a dependency
-  useEffect(() => {
-    loadUnproductiveShops();
-  }, []); // Empty dependency array ensures it runs only on component mount
+  useFocusEffect(
+    useCallback(() => {
+      loadUnproductiveShops();
+    }, []),
+  );
+
+  // Function to store unproductive shops
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        const userId = await AsyncStorage.getItem('userId');
+
+        // Fetch offline orders
+        const offlineOrders = await AsyncStorage.getItem(
+          `offlineOrders_${userId}`,
+        );
+        setOfflineOrders(JSON.parse(offlineOrders) || []);
+
+        // Fetch unproductive shops
+        // const unproductiveShops = await AsyncStorage.getItem(
+        //   `unproductiveShops_${userId}`,
+        // );
+        // setUnproductiveShops(JSON.parse(unproductiveShops) || []);
+
+        // Fetch offline unproductive shops
+        // const unOfflineShops = await AsyncStorage.getItem(
+        //   `OfflinefailedUnProductiveOrders_${userId}`,
+        // );
+        // setunOfflineShops(JSON.parse(unOfflineShops) || []);
+      };
+      // loadUnproductiveShops();
+      fetchData();
+    }, []),
+  ); // Empty dependency array ensures it runs only on component mount
 
   // Function to handle shop visit button click and set singleId
   const handleVisitButtonClick = shopId => {
@@ -901,6 +1129,9 @@ const AllShops = ({navigation, route}) => {
     const isUnproductive = unproductiveShops.includes(item.id);
     const matchingOrderbyID = Array.isArray(matchingOrderID)
       ? matchingOrderID.find(order => order.shopId === item.id)
+      : null;
+    const matchingUNOfflineOrderbyID = Array.isArray(unOfflineShops)
+      ? unOfflineShops.find(order => order.fk_shop === item.id)
       : null;
 
     // if (matchingOrderbyID) {
@@ -932,7 +1163,7 @@ const AllShops = ({navigation, route}) => {
               }}>
               {matchingOrderbyID || matchingOrder ? (
                 <FontAwesome name="check" size={25} color={'green'} />
-              ) : isUnproductive ? (
+              ) : isUnproductive || matchingUNOfflineOrderbyID ? (
                 <FontAwesome name="check" size={25} color={'red'} />
               ) : null}
               <View style={{marginLeft: 10}}>
@@ -1242,47 +1473,80 @@ const AllShops = ({navigation, route}) => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const fk_employee = await AsyncStorage.getItem('fk_employee');
     const userId = await AsyncStorage.getItem('userId');
+    const state = await NetInfo.fetch();
     if (view === 'Shop Closed') {
       try {
-        const data = {
-          reason: shopcloseReason,
-          rejection_type: 'closed',
-          lat: currentLocation.latitude,
-          lng: currentLocation.longitude,
-          fk_shop: singleId,
-          fk_employee: fk_employee,
-          details: [
-            // {
-            //     "box": 0,
-            //     "carton": 0,
-            //     "fk_pricing": 0
-            // }
-          ],
-        };
-        if (shopcloseReason) {
-          const response = await instance.post(
-            '/unproductive_visit',
-            JSON.stringify(data),
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                Authorization: `Bearer ${authToken}`,
+        if (state.isConnected) {
+          const data = {
+            reason: shopcloseReason,
+            rejection_type: 'closed',
+            lat: currentLocation.latitude,
+            lng: currentLocation.longitude,
+            fk_shop: singleId,
+            fk_employee: fk_employee,
+            details: [
+              // {
+              //     "box": 0,
+              //     "carton": 0,
+              //     "fk_pricing": 0
+              // }
+            ],
+          };
+          if (shopcloseReason) {
+            const response = await instance.post(
+              '/unproductive_visit',
+              JSON.stringify(data),
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Accept: 'application/json',
+                  Authorization: `Bearer ${authToken}`,
+                },
               },
-            },
-          );
-          console.log(response.data);
-          console.log(response.status);
-          incrementTotalVisits();
-          closeModal();
-          setUnproductiveShops(prev => {
-            const updatedShops = [...prev, singleId];
-            storeUnproductiveShops(singleId);
-            return updatedShops;
-          });
+            );
+            console.log(response.data);
+            console.log(response.status);
+            incrementTotalVisits();
+            closeModal();
+            setUnproductiveShops(prev => {
+              const updatedShops = [...prev, singleId];
+              storeUnproductiveShops(singleId);
+              return updatedShops;
+            });
+          } else {
+            Alert.alert('Add Reason');
+            setModalVisible(false);
+          }
         } else {
-          Alert.alert('Add Reason');
-          setModalVisible(false);
+          const data = {
+            reason: shopcloseReason,
+            rejection_type: 'closed',
+            lat: currentLocation.latitude,
+            lng: currentLocation.longitude,
+            fk_shop: singleId,
+            fk_employee: fk_employee,
+            details: [
+              // {
+              //     "box": 0,
+              //     "carton": 0,
+              //     "fk_pricing": 0
+              // }
+            ],
+          };
+          saveOfflineFailedUnproductive(userId, data);
+          Alert.alert(
+            'Order Saved',
+            'Order has been saved locally for syncing.',
+            [
+              {
+                onPress: () => {
+                  loadUnproductiveShops();
+                  loadUnproductiveOfflineOrders();
+                },
+              },
+            ],
+          );
+          closeModal();
         }
       } catch (error) {
         // incrementTotalVisits();
@@ -1324,47 +1588,79 @@ const AllShops = ({navigation, route}) => {
       }
     } else if (view === 'Customer Refused') {
       try {
-        const data = {
-          reason: customerRefused,
-          rejection_type: 'refused',
-          lat: currentLocation.latitude,
-          lng: currentLocation.longitude,
-          fk_shop: singleId,
-          fk_employee: fk_employee,
-          details: [
-            // {
-            //     "box": 0,
-            //     "carton": 0,
-            //     "fk_pricing": 0
-            // }
-          ],
-        };
+        if (state.isConnected) {
+          const data = {
+            reason: customerRefused,
+            rejection_type: 'refused',
+            lat: currentLocation.latitude,
+            lng: currentLocation.longitude,
+            fk_shop: singleId,
+            fk_employee: fk_employee,
+            details: [
+              // {
+              //     "box": 0,
+              //     "carton": 0,
+              //     "fk_pricing": 0
+              // }
+            ],
+          };
 
-        console.log(JSON.stringify(data), 'Data');
-        if (customerRefused) {
-          const response = await instance.post(
-            '/unproductive_visit',
-            JSON.stringify(data),
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                Authorization: `Bearer ${authToken}`,
+          console.log(JSON.stringify(data), 'Data');
+          if (customerRefused) {
+            const response = await instance.post(
+              '/unproductive_visit',
+              JSON.stringify(data),
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Accept: 'application/json',
+                  Authorization: `Bearer ${authToken}`,
+                },
               },
-            },
-          );
-          console.log(response.data);
-          console.log(response.status);
-          closeModal();
-          incrementTotalVisits();
-          setUnproductiveShops(prev => {
-            const updatedShops = [...prev, singleId];
-            storeUnproductiveShops(singleId);
-            return updatedShops;
-          });
+            );
+            console.log(response.data);
+            console.log(response.status);
+            closeModal();
+            incrementTotalVisits();
+            setUnproductiveShops(prev => {
+              const updatedShops = [...prev, singleId];
+              storeUnproductiveShops(singleId);
+              return updatedShops;
+            });
+          } else {
+            Alert.alert('Add Reason');
+            setModalVisible(false);
+          }
         } else {
-          Alert.alert('Add Reason');
-          setModalVisible(false);
+          const data = {
+            reason: customerRefused,
+            rejection_type: 'refused',
+            lat: currentLocation.latitude,
+            lng: currentLocation.longitude,
+            fk_shop: singleId,
+            fk_employee: fk_employee,
+            details: [
+              // {
+              //     "box": 0,
+              //     "carton": 0,
+              //     "fk_pricing": 0
+              // }
+            ],
+          };
+          saveOfflineFailedUnproductive(userId, data);
+          Alert.alert(
+            'Order Saved',
+            'Order has been saved locally for syncing.',
+            [
+              {
+                onPress: () => {
+                  loadUnproductiveShops();
+                  loadUnproductiveOfflineOrders();
+                },
+              },
+            ],
+          );
+          closeModal();
         }
       } catch (error) {
         const data = {
@@ -1422,38 +1718,64 @@ const AllShops = ({navigation, route}) => {
       try {
         console.log('Detail', details);
         console.log(StockAlreadyExist, 'StockAlreadyexsists');
-        const data = {
-          reason: customerRefused,
-          rejection_type: 'stock_exists',
-          lat: currentLocation.latitude,
-          lng: currentLocation.longitude,
-          fk_shop: singleId,
-          fk_employee: fk_employee,
-          details: details,
-        };
+        if (state.isConnected) {
+          const data = {
+            reason: customerRefused,
+            rejection_type: 'stock_exists',
+            lat: currentLocation.latitude,
+            lng: currentLocation.longitude,
+            fk_shop: singleId,
+            fk_employee: fk_employee,
+            details: details,
+          };
 
-        console.log(JSON.stringify(data), ' stockData');
+          console.log(JSON.stringify(data), ' stockData');
 
-        const response = await instance.post(
-          '/unproductive_visit',
-          JSON.stringify(data),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-              Authorization: `Bearer ${authToken}`,
+          const response = await instance.post(
+            '/unproductive_visit',
+            JSON.stringify(data),
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                Authorization: `Bearer ${authToken}`,
+              },
             },
-          },
-        );
-        console.log(response.data);
-        console.log(response.status);
-        closeModal();
-        incrementTotalVisits();
-        setUnproductiveShops(prev => {
-          const updatedShops = [...prev, singleId];
-          storeUnproductiveShops(singleId);
-          return updatedShops;
-        });
+          );
+          console.log(response.data);
+          console.log(response.status);
+          closeModal();
+          incrementTotalVisits();
+          setUnproductiveShops(prev => {
+            const updatedShops = [...prev, singleId];
+            storeUnproductiveShops(singleId);
+            return updatedShops;
+          });
+        } else {
+          const data = {
+            reason: customerRefused,
+            rejection_type: 'stock_exists',
+            lat: currentLocation.latitude,
+            lng: currentLocation.longitude,
+            fk_shop: singleId,
+            fk_employee: fk_employee,
+            details: details,
+          };
+          saveOfflineFailedUnproductive(userId, data);
+          Alert.alert(
+            'Order Saved',
+            'Order has been saved locally for syncing.',
+            [
+              {
+                onPress: () => {
+                  loadUnproductiveShops();
+                  loadUnproductiveOfflineOrders();
+                },
+              },
+            ],
+          );
+          closeModal();
+        }
       } catch (error) {
         const data = {
           reason: customerRefused,
@@ -1496,20 +1818,63 @@ const AllShops = ({navigation, route}) => {
     try {
       const key = `failedUnProductiveOrders_${userId}`;
       const existingFailedOrders = await AsyncStorage.getItem(key);
-      let failedUnProductiveOrders = existingFailedOrders
-        ? JSON.parse(existingFailedOrders)
-        : [];
 
-      // Add the new failed order
+      // Initialize failedUnProductiveOrders as an empty array if nothing is found
+      let failedUnProductiveOrders = [];
+
+      // If existingFailedOrders is not null and is a valid JSON string, parse it
+      if (existingFailedOrders) {
+        try {
+          failedUnProductiveOrders = JSON.parse(existingFailedOrders);
+          if (!Array.isArray(failedUnProductiveOrders)) {
+            failedUnProductiveOrders = [];
+          }
+        } catch (e) {
+          console.error('Error parsing existing orders', e);
+        }
+      }
+
+      // Add the new failed order to the array
       failedUnProductiveOrders.push(UnproductiveOrder);
 
-      // Save back to AsyncStorage
-      await AsyncStorage.setItem(key, JSON.stringify(UnproductiveOrder));
+      // Save the updated array back to AsyncStorage
+      await AsyncStorage.setItem(key, JSON.stringify(failedUnProductiveOrders));
       console.log('failedUnProductiveOrders order saved successfully');
     } catch (error) {
       console.error('Error saving failedUnProductiveOrders order:', error);
     }
   };
+  const saveOfflineFailedUnproductive = async (userId, UnproductiveOrder) => {
+    try {
+      const key = `OfflinefailedUnProductiveOrders_${userId}`;
+      const existingFailedOrders = await AsyncStorage.getItem(key);
+
+      // Initialize failedUnProductiveOrders as an empty array if nothing is found
+      let failedUnProductiveOrders = [];
+
+      // If existingFailedOrders is not null and is a valid JSON string, parse it
+      if (existingFailedOrders) {
+        try {
+          failedUnProductiveOrders = JSON.parse(existingFailedOrders);
+          if (!Array.isArray(failedUnProductiveOrders)) {
+            failedUnProductiveOrders = [];
+          }
+        } catch (e) {
+          console.error('Error parsing existing orders', e);
+        }
+      }
+
+      // Add the new failed order to the array
+      failedUnProductiveOrders.push(UnproductiveOrder);
+
+      // Save the updated array back to AsyncStorage
+      await AsyncStorage.setItem(key, JSON.stringify(failedUnProductiveOrders));
+      console.log('failedUnProductiveOrders order saved successfully');
+    } catch (error) {
+      console.error('Error saving failedUnProductiveOrders order:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar

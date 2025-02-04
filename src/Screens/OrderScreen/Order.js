@@ -414,6 +414,7 @@ const Order = ({route, navigation}) => {
                     Shops: filteredShops,
                     RouteName: selectedRoute,
                     RouteDate: selectedDate,
+                    orderBokerId: orderBokerId,
                   });
                 }}>
                 <View style={styles.routeInnerContainer}>
