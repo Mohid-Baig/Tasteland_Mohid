@@ -1298,6 +1298,8 @@ const Home = ({navigation}) => {
         setTotalCartons(0); // Update the state with the reset value
         console.log('New day detected. Total cartons reset.');
         await AsyncStorage.removeItem(`LocalAPI_${userId}`);
+        await AsyncStorage.removeItem(`headingData_${userId}`);
+        await AsyncStorage.removeItem(`attendanceData_${userId}`);
       } else {
         // If it's the same day, set the total cartons from AsyncStorage
         setTotalCartons(cartonsValue);
