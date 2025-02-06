@@ -38,6 +38,7 @@ const CreateOrder = ({navigation, route}) => {
   const [SpecaialDiscount, setSpecialDiscount] = useState([]);
   const [applySpecialDiscount, setApplySpecialDiscount] = useState(0);
   const [TOdiscount, setTodiscount] = useState(0);
+  const [ratte, setRatte] = useState(0);
   const [edited, isEdited] = useState(false);
   const dispatch = useDispatch();
   const [gst, setGst] = useState(0);
@@ -428,40 +429,54 @@ const CreateOrder = ({navigation, route}) => {
       Array.isArray(distributiveDiscount) &&
       distributiveDiscount.length > 0
     ) {
-      let distributiveDiscountApplied = false; // Flag to check if a discount is applied
+      // Filter discounts by the store's shop type
+      const filteredDiscounts = distributiveDiscount.filter(
+        discount => discount?.shop_type?.id === Store?.shop_type?.id,
+      );
 
-      // Loop through each distributive discount range
-      distributiveDiscount.forEach(discount => {
-        // console.log('Checking Distributive Discount entry:', discount); // Log the full discount entry
-        // console.log(
-        //   'Checking Distributive Discount limits:',
-        //   discount.lower_limit,
-        //   discount.upper_limit,
-        // );
+      if (filteredDiscounts.length > 0) {
+        let distributiveDiscountApplied = false; // Flag to check if a discount is applied
 
-        // Check if GrossAmount falls within the range
-        if (
-          GrossAmount >= discount?.lower_limit &&
-          GrossAmount <= discount?.upper_limit
-        ) {
-          const calculatedDiscount = GrossAmount * (discount?.rate / 100);
+        // Loop through each filtered distributive discount range
+        filteredDiscounts.forEach(discount => {
+          // console.log('Checking Distributive Discount entry:', discount); // Log the full discount entry
           // console.log(
-          //   `Calculated Distributive Discount for range ${discount.lower_limit}-${discount.upper_limit}:`,
-          //   calculatedDiscount,
+          //   'Checking Distributive Discount limits:',
+          //   discount.lower_limit,
+          //   discount.upper_limit,
           // );
-          setFinalDistributiveDiscount(calculatedDiscount);
-          distributiveDiscountApplied = true; // Set flag if discount is applied
-        }
-      });
+          console.log(discount.rate);
+          // Check if GrossAmount falls within the range
+          if (
+            GrossAmount >= discount?.lower_limit &&
+            GrossAmount <= discount?.upper_limit
+          ) {
+            const calculatedDiscount = GrossAmount * (discount?.rate / 100);
+            // console.log(
+            //   `Calculated Distributive Discount for range ${discount.lower_limit}-${discount.upper_limit}:`,
+            //   calculatedDiscount,
+            // );
+            setRatte(discount.rate);
+            setFinalDistributiveDiscount(calculatedDiscount);
+            distributiveDiscountApplied = true; // Set flag if discount is applied
+          }
+        });
 
-      // If no distributive discount was applied, set it to 0
-      if (!distributiveDiscountApplied) {
-        // console.log('No applicable distributive discount for this GrossAmount');
+        // If no distributive discount was applied, set it to 0
+        if (!distributiveDiscountApplied) {
+          // console.log('No applicable distributive discount for this GrossAmount');
+          setFinalDistributiveDiscount(0);
+          setRatte(0);
+        }
+      } else {
+        // console.log('No distributive discounts found for the current shop type');
         setFinalDistributiveDiscount(0);
+        setRatte(0);
       }
     } else {
       // console.log('No distributive discounts found or invalid structure');
       setFinalDistributiveDiscount(0);
+      setRatte(0);
     }
 
     // Handle special discounts
@@ -620,7 +635,7 @@ const CreateOrder = ({navigation, route}) => {
           <ShowValues
             Lefttxt={'Distribution Discount:'}
             RightText={FinalDistributiveDiscount.toFixed(2)}
-            percent={distributiveDiscount}
+            percent={ratte}
             gross={GrossAmount.toFixed(2)}
           />
           <SpecialDis

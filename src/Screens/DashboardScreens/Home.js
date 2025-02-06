@@ -28,6 +28,9 @@ import Loader from '../../Components/Loaders/Loader';
 import instance from '../../Components/BaseUrl';
 import GetLocation from 'react-native-get-location';
 import {useIsFocused, useFocusEffect} from '@react-navigation/native';
+import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import Geolocation from 'react-native-geolocation-service';
+import NetInfo from '@react-native-community/netinfo'; // Import for network status
 const Home = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [headingData, setHeadingData] = useState({});
@@ -43,6 +46,7 @@ const Home = ({navigation}) => {
   const [orderCount, setOrderCount] = useState(0);
   const [totalVisits, setTotalVisits] = useState(0);
   const [totalCartons, setTotalCartons] = useState(0);
+  const [locationEnabled, setLocationEnabled] = useState(false);
   const getAllStoredOrderIds = async userId => {
     try {
       const storedOrderIds = await AsyncStorage.getItem(
@@ -206,16 +210,44 @@ const Home = ({navigation}) => {
   );
 
   const getHeadingData = async () => {
-    // setIsLoading(true);
     const employeeId = await AsyncStorage.getItem('employeeId');
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+
     try {
-      const response = await instance.get(`/employee/${employeeId}`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-      setHeadingData(response.data);
+      // Check network status
+      const netInfo = await NetInfo.fetch();
+      if (netInfo.isConnected) {
+        // Network is available, fetch from API
+        const response = await instance.get(`/employee/${employeeId}`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        // Empty previous data in AsyncStorage before storing new data
+        await AsyncStorage.removeItem(`headingData_${userId}`);
+
+        // Store the new response in AsyncStorage
+        await AsyncStorage.setItem(
+          `headingData_${userId}`,
+          JSON.stringify(response.data),
+        );
+
+        setHeadingData(response.data);
+      } else {
+        // Network is unavailable, fetch from AsyncStorage
+        const storedHeadingData = await AsyncStorage.getItem(
+          `headingData_${userId}`,
+        );
+        if (storedHeadingData) {
+          const headingData = JSON.parse(storedHeadingData);
+          console.log(headingData, 'Stored Heading Data');
+          setHeadingData(headingData);
+        } else {
+          console.log('No heading data available in AsyncStorage');
+          // Handle case when there's no data in AsyncStorage
+        }
+      }
     } catch (error) {
       if (error.response && error.response.status === 401) {
         ToastAndroid.showWithGravity(
@@ -299,21 +331,54 @@ const Home = ({navigation}) => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const currentDate = new Date();
     const apiCurrentDate = formatDate(currentDate);
+
     try {
-      // setIsLoading(true);
-      const response = await instance.get(
-        `/attendance/get_attendances/${userId}?date_=${apiCurrentDate}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
+      // Check network status
+      const netInfo = await NetInfo.fetch();
+      if (netInfo.isConnected) {
+        // Network is available, fetch from API
+        const response = await instance.get(
+          `/attendance/get_attendances/${userId}?date_=${apiCurrentDate}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
           },
-        },
-      );
-      console.log(response.data, 'Attandance');
-      if (response.data?.attendance_check_in) {
-        setCheckAttandance(true);
-      } else if (response.data?.message) {
-        getLocation();
+        );
+        console.log(response.data, 'Attendance');
+
+        // Empty previous data in AsyncStorage before storing new data
+        await AsyncStorage.removeItem(`attendanceData_${userId}`);
+
+        // Store the new response in AsyncStorage
+        await AsyncStorage.setItem(
+          `attendanceData_${userId}`,
+          JSON.stringify(response.data),
+        );
+
+        if (response.data?.attendance_check_in) {
+          setCheckAttandance(true);
+        } else if (response.data?.message) {
+          getLocation();
+        }
+      } else {
+        // Network is unavailable, fetch from AsyncStorage
+        const storedAttendanceData = await AsyncStorage.getItem(
+          `attendanceData_${userId}`,
+        );
+        if (storedAttendanceData) {
+          const attendanceData = JSON.parse(storedAttendanceData);
+          console.log(attendanceData, 'Stored Attendance');
+          // Use stored data
+          if (attendanceData?.attendance_check_in) {
+            setCheckAttandance(true);
+          } else if (attendanceData?.message) {
+            getLocation();
+          }
+        } else {
+          console.log('No attendance data available in AsyncStorage');
+          // Handle case when there's no data in AsyncStorage
+        }
       }
     } catch (error) {
       if (error.response && error.response.status === 401) {
@@ -324,10 +389,96 @@ const Home = ({navigation}) => {
         );
         TokenRenew();
       }
-      console.log('Attandance Error', error);
+      console.log('Attendance Error', error);
     }
-    // setIsLoading(false);
   };
+
+  useEffect(() => {
+    // Check the location permission when the component mounts
+    checkLocationPermission();
+  }, []);
+
+  const checkLocationPermission = async () => {
+    const permissionType =
+      Platform.OS === 'android'
+        ? PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION
+        : PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
+
+    const result = await check(permissionType);
+
+    switch (result) {
+      case RESULTS.GRANTED:
+        // Permission granted, check if location services are enabled
+        checkIfLocationServicesEnabled();
+        break;
+      case RESULTS.DENIED:
+        // Permission denied, request it
+        const permissionRequestResult = await request(permissionType);
+        if (permissionRequestResult === RESULTS.GRANTED) {
+          checkIfLocationServicesEnabled();
+        } else {
+          Alert.alert(
+            'Permission Denied',
+            'Location permission is required to proceed.',
+          );
+        }
+        break;
+      case RESULTS.BLOCKED:
+        // Permission blocked, prompt to enable in settings
+        Alert.alert(
+          'Location Blocked',
+          'Please enable location permission in settings to use this feature.',
+          [
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings(),
+            },
+          ],
+        );
+        break;
+      default:
+        Alert.alert('Permission Error', 'Unable to access location services.');
+        break;
+    }
+  };
+
+  const checkIfLocationServicesEnabled = () => {
+    Geolocation.requestAuthorization('whenInUse').then(() => {
+      Geolocation.getCurrentPosition(
+        position => {
+          setLocationEnabled(true);
+          console.log('Location:', position);
+        },
+        error => {
+          console.log(error.code, error.message);
+          if (error.code === 1) {
+            // Location services disabled
+            Alert.alert(
+              'Location Services Disabled',
+              'Please enable location services to continue.',
+              [
+                {
+                  text: 'Enable Location',
+                  onPress: () => Linking.openSettings(),
+                },
+                {
+                  text: 'Close',
+                  onPress: () => setLocationEnabled(false), // Disable if dismissed
+                  style: 'cancel',
+                },
+              ],
+            );
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 10000,
+        },
+      );
+    });
+  };
+
   const requestLocationPermission = async () => {
     try {
       const granted = await PermissionsAndroid.request(

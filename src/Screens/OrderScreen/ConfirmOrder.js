@@ -825,7 +825,7 @@ const ConfirmOrder = ({route, navigation}) => {
           <ShowValues
             Lefttxt={'Distribution Discount:'}
             RightText={FinalDistributiveDiscount.toFixed(2)}
-            percent={distributiveDiscount}
+            // percent={distributiveDiscount}
             gross={GrossAmount.toFixed(2)}
           />
           <SpecialDis
