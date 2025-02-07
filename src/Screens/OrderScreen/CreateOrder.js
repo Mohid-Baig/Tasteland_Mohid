@@ -39,6 +39,7 @@ const CreateOrder = ({navigation, route}) => {
   const [applySpecialDiscount, setApplySpecialDiscount] = useState(0);
   const [TOdiscount, setTodiscount] = useState(0);
   const [ratte, setRatte] = useState(0);
+  const [discountRate, setDiscountRate] = useState(0);
   const [edited, isEdited] = useState(false);
   const dispatch = useDispatch();
   const [gst, setGst] = useState(0);
@@ -379,7 +380,7 @@ const CreateOrder = ({navigation, route}) => {
           },
         );
 
-        console.log(response.data, 'getSpecialDiscount');
+        console.log(JSON.stringify(response.data), 'getSpecialDiscount');
         setSpecialDiscount(response.data);
 
         // Save the fetched data in AsyncStorage
@@ -445,7 +446,7 @@ const CreateOrder = ({navigation, route}) => {
           //   discount.lower_limit,
           //   discount.upper_limit,
           // );
-          console.log(discount.rate);
+          // console.log(discount.rate);
           // Check if GrossAmount falls within the range
           if (
             GrossAmount >= discount?.lower_limit &&
@@ -481,7 +482,8 @@ const CreateOrder = ({navigation, route}) => {
 
     // Handle special discounts
     if (SpecaialDiscount && SpecaialDiscount.length > 0) {
-      let finalDiscount = 0; // Store the highest applicable discount
+      let finalDiscount = 0;
+      let selectedRate = 0; // Store the highest applicable discount
 
       SpecaialDiscount.forEach((item, index) => {
         // console.log(`Checking Special Discount Item ID: ${item.id}`);
@@ -511,11 +513,14 @@ const CreateOrder = ({navigation, route}) => {
               // );
             }
 
-            // Set the highest discount
-            finalDiscount = Math.max(finalDiscount, discount);
-            // console.log(
-            //   `Updated Final Discount after Item ID ${item.id}: ${finalDiscount}`,
-            // );
+            if (discount > finalDiscount) {
+              finalDiscount = discount;
+              selectedRate = item.rate; // Use the rate that applied to this discount
+              console.log(
+                `Updated Final Discount: ${finalDiscount}, Rate Used: ${selectedRate}`,
+              );
+            }
+            // setDiscountRate(selectedRate);
           } else {
             // console.log(
             //   `GrossAmount ${GrossAmount} is less than required item.gross_amount ${item.gross_amount}`,
@@ -532,14 +537,17 @@ const CreateOrder = ({navigation, route}) => {
       if (finalDiscount > 0) {
         // console.log('Final Special Discount Applied:', finalDiscount);
         setApplySpecialDiscount(finalDiscount);
+        setDiscountRate(selectedRate);
       } else {
         // console.log('No applicable special discount after checking all items');
         setApplySpecialDiscount(0);
+        setDiscountRate(0);
       }
     } else {
       // No special discounts found
       // console.log('No special discounts found');
       setApplySpecialDiscount(0);
+      setDiscountRate(0);
     }
   }, [GrossAmount, distributiveDiscount, SpecaialDiscount, Store]);
 
@@ -641,7 +649,7 @@ const CreateOrder = ({navigation, route}) => {
           <SpecialDis
             Lefttxt={'Special Discount:'}
             RightText={applySpecialDiscount.toFixed(2)}
-            percent={SpecaialDiscount}
+            percent={discountRate}
             gross={GrossAmount.toFixed(2)}
           />
           <ShowValues Lefttxt={'Total GST:'} RightText={gst.toFixed(2)} />

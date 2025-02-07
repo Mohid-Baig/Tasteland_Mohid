@@ -74,7 +74,7 @@ const ShowValues = ({
   gross,
 }) => {
   // Log percent to check its value
-  console.log('Received percent:', percent);
+  // console.log('Received percent:', percent);
 
   // Default to 0 if percent is falsy
   const displayRate = percent ? parseFloat(percent).toFixed(2) : '0.00';

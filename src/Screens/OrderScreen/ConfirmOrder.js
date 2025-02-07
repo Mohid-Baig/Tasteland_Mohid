@@ -831,7 +831,7 @@ const ConfirmOrder = ({route, navigation}) => {
           <SpecialDis
             Lefttxt={'Special Discount:'}
             RightText={applySpecialDiscount.toFixed(2)}
-            percent={SpecaialDiscount}
+            // percent={SpecaialDiscount}
             gross={GrossAmount.toFixed(2)}
           />
           <ShowValues Lefttxt={'Total GST:'} RightText={GST.toFixed(2)} />
