@@ -3,7 +3,7 @@ import {View, Text, StyleSheet, FlatList} from 'react-native';
 
 const ShopInvoiceCreate = ({datas, allProduct}) => {
   // console.log(allProduct, 'blbla');
-  // console.log(datas, 'datas');
+  console.log(datas, 'datas');
   const [ProductName, SetProductname] = useState();
   const filter = () => {
     let productName = [];
@@ -80,7 +80,9 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                   <Text style={styles.value}>
                     {(
                       item.itemss.pricing.trade_price *
-                      (item.itemss.trade_offer / 100)
+                      (item.itemss.trade_offer / 100) *
+                      (item.carton_ordered * item.itemss.pricing.box_in_carton +
+                        item.box_ordered)
                     ).toFixed(2)}{' '}
                     ({item.itemss.trade_offer.toFixed(2)}%)
                   </Text>
@@ -95,18 +97,27 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                 <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
                   <Text style={styles.label}>Gross Amount</Text>
                   <Text style={styles.value}>
-                    {item.itemss.pricing.trade_price.toFixed(2)}
+                    {(
+                      item.itemss.pricing.trade_price *
+                      (item.carton_ordered * item.itemss.pricing.box_in_carton +
+                        item.box_ordered)
+                    ).toFixed(2)}
                   </Text>
                 </View>
+
                 <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
                   <Text style={styles.label}>After T.O Amount</Text>
                   <Text style={styles.value}>
                     {(
-                      item?.itemss?.pricing.trade_price *
-                        (item?.pack_in_box * item?.carton_ordered +
-                          item?.box_ordered) -
-                      (item?.itemss?.trade_offer / 100) *
-                        item?.itemss?.pricing.trade_price
+                      item.itemss.pricing.trade_price *
+                        (item.carton_ordered *
+                          item.itemss.pricing.box_in_carton +
+                          item.box_ordered) -
+                      item.itemss.pricing.trade_price *
+                        (item.itemss.trade_offer / 100) *
+                        (item.carton_ordered *
+                          item.itemss.pricing.box_in_carton +
+                          item.box_ordered)
                     ).toFixed(2)}
                   </Text>
                 </View>
