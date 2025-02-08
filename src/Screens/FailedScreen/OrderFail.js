@@ -120,7 +120,7 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
       if (state.isConnected) {
         // If there's network, fetch data from API
         const response = await instance.get(
-          `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
+          `/distribution_trade/all_trade_pricing_active?distribution_id=${distributor_id}&current=true`,
           {
             headers: {
               Authorization: `Bearer ${authToken}`,

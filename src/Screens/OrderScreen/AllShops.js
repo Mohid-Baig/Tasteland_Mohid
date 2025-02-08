@@ -1328,7 +1328,7 @@ const AllShops = ({navigation, route}) => {
     const distributor_id = await AsyncStorage.getItem('distribution_id');
     try {
       const response = await instance.get(
-        `/distribution_trade/all?distribution_id=${distributor_id}&current=true`,
+        `/distribution_trade/all_trade_pricing_active?distribution_id=${distributor_id}&current=true`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
