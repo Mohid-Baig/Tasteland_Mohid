@@ -40,11 +40,14 @@ const ConfirmOrder = ({route, navigation}) => {
     RouteDate,
     SpecaialDiscount,
     distributiveDiscount,
+    ratte,
+    discountRate,
   } = route.params;
   const [GrossAmount, setGrossAmount] = useState(0);
   const [totalPrice, setTotalprice] = useState(0);
   const [TotalCarton, setTotalCartons] = useState(0);
   const [isButtonVisible, setIsButtonVisible] = useState(true);
+  const [gstText, setGstTxt] = useState([]);
   const isEditingOrder = !!orderId;
   const dispatch = useDispatch();
 
@@ -98,11 +101,19 @@ const ConfirmOrder = ({route, navigation}) => {
         productCount += tradePrice * totalUnits - discount;
         grossAmount += tradePrice * totalUnits;
       });
-
       setTotalprice(productCount);
       setGrossAmount(grossAmount);
     }
-  }, [cartItems]); // Ensure the effect runs only when cartItems change
+  }, [cartItems]);
+  useEffect(() => {
+    // Extract pricing_gst from the first item
+    const gst_pricing = cartItems[0]?.itemss?.pricing?.pricing_gst;
+
+    // If the pricing_gst exists, store it in the state
+    if (gst_pricing !== undefined) {
+      setGstTxt(gst_pricing); // Set the gst value as a variable, not an array
+    }
+  }, [cartItems]);
 
   const incrementTotalVisits = async () => {
     const userId = await AsyncStorage.getItem('userId');
@@ -825,16 +836,20 @@ const ConfirmOrder = ({route, navigation}) => {
           <ShowValues
             Lefttxt={'Distribution Discount:'}
             RightText={FinalDistributiveDiscount.toFixed(2)}
-            // percent={distributiveDiscount}
+            percent={ratte}
             gross={GrossAmount.toFixed(2)}
           />
-          <SpecialDis
+          <ShowValues
             Lefttxt={'Special Discount:'}
             RightText={applySpecialDiscount.toFixed(2)}
-            // percent={SpecaialDiscount}
+            percent={discountRate}
             gross={GrossAmount.toFixed(2)}
           />
-          <ShowValues Lefttxt={'Total GST:'} RightText={GST.toFixed(2)} />
+          <ShowValues
+            Lefttxt={'Total GST:'}
+            RightText={GST.toFixed(2)}
+            gstTxt={gstText}
+          />
         </View>
         <View style={{padding: '2%'}}>
           <View
@@ -846,22 +861,36 @@ const ConfirmOrder = ({route, navigation}) => {
               marginTop: '2%',
             }}></View>
         </View>
+        <View style={{justifyContent: 'center'}}>
+          <ShowValues
+            Lefttxt={'Gross Amount:'}
+            RightText={`(Inclusive of GST) ${GrossAmount.toFixed(2)}`}
+            leftStyle={{fontWeight: 'bold', color: '#000'}}
+          />
+          {/* <Text
+            style={{
+              marginTop: -10,
+              marginLeft: 10,
+              color: '#000',
+              fontWeight: '800',
+              textAlign: 'right',
+            }}>
+            (Inclusive of GST)
+          </Text> */}
+        </View>
+        <View>
+          <ShowValues
+            Lefttxt={'Total Discount:'}
+            RightText={(
+              GrossAmount -
+              totalPrice +
+              applySpecialDiscount +
+              FinalDistributiveDiscount
+            ).toFixed(2)}
+          />
+        </View>
         <ShowValues
-          Lefttxt={'Gross Amount:'}
-          RightText={GrossAmount.toFixed(2)}
-          leftStyle={{fontWeight: 'bold', color: '#000'}}
-        />
-        <ShowValues
-          Lefttxt={'Total Discount:'}
-          RightText={(
-            GrossAmount -
-            totalPrice +
-            applySpecialDiscount +
-            FinalDistributiveDiscount
-          ).toFixed(2)}
-        />
-        <ShowValues
-          Lefttxt={'Total Price:'}
+          Lefttxt={'Net Price:'}
           RightText={(
             totalPrice -
             applySpecialDiscount -

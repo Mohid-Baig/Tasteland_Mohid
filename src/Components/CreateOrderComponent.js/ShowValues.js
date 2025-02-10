@@ -63,7 +63,7 @@
 // const styles = StyleSheet.create({});
 
 import {StyleSheet, Text, View} from 'react-native';
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 
 const ShowValues = ({
   leftStyle,
@@ -72,9 +72,17 @@ const ShowValues = ({
   RightText,
   percent, // Ensure percent is passed correctly
   gross,
+  gstTxt,
 }) => {
+  // const [gstText, setGstTxt] = useState([]);
   // Log percent to check its value
   // console.log('Received percent:', percent);
+  console.log(gstTxt, 'gstText');
+
+  // useEffect(() => {
+  //   const pricingGst = gstTxt[0].itemss.pricing.pricing_gst;
+  //   setGstTxt(pricingGst);
+  // }, []);
 
   // Default to 0 if percent is falsy
   const displayRate = percent ? parseFloat(percent).toFixed(2) : '0.00';
@@ -95,10 +103,17 @@ const ShowValues = ({
           <Text style={[{color: '#000'}, leftStyle]}>{Lefttxt}</Text>
         </View>
         <View style={{width: '50%'}}>
-          <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
-            {rateText}
-            {RightText}
-          </Text>
+          {!gstTxt ? (
+            <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
+              {rateText}
+              {RightText}
+            </Text>
+          ) : (
+            <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
+              ({gstTxt}%)
+              {RightText}
+            </Text>
+          )}
         </View>
       </View>
     </View>

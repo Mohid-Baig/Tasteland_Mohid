@@ -695,6 +695,8 @@ const CreateOrder = ({navigation, route}) => {
                 orderId: existingOrderId,
                 SpecaialDiscount: SpecaialDiscount,
                 distributiveDiscount: distributiveDiscount,
+                ratte: ratte,
+                discountRate: discountRate,
               });
             }}
             style={styles.createOrderButton}>
