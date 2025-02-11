@@ -105,13 +105,11 @@ const ShowValues = ({
         <View style={{width: '50%'}}>
           {!gstTxt ? (
             <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
-              {rateText}
-              {RightText}
+              {rateText} {RightText}
             </Text>
           ) : (
             <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
-              ({gstTxt}%)
-              {RightText}
+              ({gstTxt}%) {RightText}
             </Text>
           )}
         </View>

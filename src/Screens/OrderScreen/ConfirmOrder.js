@@ -830,6 +830,16 @@ const ConfirmOrder = ({route, navigation}) => {
         </View>
         <View>
           <ShowValues
+            Lefttxt={'Total GST:'}
+            RightText={GST.toFixed(2)}
+            gstTxt={gstText}
+          />
+          <ShowValues
+            Lefttxt={'Gross Amount:'}
+            RightText={`(Inclusive of GST) ${GrossAmount.toFixed(2)}`}
+            leftStyle={{fontWeight: 'bold', color: '#000'}}
+          />
+          <ShowValues
             Lefttxt={'T.O Discount:'}
             RightText={(GrossAmount - totalPrice).toFixed(2)}
           />
@@ -845,11 +855,6 @@ const ConfirmOrder = ({route, navigation}) => {
             percent={discountRate}
             gross={GrossAmount.toFixed(2)}
           />
-          <ShowValues
-            Lefttxt={'Total GST:'}
-            RightText={GST.toFixed(2)}
-            gstTxt={gstText}
-          />
         </View>
         <View style={{padding: '2%'}}>
           <View
@@ -861,13 +866,9 @@ const ConfirmOrder = ({route, navigation}) => {
               marginTop: '2%',
             }}></View>
         </View>
-        <View style={{justifyContent: 'center'}}>
-          <ShowValues
-            Lefttxt={'Gross Amount:'}
-            RightText={`(Inclusive of GST) ${GrossAmount.toFixed(2)}`}
-            leftStyle={{fontWeight: 'bold', color: '#000'}}
-          />
-          {/* <Text
+        {/* <View style={{justifyContent: 'center'}}> */}
+
+        {/* <Text
             style={{
               marginTop: -10,
               marginLeft: 10,
@@ -877,7 +878,7 @@ const ConfirmOrder = ({route, navigation}) => {
             }}>
             (Inclusive of GST)
           </Text> */}
-        </View>
+        {/* </View> */}
         <View>
           <ShowValues
             Lefttxt={'Total Discount:'}
