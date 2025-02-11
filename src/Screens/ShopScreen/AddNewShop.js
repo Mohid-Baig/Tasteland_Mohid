@@ -880,8 +880,16 @@ const AddNewShop = ({route}) => {
       setShelf(Item.shelf);
       setntn(Item.ntn);
       isEdited(true);
-      setLatitude(Item.lat !== null && Item.lat !== undefined ? Item.lat : 5);
-      setLongitude(Item.lng !== null && Item.lng !== undefined ? Item.lng : 5);
+      setLatitude(
+        Item.lat !== null && Item.lat !== undefined && Item.lat !== 0
+          ? Item.lat
+          : 5,
+      );
+      setLongitude(
+        Item.lng !== null && Item.lng !== undefined && Item.lng !== 0
+          ? Item.lng
+          : 5,
+      );
     }
   }, [route.params]);
 
