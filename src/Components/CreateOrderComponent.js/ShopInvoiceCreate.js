@@ -56,7 +56,7 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
               <Text
                 style={
                   styles.productTitle
-                }>{`${item.itemss.pricing.product.name} ${item.itemss.pricing.sku.name} ${item.itemss.pricing.variant.name}`}</Text>
+                }>{`${item.itemss.pricing.product.name} ${item.itemss.pricing.variant.name} ${item.itemss.pricing.sku.name}`}</Text>
               <View
                 style={{
                   flexDirection: 'row',
