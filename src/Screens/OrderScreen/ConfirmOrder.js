@@ -8,6 +8,7 @@ import {
   FlatList,
   ScrollView,
   ToastAndroid,
+  NativeModules,
 } from 'react-native';
 import React, {useEffect, useState, useContext} from 'react';
 import OrderStatus from '../../Components/CreateOrderComponent.js/OrderStatus';
@@ -48,6 +49,7 @@ const ConfirmOrder = ({route, navigation}) => {
   const [TotalCarton, setTotalCartons] = useState(0);
   const [isButtonVisible, setIsButtonVisible] = useState(true);
   const [gstText, setGstTxt] = useState([]);
+  const [DateAuto, setDateAuto] = useState();
   const isEditingOrder = !!orderId;
   const dispatch = useDispatch();
 
@@ -55,6 +57,23 @@ const ConfirmOrder = ({route, navigation}) => {
   // const cartItems = route.params.cartItems;
 
   console.log(JSON.stringify(cartItems), 'hello motherfather--');
+
+  const {DateTimeModule} = NativeModules;
+  useEffect(() => {
+    DateTimeModule.isAutoTimeEnabled(isEnabled => {
+      console.log('Auto time enabled:', isEnabled);
+      setDateAuto(isEnabled);
+    });
+  }, []);
+
+  // useEffect(() => {
+  //   console.log(cartItems.length, 'cartlength');
+  //   if (cartItems.length == 0) {
+  //     setIsButtonVisible(false); // Set to false when the array is empty
+  //   } else {
+  //     setIsButtonVisible(true); // Set to true when the array has items
+  //   }
+  // }, [cartItems]);
 
   useEffect(() => {
     // Reset state when the component mounts or receives new cartItems
@@ -244,8 +263,15 @@ const ConfirmOrder = ({route, navigation}) => {
   }, []);
 
   const handleButtonPress = () => {
-    getLocation(); // Call your function
-    setIsButtonVisible(false); // Hide the button after press
+    if (DateAuto == true) {
+      getLocation();
+      setIsButtonVisible(false);
+    } else {
+      Alert.alert(
+        'Date Issue',
+        'Please enable "Set Automatically" for date and time in your settings',
+      );
+    }
   };
 
   const currentTime = moment().format('HH:mm:ss.SSS'); // Get the current time with milliseconds
@@ -900,32 +926,34 @@ const ConfirmOrder = ({route, navigation}) => {
           leftStyle={{fontWeight: 'bold', color: '#000'}}
         />
       </ScrollView>
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 5,
-          width: '100%',
-          padding: 10,
-          backgroundColor: '#f5f5f5',
-        }}>
-        {isButtonVisible && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#407BFF',
-              paddingVertical: 12,
-              borderRadius: 10,
-              flexDirection: 'row',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-            onPress={handleButtonPress}>
-            <AntDesign name="shoppingcart" size={24} color="#fff" />
-            <Text style={{color: '#fff', marginLeft: 10}}>
-              {!orderId ? 'Confirm Order' : 'Edit Order'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      {cartItems.length > 0 ? (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 5,
+            width: '100%',
+            padding: 10,
+            backgroundColor: '#f5f5f5',
+          }}>
+          {isButtonVisible && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#407BFF',
+                paddingVertical: 12,
+                borderRadius: 10,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={handleButtonPress}>
+              <AntDesign name="shoppingcart" size={24} color="#fff" />
+              <Text style={{color: '#fff', marginLeft: 10}}>
+                {!orderId ? 'Confirm Order' : 'Edit Order'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : null}
       {isLoading ? <Loader /> : null}
     </View>
   );

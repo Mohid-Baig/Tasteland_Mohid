@@ -11,6 +11,7 @@ import {
   Platform,
   ToastAndroid,
   DevSettings,
+  NativeModules,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -47,6 +48,16 @@ const Home = ({navigation}) => {
   const [totalVisits, setTotalVisits] = useState(0);
   const [totalCartons, setTotalCartons] = useState(0);
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [DateAuto, setDateAuto] = useState();
+
+  const {DateTimeModule} = NativeModules;
+  useEffect(() => {
+    DateTimeModule.isAutoTimeEnabled(isEnabled => {
+      console.log('Auto time enabled:', isEnabled);
+      setDateAuto(isEnabled);
+    });
+  }, []);
+
   const getAllStoredOrderIds = async userId => {
     try {
       const storedOrderIds = await AsyncStorage.getItem(
@@ -586,6 +597,17 @@ const Home = ({navigation}) => {
       totalCartons.toFixed(1),
     );
     return totalCartons; // Return the total number of cartons for all items
+  };
+
+  const dateCheck = () => {
+    if (DateAuto == true) {
+      syncOrders();
+    } else {
+      Alert.alert(
+        'Date Issue',
+        'Please enable "Set Automatically" for date and time in your settings',
+      );
+    }
   };
   let hasSyncErrors = false; // Track sync errors
   const syncOrders = async () => {
@@ -1317,20 +1339,44 @@ const Home = ({navigation}) => {
     }, []), // Empty dependency array ensures it runs on screen focus only
   );
   const LocationPerm = () => {
-    if (checkAttandance) {
+    const handleNavigation = () => {
       navigation.navigate('Order', {orderBokerId: orderBokerId});
-    } else {
+    };
+
+    const handleAttendanceAlert = () => {
       Alert.alert(
-        'Attendence Unmarked',
-        'Please enable your location and mark your attendence',
+        'Attendance Unmarked',
+        'Please enable your location and mark your attendance',
         [
           {
-            text: 'ok',
-            onPress: () => getLocation(),
+            text: 'OK',
+            onPress: getLocation,
           },
         ],
       );
+    };
+
+    const handleDateAlert = () => {
+      Alert.alert(
+        'Date Issue',
+        'Please enable "Set Automatically" for date and time in your settings',
+      );
+    };
+
+    // Check attendance first
+    if (!checkAttandance) {
+      handleAttendanceAlert();
+      return; // Stop further execution
     }
+
+    // Check date settings
+    if (!DateAuto) {
+      handleDateAlert();
+      return; // Stop further execution
+    }
+
+    // If all conditions are met, navigate
+    handleNavigation();
   };
   return (
     <ImageBackground
@@ -1372,7 +1418,7 @@ const Home = ({navigation}) => {
               </View>
             </MenuTrigger>
             <MenuOptions style={styles.menuOptions}>
-              <MenuOption onSelect={syncOrders}>
+              <MenuOption onSelect={dateCheck}>
                 <Text style={styles.singleMenuOption}>Sync</Text>
               </MenuOption>
               <MenuOption>

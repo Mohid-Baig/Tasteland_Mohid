@@ -8,6 +8,7 @@ import {
   Button,
   TouchableWithoutFeedback,
   ToastAndroid,
+  NativeModules,
 } from 'react-native';
 import BottomSheet, {BottomSheetView} from '@gorhom/bottom-sheet';
 import CalendarPicker from 'react-native-calendar-picker';
@@ -40,6 +41,13 @@ const InvoiceScreen = ({route}) => {
   const onDateChange = date => {
     setSelectedDate(date);
   };
+
+  const {DateTimeModule} = NativeModules;
+  useEffect(() => {
+    DateTimeModule.isAutoTimeEnabled(isEnabled => {
+      console.log('Auto time enabled:', isEnabled);
+    });
+  }, []);
 
   const routePickerRef = useRef();
   const shopPickerRef = useRef();
