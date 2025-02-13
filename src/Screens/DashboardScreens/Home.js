@@ -1491,7 +1491,7 @@ const Home = ({navigation}) => {
           </View>
         </View>
 
-        <View>
+        <View style={{marginTop: '-6%'}}>
           <View style={styles.BottomContainer}>
             <TouchableOpacity
               onPress={() => LocationPerm()}
@@ -1644,7 +1644,7 @@ const styles = StyleSheet.create({
   },
   MiddleContainer: {
     flexDirection: 'row',
-    marginTop: '7%',
+    marginTop: '2%',
     padding: 10,
   },
   MiddleLeft: {
