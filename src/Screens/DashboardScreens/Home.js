@@ -55,6 +55,12 @@ const Home = ({navigation}) => {
     DateTimeModule.isAutoTimeEnabled(isEnabled => {
       console.log('Auto time enabled:', isEnabled);
       setDateAuto(isEnabled);
+      if (isEnabled == false) {
+        Alert.alert(
+          'Date Issue',
+          'Please enable "Set Automatically" for date and time in your settings till then no request will be sent to server',
+        );
+      }
     });
   }, []);
 
