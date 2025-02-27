@@ -62,7 +62,7 @@
 
 // const styles = StyleSheet.create({});
 
-import {StyleSheet, Text, View} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import React from 'react';
 
 const SpecialDis = ({
@@ -74,7 +74,7 @@ const SpecialDis = ({
   gross,
 }) => {
   // Log percent to check its value
-  console.log('Received percent:', percent);
+  // console.log('Received percent:', percent);
 
   // Default to 0 if percent is falsy
   const displayRate = percent ? parseFloat(percent).toFixed(2) : '0.00';
@@ -90,12 +90,12 @@ const SpecialDis = ({
         marginRight: 10,
         marginBottom: 10,
       }}>
-      <View style={{flexDirection: 'row'}}>
-        <View style={{width: '50%'}}>
-          <Text style={[{color: '#000'}, leftStyle]}>{Lefttxt}</Text>
+      <View style={{ flexDirection: 'row' }}>
+        <View style={{ width: '50%' }}>
+          <Text style={[{ color: '#000' }, leftStyle]}>{Lefttxt}</Text>
         </View>
-        <View style={{width: '50%'}}>
-          <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
+        <View style={{ width: '50%' }}>
+          <Text style={[{ marginLeft: 'auto', color: '#000' }, rightStyle]}>
             {rateText}
             {RightText}
           </Text>

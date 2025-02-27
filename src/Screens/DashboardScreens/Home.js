@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useContext, useCallback} from 'react';
+import React, { useEffect, useState, useContext, useCallback } from 'react';
 import {
   ImageBackground,
   StatusBar,
@@ -28,17 +28,17 @@ import {
 import Loader from '../../Components/Loaders/Loader';
 import instance from '../../Components/BaseUrl';
 import GetLocation from 'react-native-get-location';
-import {useIsFocused, useFocusEffect} from '@react-navigation/native';
-import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import { useIsFocused, useFocusEffect } from '@react-navigation/native';
+import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import Geolocation from 'react-native-geolocation-service';
 import NetInfo from '@react-native-community/netinfo'; // Import for network status
-const Home = ({navigation}) => {
+const Home = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [headingData, setHeadingData] = useState({});
   const [orderBokerId, setOrderBokerId] = useState({});
   const [DistributerName, setDistributerName] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
+  const [weekDates, setWeekDates] = useState({ startDate: null, endDate: null });
   const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
   const [userId, setUserId] = useState(null);
   const [checkAttandance, setCheckAttandance] = useState(false);
@@ -50,11 +50,11 @@ const Home = ({navigation}) => {
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [DateAuto, setDateAuto] = useState();
 
-  const {DateTimeModule} = NativeModules;
+  const { DateTimeModule } = NativeModules;
   useEffect(() => {
     DateTimeModule.isAutoTimeEnabled(isEnabled => {
       console.log('Auto time enabled:', isEnabled);
-      setDateAuto(isEnabled);
+      setDateAuto(prev => isEnabled);
       if (isEnabled == false) {
         Alert.alert(
           'Date Issue',
@@ -106,7 +106,7 @@ const Home = ({navigation}) => {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 
-    return {startDate, endDate};
+    return { startDate, endDate };
   };
 
   const formatDateToYYYYMMDD = date => {
@@ -119,7 +119,7 @@ const Home = ({navigation}) => {
   useEffect(() => {
     const currentDate = new Date();
     if (currentDate) {
-      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      const { startDate, endDate } = getMondayToSundayWeek(currentDate);
       setWeekDates({
         startDate: formatDateToYYYYMMDD(startDate),
         endDate: formatDateToYYYYMMDD(endDate),
@@ -593,16 +593,36 @@ const Home = ({navigation}) => {
     const userId = await AsyncStorage.getItem('userId');
     let totalCartons = 0;
 
-    orderItems.details.forEach(item => {
-      const cartonsForItem = item.box_ordered / item.box_in_carton;
+    console.log('Starting calculation for total cartons...');
 
-      totalCartons += cartonsForItem;
+    orderItems.forEach((item, index) => {
+      const { carton_ordered, box_ordered, itemss } = item;
+      const { box_in_carton } = itemss.pricing; // Number of boxes in a carton
+
+      console.log(`\nProcessing item ${index + 1}:`);
+      console.log('carton_ordered:', carton_ordered);
+      console.log('box_ordered:', box_ordered);
+      console.log('box_in_carton:', box_in_carton);
+
+      // Add the carton_ordered directly to the total cartons
+      totalCartons += carton_ordered;
+      console.log('After adding carton_ordered, totalCartons:', totalCartons);
+
+      // Calculate the additional cartons from box_ordered
+      if (box_ordered > 0) {
+        const additionalCartons = box_ordered / box_in_carton;
+        totalCartons += additionalCartons;
+        console.log('After adding box_ordered, totalCartons:', totalCartons);
+      }
     });
+
+    console.log('\nFinal totalCartons:', totalCartons);
+
     await AsyncStorage.setItem(
       `totalCartons_${userId}`,
       totalCartons.toFixed(1),
     );
-    return totalCartons; // Return the total number of cartons for all items
+    return totalCartons;
   };
 
   const dateCheck = () => {
@@ -856,10 +876,10 @@ const Home = ({navigation}) => {
             details:
               order.details && order.details.length > 0
                 ? order.details.map(item => ({
-                    carton: item.carton || 0,
-                    box: item.box || 0,
-                    fk_pricing: item.fk_pricing || 0,
-                  }))
+                  carton: item.carton || 0,
+                  box: item.box || 0,
+                  fk_pricing: item.fk_pricing || 0,
+                }))
                 : [],
           };
 
@@ -938,7 +958,7 @@ const Home = ({navigation}) => {
               }
 
               // Add the new orderId and shopId as an object
-              postorderIds.push({orderId: newOrderId, shopId: shopId});
+              postorderIds.push({ orderId: newOrderId, shopId: shopId });
               return postorderIds;
             },
           ),
@@ -975,6 +995,7 @@ const Home = ({navigation}) => {
       console.log('Invalid carton value:', newCartonValue); // Debug statement
       return; // Exit if the value is invalid
     }
+    console.log(newCartonValue, 'NewCartonValue')
 
     try {
       const userId = await AsyncStorage.getItem('userId'); // Retrieve the userId from AsyncStorage
@@ -1346,7 +1367,7 @@ const Home = ({navigation}) => {
   );
   const LocationPerm = () => {
     const handleNavigation = () => {
-      navigation.navigate('Order', {orderBokerId: orderBokerId});
+      navigation.navigate('Order', { orderBokerId: orderBokerId });
     };
 
     const handleAttendanceAlert = () => {
@@ -1400,10 +1421,10 @@ const Home = ({navigation}) => {
                 alignItems: 'center',
                 marginRight: 160,
               }}>
-              <Text style={[styles.MiddleTXT, {fontSize: 14}]}>
+              <Text style={[styles.MiddleTXT, { fontSize: 14 }]}>
                 Working Date:{' '}
               </Text>
-              <Text style={[styles.MiddleTXT, {fontSize: 14}]}>
+              <Text style={[styles.MiddleTXT, { fontSize: 14 }]}>
                 {formatDate(currentDate)}
               </Text>
             </View>
@@ -1413,12 +1434,12 @@ const Home = ({navigation}) => {
                 // alignSelf: 'flex-end',
                 // marginRight: 20,
               }}>
-              <Text style={[styles.MiddleTXT, {fontSize: 14}]}>Ver no: </Text>
-              <Text style={[styles.MiddleTXT, {fontSize: 14}]}>0.74.5</Text>
+              <Text style={[styles.MiddleTXT, { fontSize: 14 }]}>Ver no: </Text>
+              <Text style={[styles.MiddleTXT, { fontSize: 14 }]}>0.74.5</Text>
             </View>
           </View>
           <Menu>
-            <MenuTrigger style={{width: '100%'}}>
+            <MenuTrigger style={{ width: '100%' }}>
               <View>
                 <Ionicons name="menu" color="#fff" size={30} />
               </View>
@@ -1437,14 +1458,14 @@ const Home = ({navigation}) => {
           </Menu>
         </View>
 
-        <View style={{marginTop: 30}}>
-          <Text style={[styles.HeadingTxt, {fontSize: 30, fontWeight: 'bold'}]}>
+        <View style={{ marginTop: 30 }}>
+          <Text style={[styles.HeadingTxt, { fontSize: 30, fontWeight: 'bold' }]}>
             {headingData.first_name} {headingData.last_name}
           </Text>
           <Text style={styles.HeadingTxt}>
             {headingData.designation ? headingData.designation : 'null'}
           </Text>
-          <Text style={[styles.HeadingTxt, {fontWeight: 'normal'}]}>
+          <Text style={[styles.HeadingTxt, { fontWeight: 'normal' }]}>
             {DistributerName ? DistributerName : 'null'}
           </Text>
         </View>
@@ -1456,14 +1477,14 @@ const Home = ({navigation}) => {
           }}>
           {checkAttandance ? (
             <View>
-              <Text style={[styles.HeadingTxt, {fontSize: 20}]}>
-                Attendance <Text style={{color: 'green'}}>Marked</Text>
+              <Text style={[styles.HeadingTxt, { fontSize: 20 }]}>
+                Attendance <Text style={{ color: 'green' }}>Marked</Text>
               </Text>
             </View>
           ) : (
             <View>
-              <Text style={[styles.HeadingTxt, {fontSize: 20}]}>
-                Attendance <Text style={{color: 'red'}}>Un Marked</Text>
+              <Text style={[styles.HeadingTxt, { fontSize: 20 }]}>
+                Attendance <Text style={{ color: 'red' }}>Un Marked</Text>
               </Text>
             </View>
           )}
@@ -1475,13 +1496,13 @@ const Home = ({navigation}) => {
             <Text style={styles.MiddleTXT}>ORDERS</Text>
             <Text style={styles.MiddleTXT}>{orderCount}</Text>
           </View>
-          <View style={[styles.MiddleRight, {marginTop: 43}]}>
-            <View style={{flexDirection: 'row'}}>
-              <View style={{width: '50%'}}>
+          <View style={[styles.MiddleRight, { marginTop: 43 }]}>
+            <View style={{ flexDirection: 'row' }}>
+              <View style={{ width: '50%' }}>
                 <Text style={styles.MiddleTXT}>BOOKING</Text>
                 <Text style={styles.MiddleTXT}>{totalCartons.toFixed(1)}</Text>
               </View>
-              <View style={{width: '50%'}}>
+              <View style={{ width: '50%' }}>
                 <Text style={styles.MiddleTXT}>AMOUNT</Text>
                 <Text style={styles.MiddleTXT}>
                   Rs: {totalAmount.toFixed(0)}
@@ -1491,15 +1512,15 @@ const Home = ({navigation}) => {
           </View>
         </View>
 
-        <View style={{marginTop: '-6%'}}>
+        <View style={{ marginTop: '-6%' }}>
           <View style={styles.BottomContainer}>
             <TouchableOpacity
               onPress={() => LocationPerm()}
               style={styles.ButtonContainer}>
               <Text style={styles.BtnTopTxt}>CREATE NEW ORDER</Text>
-              <Text style={[styles.HeadingTxt, {color: '#000'}]}>Order</Text>
+              <Text style={[styles.HeadingTxt, { color: '#000' }]}>Order</Text>
               <MaterialIcons
-                style={{marginTop: 10, padding: 10}}
+                style={{ marginTop: 10, padding: 10 }}
                 name="mode-edit"
                 color="#3f5cd1"
                 size={40}
@@ -1508,28 +1529,28 @@ const Home = ({navigation}) => {
             <TouchableOpacity
               style={styles.ButtonContainer}
               onPress={() =>
-                navigation.navigate('Shop', {orderBokerId: orderBokerId})
+                navigation.navigate('Shop', { orderBokerId: orderBokerId })
               }>
               <Text style={styles.BtnTopTxt}>MANAGE NEW SHOPS</Text>
-              <Text style={[styles.HeadingTxt, {color: '#000'}]}>Shop</Text>
+              <Text style={[styles.HeadingTxt, { color: '#000' }]}>Shop</Text>
               <FontAwesome6
-                style={{marginTop: 10, padding: 10}}
+                style={{ marginTop: 10, padding: 10 }}
                 name="shop"
                 color="#096132"
                 size={35}
               />
             </TouchableOpacity>
           </View>
-          <View style={[styles.BottomContainer, {marginTop: '4%'}]}>
+          <View style={[styles.BottomContainer, { marginTop: '4%' }]}>
             <TouchableOpacity
               style={styles.ButtonContainer}
               onPress={() => {
-                navigation.navigate('Invoice', {orderBokerId: orderBokerId});
+                navigation.navigate('Invoice', { orderBokerId: orderBokerId });
               }}>
               <Text style={styles.BtnTopTxt}>VIEW ORDER INVOICES</Text>
-              <Text style={[styles.HeadingTxt, {color: '#000'}]}>Invoice</Text>
+              <Text style={[styles.HeadingTxt, { color: '#000' }]}>Invoice</Text>
               <MaterialCommunityIcons
-                style={{marginTop: 10, padding: 10}}
+                style={{ marginTop: 10, padding: 10 }}
                 name="file-search"
                 color="#48f053"
                 size={40}
@@ -1537,11 +1558,11 @@ const Home = ({navigation}) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.ButtonContainer}
-              onPress={() => navigation.navigate('Failed', {userId})}>
+              onPress={() => navigation.navigate('Failed', { userId })}>
               <Text style={styles.BtnTopTxt}>VIEW FAILED REQUESTS</Text>
-              <Text style={[styles.HeadingTxt, {color: '#000'}]}>Failed</Text>
+              <Text style={[styles.HeadingTxt, { color: '#000' }]}>Failed</Text>
               <MaterialIcons
-                style={{marginTop: 10, padding: 10}}
+                style={{ marginTop: 10, padding: 10 }}
                 name="error-outline"
                 color="red"
                 size={40}
@@ -1556,21 +1577,21 @@ const Home = ({navigation}) => {
             alignItems: 'center',
           }}>
           <TouchableOpacity
-            style={[styles.ButtonContainer, {width: 170}]}
+            style={[styles.ButtonContainer, { width: 170 }]}
             onPress={() =>
               navigation.navigate('Target', {
                 first: headingData.first_name,
                 last: headingData.last_name,
               })
             }>
-            <Text style={[styles.BtnTopTxt, {marginLeft: 10}]}>
+            <Text style={[styles.BtnTopTxt, { marginLeft: 10 }]}>
               VIEW Targets
             </Text>
-            <Text style={[styles.HeadingTxt, {color: '#000'}]}>
+            <Text style={[styles.HeadingTxt, { color: '#000' }]}>
               Target vs Acheivement
             </Text>
             <Feather
-              style={{marginTop: -10, padding: 10}}
+              style={{ marginTop: -10, padding: 10 }}
               name="target"
               color="blue"
               size={40}

@@ -6,22 +6,22 @@ import {
   View,
   TouchableHighlight,
 } from 'react-native';
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useSelector, useDispatch} from 'react-redux';
-import {Remove_All_Cart} from '../../Components/redux/constants';
-import {useFocusEffect} from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
+import { Remove_All_Cart } from '../../Components/redux/constants';
+import { useFocusEffect } from '@react-navigation/native';
 
-const ViewInvoice = ({route, navigation}) => {
+const ViewInvoice = ({ route, navigation }) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
   const [gstRate, setGSTrate] = useState();
-  const {cartItems, Gst, orderBokerId, local} = route.params;
+  const { cartItems, Gst, orderBokerId, local } = route.params;
   const dispatch = useDispatch();
 
   useEffect(() => {
     return () => {
-      dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
+      dispatch({ type: Remove_All_Cart }); // Clear cart when leaving the screen
     };
   }, [dispatch]);
 
@@ -52,10 +52,10 @@ const ViewInvoice = ({route, navigation}) => {
   console.log(formatDate(cartItems.date));
 
   return (
-    <View style={{flex: 1}}>
+    <View style={{ flex: 1 }}>
       <ScrollView
         style={styles.main}
-        contentContainerStyle={{paddingBottom: 50}}
+        contentContainerStyle={{ paddingBottom: 50 }}
         showsVerticalScrollIndicator={false}>
         <View style={styles.StaticContainer}>
           <View>
@@ -63,29 +63,29 @@ const ViewInvoice = ({route, navigation}) => {
             <Text style={styles.Text1}>Order Status</Text>
             <Text style={styles.Text1}>Payment Done</Text>
           </View>
-          <View style={{marginLeft: 25}}>
+          <View style={{ marginLeft: 25 }}>
             <Text style={styles.Text2}>{cartItems?.id}</Text>
             {cartItems?.status ? (
               <View style={styles.pending}>
-                <Text style={[styles.Text2, {color: '#fff'}]}>
+                <Text style={[styles.Text2, { color: '#fff' }]}>
                   {cartItems?.status}
                 </Text>
               </View>
             ) : (
-              <View style={[styles.pending, {backgroundColor: '#fff'}]}></View>
+              <View style={[styles.pending, { backgroundColor: '#fff' }]}></View>
             )}
             <Text style={styles.Text2}>{String(cartItems?.payment_done)}</Text>
           </View>
         </View>
 
-        <View style={[styles.StaticContainer, {marginTop: 25}]}>
+        <View style={[styles.StaticContainer, { marginTop: 25 }]}>
           <View>
             <Text style={styles.Text1}>Shop ID</Text>
             <Text style={styles.Text1}>Shop Name</Text>
             <Text style={styles.Text1}>Owner</Text>
             <Text style={styles.Text1}>Cell Number</Text>
           </View>
-          <View style={{marginLeft: 30}}>
+          <View style={{ marginLeft: 30 }}>
             <Text style={styles.Text2}>{cartItems?.shop?.id}</Text>
             <Text style={styles.Text2}>{cartItems?.shop?.name}</Text>
             <Text style={styles.Text2}>{cartItems?.shop?.owner}</Text>
@@ -97,10 +97,10 @@ const ViewInvoice = ({route, navigation}) => {
           {Detail.map(it => {
             return (
               <View style={styles.OrderDetail} key={it?.id}>
-                <Text style={{fontSize: 23, color: '#000', fontWeight: '800'}}>
+                <Text style={{ fontSize: 23, color: '#000', fontWeight: '800' }}>
                   {it?.product}
                 </Text>
-                <View style={{marginTop: 25}}>
+                <View style={{ marginTop: 25 }}>
                   <Text style={styles.OrderDetailText}>
                     {it?.product} {it?.variant}
                   </Text>
@@ -131,17 +131,26 @@ const ViewInvoice = ({route, navigation}) => {
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>Gross Amount</Text>
                       <Text style={styles.C1_text2}>
-                        {(it?.trade_price).toFixed(2)}
+                        {(
+                          it.trade_price *
+                          (it.carton_ordered * it.box_in_carton +
+                            it.box_ordered)
+                        ).toFixed(2)}
                       </Text>
                     </View>
                     <View style={styles.centre}>
                       <Text style={styles.C1_text1}>After TO Amount</Text>
                       <Text style={styles.C1_text2}>
                         {(
-                          it?.trade_price *
-                            (it?.box_ordered * it?.carton_ordered +
-                              it?.box_ordered) -
-                          (it?.trade_offer / 100) * it?.trade_price
+                          it.trade_price *
+                          (it.carton_ordered *
+                            it.box_in_carton +
+                            it.box_ordered) -
+                          it.trade_price *
+                          (it.trade_offer / 100) *
+                          (it.carton_ordered *
+                            it.box_in_carton +
+                            it.box_ordered)
                         ).toFixed(2)}
                       </Text>
                     </View>
@@ -159,24 +168,26 @@ const ViewInvoice = ({route, navigation}) => {
               {
                 borderTopWidth: 0,
                 flexDirection: 'row',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
                 alignItems: 'center',
               },
             ]}>
             <View>
               <Text style={styles.gstText}>Total GST:</Text>
               <Text style={styles.gstText}>Gross Total:</Text>
+              <Text>{' '}</Text>
               <Text style={styles.gstText}>TO Discount:</Text>
               <Text style={styles.gstText}>Distributor Discount:</Text>
               <Text style={styles.gstText}>Special Discount:</Text>
             </View>
-            <View style={{marginLeft: 15, justifyContent: 'center'}}>
+            <View style={{ justifyContent: 'center' }}>
               <Text style={styles.Text2}>
                 {Gst.toFixed(2)} ({singleDetail?.gst_rate}%)
               </Text>
               <Text style={styles.Text2}>
-                {(cartItems?.gross_amount).toFixed(2)} (Inclusive of GST)
+                {(cartItems?.gross_amount).toFixed(2)}
               </Text>
+              <Text style={styles.Text2}>(Inclusive of GST)</Text>
               <Text style={styles.Text2}>
                 {(cartItems?.trade_discount).toFixed(2)}
               </Text>
@@ -198,7 +209,7 @@ const ViewInvoice = ({route, navigation}) => {
               <Text style={styles.Text1}>Total Discount:</Text>
               <Text style={styles.Text1}>Net Invoice:</Text>
             </View>
-            <View style={{marginLeft: 10}}>
+            <View style={{ marginLeft: 10 }}>
               <Text style={styles.Text2}>
                 {(
                   cartItems?.trade_discount +
@@ -206,7 +217,7 @@ const ViewInvoice = ({route, navigation}) => {
                   cartItems?.discount
                 ).toFixed(2)}
               </Text>
-              <Text style={[styles.Text2, {fontWeight: 'bold'}]}>
+              <Text style={[styles.Text2, { fontWeight: 'bold' }]}>
                 {TO_amount.toFixed(2)}
               </Text>
             </View>

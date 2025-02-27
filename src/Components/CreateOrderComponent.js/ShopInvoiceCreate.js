@@ -1,9 +1,9 @@
-import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, FlatList} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 
-const ShopInvoiceCreate = ({datas, allProduct}) => {
+const ShopInvoiceCreate = ({ datas, allProduct }) => {
   // console.log(allProduct, 'blbla');
-  console.log(datas, 'datas');
+  // console.log(datas, 'datas');
   const [ProductName, SetProductname] = useState();
   const filter = () => {
     let productName = [];
@@ -42,7 +42,7 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
       filter();
     }
   }, [allProduct, datas]);
-  const RanderData = ({title, items}) => {
+  const RanderData = ({ title, items }) => {
     // console.log(items)
 
     return (
@@ -51,7 +51,7 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
         <FlatList
           data={items}
           keyExtractor={(item, index) => index.toString()}
-          renderItem={({item}) => (
+          renderItem={({ item }) => (
             <View style={styles.productBlock}>
               <Text
                 style={
@@ -94,7 +94,7 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}>
-                <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
+                <View style={[styles.row, { marginLeft: 5, marginRight: 5 }]}>
                   <Text style={styles.label}>Gross Amount</Text>
                   <Text style={styles.value}>
                     {(
@@ -105,19 +105,19 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
                   </Text>
                 </View>
 
-                <View style={[styles.row, {marginLeft: 5, marginRight: 5}]}>
+                <View style={[styles.row, { marginLeft: 5, marginRight: 5 }]}>
                   <Text style={styles.label}>After T.O Amount</Text>
                   <Text style={styles.value}>
                     {(
                       item.itemss.pricing.trade_price *
-                        (item.carton_ordered *
-                          item.itemss.pricing.box_in_carton +
-                          item.box_ordered) -
+                      (item.carton_ordered *
+                        item.itemss.pricing.box_in_carton +
+                        item.box_ordered) -
                       item.itemss.pricing.trade_price *
-                        (item.itemss.trade_offer / 100) *
-                        (item.carton_ordered *
-                          item.itemss.pricing.box_in_carton +
-                          item.box_ordered)
+                      (item.itemss.trade_offer / 100) *
+                      (item.carton_ordered *
+                        item.itemss.pricing.box_in_carton +
+                        item.box_ordered)
                     ).toFixed(2)}
                   </Text>
                 </View>
@@ -133,12 +133,12 @@ const ShopInvoiceCreate = ({datas, allProduct}) => {
     <FlatList
       data={ProductName}
       keyExtractor={(item, index) => index.toString()}
-      renderItem={({item}) => (
+      renderItem={({ item }) => (
         <View>
           <RanderData title={item?.title} items={item.item} />
         </View>
       )}
-      contentContainerStyle={{padding: '2%'}}
+      contentContainerStyle={{ padding: '2%' }}
     />
   );
 };
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
   },
   title: {
     fontSize: 18,

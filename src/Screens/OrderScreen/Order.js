@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,11 @@ import {
   Platform,
   Alert, // Import Alert for user notifications
   ToastAndroid,
+  NativeModules
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import instance from '../../Components/BaseUrl';
-import {Picker} from '@react-native-picker/picker';
+import { Picker } from '@react-native-picker/picker';
 import NetInfo from '@react-native-community/netinfo'; // Import NetInfo
 import Loader from '../../Components/Loaders/Loader';
 import AddNewShop from '../ShopScreen/AddNewShop';
@@ -23,11 +24,11 @@ import AddNewShop from '../ShopScreen/AddNewShop';
 // };
 const getDayName = dateString => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {weekday: 'long'});
+  return date.toLocaleDateString('en-US', { weekday: 'long' });
 };
 
-const Order = ({route, navigation}) => {
-  const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
+const Order = ({ route, navigation }) => {
+  const [weekDates, setWeekDates] = useState({ startDate: null, endDate: null });
   const [isLoading, setIsLoading] = useState(false);
   const [allDates, setAllDates] = useState([]);
   const [allroute, setAllRoute] = useState([]);
@@ -35,11 +36,13 @@ const Order = ({route, navigation}) => {
   const [territorialData, setTerritorialData] = useState(null);
   const [pickerData, selectedPickerDate] = useState(null); // selected date string
   const [shops, setshops] = useState(null); // array of { date, route }
-  const {orderBokerId} = route.params;
+  const { orderBokerId } = route.params;
   const [userId, setUserId] = useState(null); // Initialize userId state
   // Network status state
   const [isConnected, setIsConnected] = useState(true);
   const [teerr, setteerr] = useState(null);
+  const [DateAuto, setDateAuto] = useState();
+
 
   // useEffect(() => {
   //   const fetchUserId = async () => {
@@ -50,6 +53,19 @@ const Order = ({route, navigation}) => {
 
   //   fetchUserId();
   // }, []);
+  const { DateTimeModule } = NativeModules;
+  useEffect(() => {
+    DateTimeModule.isAutoTimeEnabled(isEnabled => {
+      console.log('Auto time enabled:', isEnabled);
+      // setDateAuto(prev => isEnabled);
+      if (isEnabled == false) {
+        Alert.alert(
+          'Date Issue',
+          'Please enable "Set Automatically" for date and time in your settings till then no request will be sent to server',
+        );
+      }
+    });
+  }, []);
   const TokenRenew = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const refreshToken = await AsyncStorage.getItem('refresh_token');
@@ -124,7 +140,7 @@ const Order = ({route, navigation}) => {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 
-    return {startDate, endDate};
+    return { startDate, endDate };
   };
 
   const formatDateToYYYYMMDD = date => {
@@ -137,7 +153,7 @@ const Order = ({route, navigation}) => {
   useEffect(() => {
     const currentDate = new Date();
     if (currentDate) {
-      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      const { startDate, endDate } = getMondayToSundayWeek(currentDate);
       setWeekDates({
         startDate: formatDateToYYYYMMDD(startDate),
         endDate: formatDateToYYYYMMDD(endDate),
@@ -192,7 +208,7 @@ const Order = ({route, navigation}) => {
       rawTerritorialData.pjp_shops.forEach(val => {
         if (val.pjp_shops.route_shops.length > 0) {
           val.pjp_shops.route_shops.forEach(routeData => {
-            FilterRoute.push({date: val.pjp_date, route: routeData.route});
+            FilterRoute.push({ date: val.pjp_date, route: routeData.route });
           });
         }
       });
@@ -259,7 +275,7 @@ const Order = ({route, navigation}) => {
           offlineData.pjp_shops.forEach(val => {
             if (val.pjp_shops.route_shops.length > 0) {
               val.pjp_shops.route_shops.forEach(routeData => {
-                FilterRoute.push({date: val.pjp_date, route: routeData.route});
+                FilterRoute.push({ date: val.pjp_date, route: routeData.route });
               });
             }
           });
@@ -362,8 +378,8 @@ const Order = ({route, navigation}) => {
   };
 
   return (
-    <View style={{flex: 1}}>
-      <View style={{flex: 1, backgroundColor: '#fff', paddingHorizontal: 10}}>
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: '#fff', paddingHorizontal: 10 }}>
         <View style={[styles.pickerContainer, styles.borderPickBottom]}>
           <Picker
             selectedValue={pickerData}
@@ -371,14 +387,14 @@ const Order = ({route, navigation}) => {
             style={styles.picker}>
             <Picker.Item
               label={'Select Date'}
-              style={{color: '#000'}}
+              style={{ color: '#000' }}
               value={null}
             />
             {allDates.map((date, index) => (
               <Picker.Item
                 key={index}
                 label={`${getDayName(date)}, ${date}`} // Display day name + date
-                style={{color: 'grey'}}
+                style={{ color: 'grey' }}
                 value={date} // Keep value as the original date
               />
             ))}
@@ -390,15 +406,15 @@ const Order = ({route, navigation}) => {
             showsVerticalScrollIndicator={false}
             ItemSeparatorComponent={
               Platform.OS !== 'android' &&
-              (({highlighted}) => (
+              (({ highlighted }) => (
                 <View
-                  style={[styles.separator, highlighted && {marginLeft: 0}]}
+                  style={[styles.separator, highlighted && { marginLeft: 0 }]}
                 />
               ))
             }
             data={shops}
             keyExtractor={(item, index) => index.toString()}
-            renderItem={({item, index}) => (
+            renderItem={({ item, index }) => (
               <TouchableOpacity
                 style={styles.routeContainer}
                 key={index}
@@ -410,7 +426,7 @@ const Order = ({route, navigation}) => {
                       shopItem.date === selectedDate &&
                       shopItem.route.name === selectedRoute.name,
                   ).map(shopItem => shopItem.shop);
-                  console.log(`${selectedDate} selectedDate`);
+                  console.log(`${selectedDate} selectedDate`, selectedRoute, 'selected route');
                   navigation.navigate('AllShops', {
                     Shops: filteredShops,
                     RouteName: selectedRoute,
@@ -420,7 +436,7 @@ const Order = ({route, navigation}) => {
                 }}>
                 <View style={styles.routeInnerContainer}>
                   <Text style={styles.routeName}>{item.route.name}</Text>
-                  <Text style={{color: '#000'}}>
+                  <Text style={{ color: '#000' }}>
                     Shop Count:{' '}
                     {
                       AllShops.filter(
@@ -435,11 +451,11 @@ const Order = ({route, navigation}) => {
             )}
           />
         ) : // pickerData && (
-        //   <Text style={styles.noDataText}>
-        //     No routes available for this date
-        //   </Text>
-        // )
-        null}
+          //   <Text style={styles.noDataText}>
+          //     No routes available for this date
+          //   </Text>
+          // )
+          null}
       </View>
       {isLoading && <Loader />}
     </View>

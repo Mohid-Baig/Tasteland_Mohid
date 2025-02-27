@@ -8,7 +8,7 @@ import {
   StatusBar,
   ToastAndroid,
 } from 'react-native';
-import React, {useState, useEffect, useRef, useCallback} from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import AddProducts from '../../Components/CreateOrderComponent.js/AddProducts';
 import BottomSheet from '@gorhom/bottom-sheet';
@@ -18,19 +18,19 @@ import ShowValues from '../../Components/CreateOrderComponent.js/ShowValues';
 import instance from '../../Components/BaseUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Loader from '../../Components/Loaders/Loader';
-import {useDispatch, useSelector} from 'react-redux';
-import {AddToCart, RemoveAllCart} from '../../Components/redux/action';
-import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
-import {calendarFormat} from 'moment';
+import { useDispatch, useSelector } from 'react-redux';
+import { AddToCart, RemoveAllCart } from '../../Components/redux/action';
+import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { calendarFormat } from 'moment';
 import SpecialDis from '../../Components/CreateOrderComponent.js/SpecialDis';
-const CreateOrder = ({navigation, route}) => {
+const CreateOrder = ({ navigation, route }) => {
   const [openclosesearch, setopenclosesearch] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
   const [productNaame, SetProductname] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
-  const {Store, shopData, Invoiceitems, existingOrderId, cItems} = route.params;
+  const { Store, shopData, Invoiceitems, existingOrderId, cItems } = route.params;
   const [searchText, setSearchText] = useState('');
   const [GrossAmount, setGrossAmount] = useState(0);
   const [distributiveDiscount, setDistributiveDiscount] = useState(null);
@@ -128,67 +128,80 @@ const CreateOrder = ({navigation, route}) => {
   // } else {
   //   cartItems = useSelector(state => state.reducer); // Assign conditionally
   // }
-  console.log(JSON.stringify(cartItems), 'cartItems...');
+  // console.log(JSON.stringify(cartItems), 'cartItems...');
   useEffect(() => {
-    // console.log(cartItems, 'Item');
     if (cartItems.length > 0) {
-      // console.log(cartItems.length,'suh')
       let Product_Count = 0;
       let GrossAmount = 0;
       let TO_Discount = 0;
       let gst = 0;
+
       cartItems.forEach(item => {
-        // console.log(item, 'Item kkk');
-        Product_Count +=
-          item?.itemss?.pricing?.trade_price *
-            (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
-          (item?.itemss?.trade_offer / 100) *
-            item?.itemss?.pricing?.trade_price;
-        GrossAmount +=
-          item?.itemss?.pricing?.trade_price *
-          (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
-        // console.log(
-        //   item?.itemss?.pricing?.gst_base,
-        //   'gst base console for time being',
-        // );
-        if (item?.itemss?.pricing?.gst_base === 'Retail Price') {
-          gst =
-            gst +
-            item.itemss.pricing?.retail_price *
-              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
-              (item?.itemss?.pricing?.pricing_gst / 100);
-          // console.log(gst, 'GST Price');
-          // console.log(GrossAmount, '==');
+        const { carton_ordered, box_ordered, itemss } = item;
+        const { trade_offer, pricing } = itemss;
+        const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing;
+
+        // Calculate the total quantity (boxes or pieces)
+        let quantity = 0;
+        if (carton_ordered > 0) {
+          // For carton orders, calculate total boxes
+          quantity = carton_ordered * box_in_carton + box_ordered;
+        } else {
+          // For box orders only
+          quantity = box_ordered;
+        }
+
+        // Calculate Gross Amount (total price before any discount)
+        const itemGrossAmount = trade_price * quantity;
+        GrossAmount += itemGrossAmount;
+
+        // Calculate Trade Offer Discount
+        const itemTODiscount = (trade_offer / 100) * itemGrossAmount;
+        TO_Discount += itemTODiscount;
+
+        // Calculate Product_Count (total price after trade offer discount)
+        Product_Count += itemGrossAmount - itemTODiscount;
+
+        // Calculate GST
+        if (gst_base === 'Retail Price') {
+          const itemGST = retail_price * quantity * (pricing_gst / 100);
+          gst += itemGST;
         }
       });
-      // console.log(Product_Count, 'Product_Count');
+
       setTotalprice(Product_Count);
       setGrossAmount(GrossAmount);
-      setSelectedProductData(cartItems);
+      setTodiscount(TO_Discount);
       setGst(gst);
-      // console.log(Product_Count, 'Product Count');
-      // console.log(GrossAmount, 'GrossAmount');
-      // dispatch(AddToCart(filteredData));
     } else {
       setTotalprice(0);
-      setTotalprice(0);
       setGrossAmount(0);
+      setTodiscount(0);
       setGst(0);
     }
   }, [cartItems]);
 
+  // Similarly, update the TO discount calculation
   useEffect(() => {
     if (cartItems.length > 0) {
       let discountSum = 0;
       cartItems.forEach(item => {
+        // Calculate quantity properly
+        let quantity = 0;
+        if (item.carton_ordered > 0) {
+          quantity = item.itemss.pricing.box_in_carton * item.carton_ordered + item.box_ordered;
+        } else {
+          quantity = item.box_ordered;
+        }
+
         const itemDiscount =
           (item?.itemss?.trade_offer / 100) *
           item?.itemss?.pricing?.trade_price *
-          (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
+          quantity;
+
         discountSum += itemDiscount;
       });
       setTodiscount(discountSum);
-      console.log('TO_Discount:', discountSum);
     } else {
       setTodiscount(0);
     }
@@ -247,7 +260,7 @@ const CreateOrder = ({navigation, route}) => {
         );
 
         processProducts(response.data);
-        console.log(response.data);
+        // console.log(response.data);
         // Optionally save the fetched data to AsyncStorage
         // const pricingDataKey = `pricingData_${userId}`;
         // await AsyncStorage.setItem(pricingDataKey, JSON.stringify(response.data));
@@ -296,7 +309,7 @@ const CreateOrder = ({navigation, route}) => {
           },
         );
 
-        console.log(response.data, 'distributerdiscount - -');
+        // console.log(response.data, 'distributerdiscount - -');
 
         // Ensure the response is in array format
         const discountData = Array.isArray(response.data)
@@ -432,7 +445,7 @@ const CreateOrder = ({navigation, route}) => {
     ) {
       // Filter discounts by the store's shop type
       const filteredDiscounts = distributiveDiscount.filter(
-        discount => discount?.shop_type?.id === Store?.shop_type?.id,
+        discount => discount?.shop_type?.id === Store?.fk_shop_type,
       );
 
       if (filteredDiscounts.length > 0) {
@@ -485,67 +498,64 @@ const CreateOrder = ({navigation, route}) => {
       let finalDiscount = 0;
       let selectedRate = 0; // Store the highest applicable discount
 
-      SpecaialDiscount.forEach((item, index) => {
-        // console.log(`Checking Special Discount Item ID: ${item.id}`);
-        // console.log(
-        //   `Item Gross Amount: ${item.gross_amount}, Item Rate: ${item.rate}, Item Amount: ${item.amount}`,
-        // );
-        // console.log(
-        //   `Current Gross Amount: ${GrossAmount}, Shop Type: ${Store?.fk_shop_type}`,
-        // );
+      SpecaialDiscount.forEach((item) => {
+        // Check if the item matches the shop type 
+        if (item?.fk_shop_type === Store?.shop_type?.id || item?.fk_shop_type === Store?.fk_shop_type) {
 
-        // Check if the item matches the shop type and gross amount condition
-        if (item?.fk_shop_type === Store?.fk_shop_type) {
-          // console.log('Shop types match!');
+          // Case 1: Gross amount-based discount
+          if (item.activation_type === 'gross' && item.gross_amount !== null) {
+            if (GrossAmount >= item.gross_amount) {
+              let discount = 0;
 
-          if (GrossAmount >= item.gross_amount) {
-            let discount = 0;
+              if (item.rate && item.discount_type === 'rate') {
+                discount = GrossAmount * (item.rate / 100); // Calculate discount based on rate
+              } else if (item.amount && item.discount_type === 'amount') {
+                discount = item.amount; // Apply flat amount
+              }
 
-            if (item.rate) {
-              discount = GrossAmount * (item.rate / 100); // Calculate discount based on rate
-              // console.log(
-              //   `Rate-based Discount for Item ID: ${item.id} = ${discount}`,
-              // );
-            } else if (item.amount) {
-              discount = item.amount; // Apply flat amount if no rate
-              // console.log(
-              //   `Amount-based Discount for Item ID: ${item.id} = ${discount}`,
-              // );
+              if (discount > finalDiscount) {
+                finalDiscount = discount;
+                selectedRate = item.rate; // Use the rate that applied to this discount
+              }
             }
-
-            if (discount > finalDiscount) {
-              finalDiscount = discount;
-              selectedRate = item.rate; // Use the rate that applied to this discount
-              console.log(
-                `Updated Final Discount: ${finalDiscount}, Rate Used: ${selectedRate}`,
-              );
-            }
-            // setDiscountRate(selectedRate);
-          } else {
-            // console.log(
-            //   `GrossAmount ${GrossAmount} is less than required item.gross_amount ${item.gross_amount}`,
-            // );
           }
-        } else {
-          // console.log(
-          //   `Shop type mismatch! Item shop type: ${item.fk_shop_type}, Store shop type: ${Store?.fk_shop_type}`,
-          // );
+          // Case 2: Carton quantity-based discount
+          else if (item.activation_type === 'carton' && item.carton_quantity !== null) {
+            // Calculate total carton quantity across all cart items
+            let totalCartonQuantity = 0;
+            cartItems.forEach(cartItem => {
+              totalCartonQuantity += cartItem.carton_ordered || 0;
+            });
+
+            // Check if the total carton quantity meets or exceeds the required amount
+            if (totalCartonQuantity >= item.carton_quantity) {
+              let discount = 0;
+
+              if (item.rate && item.discount_type === 'rate') {
+                discount = GrossAmount * (item.rate / 100); // Calculate discount based on rate
+              } else if (item.amount && item.discount_type === 'amount') {
+                discount = item.amount; // Apply flat amount
+              }
+
+              if (discount > finalDiscount) {
+                finalDiscount = discount;
+                selectedRate = item.rate;
+              }
+            }
+          }
         }
       });
 
       // Set the calculated special discount
       if (finalDiscount > 0) {
-        // console.log('Final Special Discount Applied:', finalDiscount);
         setApplySpecialDiscount(finalDiscount);
         setDiscountRate(selectedRate);
       } else {
-        // console.log('No applicable special discount after checking all items');
         setApplySpecialDiscount(0);
         setDiscountRate(0);
       }
     } else {
       // No special discounts found
-      // console.log('No special discounts found');
       setApplySpecialDiscount(0);
       setDiscountRate(0);
     }
@@ -684,7 +694,7 @@ const CreateOrder = ({navigation, route}) => {
           />
           <TouchableOpacity
             onPress={() => {
-              const {RouteDate} = route.params;
+              const { RouteDate } = route.params;
               navigation.navigate('ConfirmOrder', {
                 Store: Store,
                 RouteDate: RouteDate,
@@ -710,7 +720,7 @@ const CreateOrder = ({navigation, route}) => {
 };
 export default CreateOrder;
 const styles = StyleSheet.create({
-  container: {flex: 1},
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     backgroundColor: '#2196f3',
@@ -726,9 +736,9 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
   },
-  searchButton: {width: '15%', alignItems: 'center', justifyContent: 'center'},
-  searchInputContainer: {width: '70%', justifyContent: 'center'},
-  searchInput: {color: '#fff'},
+  searchButton: { width: '15%', alignItems: 'center', justifyContent: 'center' },
+  searchInputContainer: { width: '70%', justifyContent: 'center' },
+  searchInput: { color: '#fff' },
   backButton: {
     width: '15%',
     alignItems: 'center',
@@ -741,15 +751,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: 10,
   },
-  storeNameText: {color: '#fff', fontSize: 20},
+  storeNameText: { color: '#fff', fontSize: 20 },
   searchIconButton: {
     width: '15%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 10,
   },
-  productsContainer: {height: '80%'},
-  footer: {position: 'absolute', bottom: 0, width: '100%'},
+  productsContainer: { height: '80%' },
+  footer: { position: 'absolute', bottom: 0, width: '100%' },
   footerButton: {
     backgroundColor: '#607D8B',
     width: '100%',
@@ -764,16 +774,16 @@ const styles = StyleSheet.create({
     height: 50,
     padding: 10,
   },
-  footerText: {color: '#fff'},
+  footerText: { color: '#fff' },
   confirmOrderHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '2%',
   },
-  confirmOrderText: {color: '#000', fontSize: 25},
-  orderDetails: {padding: '2%'},
-  orderStoreName: {color: '#c0c0c0', fontSize: 25},
+  confirmOrderText: { color: '#000', fontSize: 25 },
+  orderDetails: { padding: '2%' },
+  orderStoreName: { color: '#c0c0c0', fontSize: 25 },
   separator: {
     width: '100%',
     height: 1,
@@ -781,7 +791,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e0e0e0',
     marginTop: '2%',
   },
-  boldText: {fontWeight: 'bold', color: '#000'},
+  boldText: { fontWeight: 'bold', color: '#000' },
   createOrderButton: {
     backgroundColor: 'green',
     alignItems: 'center',
@@ -789,5 +799,5 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 20,
   },
-  createOrderText: {color: '#fff'},
+  createOrderText: { color: '#fff' },
 });

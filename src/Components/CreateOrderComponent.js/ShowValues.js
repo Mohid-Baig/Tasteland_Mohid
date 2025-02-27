@@ -62,8 +62,8 @@
 
 // const styles = StyleSheet.create({});
 
-import {StyleSheet, Text, View} from 'react-native';
-import React, {useEffect, useState} from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
 
 const ShowValues = ({
   leftStyle,
@@ -77,7 +77,7 @@ const ShowValues = ({
   // const [gstText, setGstTxt] = useState([]);
   // Log percent to check its value
   // console.log('Received percent:', percent);
-  console.log(gstTxt, 'gstText');
+  // console.log(gstTxt, 'gstText');
 
   // useEffect(() => {
   //   const pricingGst = gstTxt[0].itemss.pricing.pricing_gst;
@@ -98,17 +98,17 @@ const ShowValues = ({
         marginRight: 10,
         marginBottom: 10,
       }}>
-      <View style={{flexDirection: 'row'}}>
-        <View style={{width: '50%'}}>
-          <Text style={[{color: '#000'}, leftStyle]}>{Lefttxt}</Text>
+      <View style={{ flexDirection: 'row' }}>
+        <View style={{ width: '40%' }}>
+          <Text style={[{ color: '#000' }, leftStyle]}>{Lefttxt}</Text>
         </View>
-        <View style={{width: '50%'}}>
+        <View style={{ width: '60%' }}>
           {!gstTxt ? (
-            <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
+            <Text style={[{ marginLeft: 'auto', color: '#000' }, rightStyle]}>
               {rateText} {RightText}
             </Text>
           ) : (
-            <Text style={[{marginLeft: 'auto', color: '#000'}, rightStyle]}>
+            <Text style={[{ marginLeft: 'auto', color: '#000' }, rightStyle]}>
               ({gstTxt}%) {RightText}
             </Text>
           )}

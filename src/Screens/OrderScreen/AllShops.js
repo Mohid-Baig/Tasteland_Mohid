@@ -22,13 +22,13 @@ import {
   PermissionsAndroid,
   ToastAndroid,
 } from 'react-native';
-import {SearchBar, Header, Button, Icon} from 'react-native-elements';
+import { SearchBar, Header, Button, Icon } from 'react-native-elements';
 // import { TextInput } from 'react-native-paper';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import {shallowEqual, useDispatch, useSelector} from 'react-redux';
-import {RemoveAllCart} from '../../Components/redux/action';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { RemoveAllCart } from '../../Components/redux/action';
 
-import {useFocusEffect} from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import instance from '../../Components/BaseUrl';
 import CheckBox from '@react-native-community/checkbox';
@@ -37,10 +37,10 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import GetLocation from 'react-native-get-location';
 import Loader from '../../Components/Loaders/Loader';
-import {black} from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import { black } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
 import NetInfo from '@react-native-community/netinfo';
-import {Remove_All_Cart} from '../../Components/redux/constants';
-import {AddToCart} from '../../Components/redux/action';
+import { Remove_All_Cart } from '../../Components/redux/constants';
+import { AddToCart } from '../../Components/redux/action';
 
 // let StockAlreadyExist = [];
 // const Add_Left_Stock = payload => {
@@ -83,7 +83,7 @@ import {AddToCart} from '../../Components/redux/action';
 // };
 
 const AddSingleProduct = memo(
-  ({boxInCtn, itemss, del, StockAlreadyExist, Add_Left_Stock}) => {
+  ({ boxInCtn, itemss, del, StockAlreadyExist, Add_Left_Stock }) => {
     const [Pack, setPack] = useState(0);
     const [carton, setCarton] = useState(0);
     const [addOn, setAddOn] = useState('pack');
@@ -196,7 +196,7 @@ const AddSingleProduct = memo(
           borderBottomColor: '#000',
           borderBottomWidth: 1,
         }}>
-        <Text style={{color: '#000', fontSize: 13}}>
+        <Text style={{ color: '#000', fontSize: 13 }}>
           {`${itemss.pricing.product.name} ${itemss.pricing.sku.name} ${itemss.pricing.variant.name}`}
         </Text>
         <View
@@ -211,9 +211,9 @@ const AddSingleProduct = memo(
             color={'red'}
             onPress={() => handleDelete(itemss.pricing.id)}
           />
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity
-              style={{padding: '1%'}}
+              style={{ padding: '1%' }}
               onPress={() => AddSub('Sub')}>
               <AntDesign name="minuscircle" size={24} color={'#2196f3'} />
             </TouchableOpacity>
@@ -230,10 +230,10 @@ const AddSingleProduct = memo(
                 placeholderTextColor={'#000'}
                 keyboardType="numeric"
                 onFocus={() => setAddOn('carton')}
-                style={{color: '#000'}}
+                style={{ color: '#000' }}
               />
             </View>
-            <View style={{padding: '1%'}}>
+            <View style={{ padding: '1%' }}>
               <Text>-</Text>
             </View>
             <View
@@ -249,11 +249,11 @@ const AddSingleProduct = memo(
                 placeholderTextColor={'#000'}
                 keyboardType="numeric"
                 onFocus={() => setAddOn('pack')}
-                style={{color: '#000'}}
+                style={{ color: '#000' }}
               />
             </View>
             <TouchableOpacity
-              style={{padding: '1%'}}
+              style={{ padding: '1%' }}
               onPress={() => AddSub('Add')}>
               <AntDesign name="pluscircle" size={24} color={'#2196f3'} />
             </TouchableOpacity>
@@ -265,7 +265,7 @@ const AddSingleProduct = memo(
 );
 
 // import AntDesign from 'react-native-vector-icons/AntDesign'
-const AllShops = ({navigation, route}) => {
+const AllShops = ({ navigation, route }) => {
   const [search, setSearch] = useState('');
   const [openclosesearch, setopenclosesearch] = useState(false);
   const [stores, setStores] = useState(null);
@@ -305,7 +305,7 @@ const AllShops = ({navigation, route}) => {
   const [matchingOrderID, setMatchingOrderID] = useState();
   const [unOfflineShops, setunOfflineShops] = useState();
   const [isConnected, setIsConnected] = useState(true);
-  const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
+  const [weekDates, setWeekDates] = useState({ startDate: null, endDate: null });
   const [OrderBokerId, setorderBokerId] = useState();
   const [cartITT, setCariTT] = useState();
   const gstRef = useRef(0);
@@ -488,7 +488,7 @@ const AllShops = ({navigation, route}) => {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 
-    return {startDate, endDate};
+    return { startDate, endDate };
   };
 
   const formatDateToYYYYMMDD = date => {
@@ -501,7 +501,7 @@ const AllShops = ({navigation, route}) => {
   useEffect(() => {
     const currentDate = new Date();
     if (currentDate) {
-      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      const { startDate, endDate } = getMondayToSundayWeek(currentDate);
       setWeekDates({
         startDate: formatDateToYYYYMMDD(startDate),
         endDate: formatDateToYYYYMMDD(endDate),
@@ -512,12 +512,12 @@ const AllShops = ({navigation, route}) => {
   const getTerritorial = async () => {
     setIsLoading(true);
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-    const {Shops, RouteName, RouteDate, orderBokerId} = route.params;
+    const { Shops, RouteName, RouteDate, orderBokerId } = route.params;
     const orderbookerID = await AsyncStorage.getItem('orderBokerId');
     try {
-      console.log(
-        `/radar_flutter/territorial/${orderbookerID}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
-      );
+      // console.log(
+      //   `/radar_flutter/territorial/${orderbookerID}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
+      // );
       const response = await instance.get(
         `/radar_flutter/territorial/${orderbookerID}?start_date=${weekDates.startDate}&end_date=${weekDates.endDate}`,
         {
@@ -527,18 +527,26 @@ const AllShops = ({navigation, route}) => {
         },
       );
       const rawTerritorialData = response.data;
+      // console.log(JSON.stringify(rawTerritorialData))
       response.data.pjp_shops.forEach(it => {
-        if (it?.pjp_date == RouteDate) {
+        if (it?.pjp_date === RouteDate) {
           it?.pjp_shops?.route_shops?.forEach(item => {
-            if (it?.pjp_shops?.route_shops?.length > 0) {
-              setSelectedRoute(item?.route);
-              setStores(item?.shops);
-              setFilteredStores(item?.shops);
-              console.log('Data successfully set');
+            if (item.route.name === RouteName.name) {
+              console.log(item.route.name, 'route name')
+              if (item?.shops?.length > 0) {
+                setSelectedRoute(item?.route);
+                setStores(item?.shops);
+                setFilteredStores(item?.shops);
+                console.log(Selectedroute, 'route')
+                console.log('Data successfully set');
+              } else {
+                console.log('No shops available');
+              }
             }
           });
         }
       });
+
     } catch (error) {
       console.log('Error fetching territorial data:', error);
       Alert.alert('Error', 'Failed to fetch data from the server.', [
@@ -566,13 +574,19 @@ const AllShops = ({navigation, route}) => {
         const offlineData = await fetchOfflineRouteData(); // Use the offline function here
         if (offlineData) {
           offlineData.pjp_shops.forEach(it => {
-            if (it?.pjp_date == RouteDate) {
+            if (it?.pjp_date === RouteDate) {
               it?.pjp_shops?.route_shops?.forEach(item => {
-                if (it?.pjp_shops?.route_shops?.length > 0) {
-                  setSelectedRoute(item?.route);
-                  setStores(item?.shops);
-                  setFilteredStores(item?.shops);
-                  console.log('Data successfully set');
+                if (item.route.name === RouteName.name) {
+                  console.log(item.route.name, 'route name')
+                  if (item?.shops?.length > 0) {
+                    setSelectedRoute(item?.route);
+                    setStores(item?.shops);
+                    setFilteredStores(item?.shops);
+                    console.log(Selectedroute, 'route')
+                    console.log('Data successfully set');
+                  } else {
+                    console.log('No shops available');
+                  }
                 }
               });
             }
@@ -611,11 +625,11 @@ const AllShops = ({navigation, route}) => {
       unsubscribe();
     };
   }, [isConnected]);
-  const {Shops, RouteName, RouteDate} = route.params;
+  const { Shops, RouteName, RouteDate } = route.params;
 
   useEffect(() => {
     // console.log('Shops:', Shops);
-    // console.log('RouteName:', RouteName);
+    console.log('RouteName:', RouteName);
     // if (!Shops || !RouteName) {
     if (weekDates.startDate && weekDates.endDate && orderBokerId) {
       loadData();
@@ -624,7 +638,7 @@ const AllShops = ({navigation, route}) => {
   }, [RouteDate, weekDates, orderBokerId]);
 
   useEffect(() => {
-    const {Shops, RouteName, RouteDate, orderBokerId} = route.params;
+    const { Shops, RouteName, RouteDate, orderBokerId } = route.params;
     // console.log(Shops);
     // console.log(RouteName, 'RouteName in aaaallshops');
     // console.log(RouteDate);
@@ -933,26 +947,38 @@ const AllShops = ({navigation, route}) => {
             let gst = 0;
 
             cartItems.forEach(item => {
-              Product_Count +=
-                item?.itemss?.pricing.trade_price *
-                  (item?.pack_in_box * item?.carton_ordered +
-                    item?.box_ordered) -
-                (item?.itemss?.trade_offer / 100) *
-                  item?.itemss?.pricing.trade_price;
+              const { carton_ordered, box_ordered, itemss } = item;
+              const { trade_offer, pricing } = itemss;
+              const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing;
 
-              GrossAmount +=
-                item?.itemss?.pricing.trade_price *
-                (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
+              // Calculate the total quantity (boxes or pieces)
+              let quantity = 0;
+              if (carton_ordered > 0) {
+                // For carton orders, calculate total boxes
+                quantity = carton_ordered * box_in_carton + box_ordered;
+              } else {
+                // For box orders only
+                quantity = box_ordered;
+              }
 
-              if (item?.itemss?.pricing.gst_base === 'Retail Price') {
-                gst +=
-                  item.itemss.pricing.retail_price *
-                  (item?.pack_in_box * item?.carton_ordered +
-                    item?.box_ordered) *
-                  (item?.itemss?.pricing.pricing_gst / 100);
+              // Calculate Gross Amount (total price before any discount)
+              const itemGrossAmount = trade_price * quantity;
+              GrossAmount += itemGrossAmount;
+
+              // Calculate Trade Offer Discount
+              const itemTODiscount = (trade_offer / 100) * itemGrossAmount;
+
+              // Calculate Product_Count (total price after trade offer discount)
+              Product_Count += itemGrossAmount - itemTODiscount;
+
+              // Calculate GST
+              if (gst_base === 'Retail Price') {
+                const itemGST = retail_price * quantity * (pricing_gst / 100);
+                gst += itemGST;
               }
             });
 
+            // Update states with the new values after loop
             console.log('New GST Calculated:', gst);
             setTotalprice(Product_Count);
             setGrossAmount(GrossAmount);
@@ -1138,7 +1164,7 @@ const AllShops = ({navigation, route}) => {
     });
   };
 
-  const renderItem = ({item, index}) => {
+  const renderItem = ({ item, index }) => {
     const matchingOrder = offlineOrders.find(
       order => order.shop.id === item.id,
     );
@@ -1182,9 +1208,9 @@ const AllShops = ({navigation, route}) => {
               ) : isUnproductive || matchingUNOfflineOrderbyID ? (
                 <FontAwesome name="check" size={25} color={'red'} />
               ) : null}
-              <View style={{marginLeft: 10}}>
+              <View style={{ marginLeft: 10 }}>
                 <TouchableOpacity
-                  style={[styles.button, {marginBottom: 5}]}
+                  style={[styles.button, { marginBottom: 5 }]}
                   onPress={() => {
                     console.log(item);
                     if (isOffline && matchingOrder) {
@@ -1210,7 +1236,7 @@ const AllShops = ({navigation, route}) => {
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
-                    <Text style={{fontSize: 9, color: '#fff'}}>pending</Text>
+                    <Text style={{ fontSize: 9, color: '#fff' }}>pending</Text>
                   </View>
                 ) : (
                   <View
@@ -1222,14 +1248,14 @@ const AllShops = ({navigation, route}) => {
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}>
-                    <Text style={{fontSize: 9, color: '#fff'}}>No pending</Text>
+                    <Text style={{ fontSize: 9, color: '#fff' }}>No pending</Text>
                   </View>
                 )}
               </View>
             </View>
           </View>
 
-          <View style={{width: 20}}></View>
+          <View style={{ width: 20 }}></View>
 
           {/* Info button to show more details in a modal */}
           <TouchableOpacity
@@ -1278,19 +1304,19 @@ const AllShops = ({navigation, route}) => {
                 }}>
                 {sselectedShop.name}
               </Text>
-              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+              <Text style={{ fontSize: 14, color: '#000', marginBottom: 17 }}>
                 ID: {sselectedShop.id}
               </Text>
-              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+              <Text style={{ fontSize: 14, color: '#000', marginBottom: 17 }}>
                 Shop Type: {sselectedShop.category}
               </Text>
-              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+              <Text style={{ fontSize: 14, color: '#000', marginBottom: 17 }}>
                 Owner Name: {sselectedShop.owner}
               </Text>
-              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+              <Text style={{ fontSize: 14, color: '#000', marginBottom: 17 }}>
                 Address: {sselectedShop.address}
               </Text>
-              <Text style={{fontSize: 14, color: '#000', marginBottom: 17}}>
+              <Text style={{ fontSize: 14, color: '#000', marginBottom: 17 }}>
                 Cell No: {sselectedShop.cell}
               </Text>
 
@@ -1311,7 +1337,7 @@ const AllShops = ({navigation, route}) => {
                   });
                   setMModalVisible(false);
                 }}>
-                <Text style={[styles.modifyButtonText, {color: '#000'}]}>
+                <Text style={[styles.modifyButtonText, { color: '#000' }]}>
                   Modify
                 </Text>
               </TouchableOpacity>
@@ -1948,7 +1974,7 @@ const AllShops = ({navigation, route}) => {
               }}>
               <AntDesign name={'arrowleft'} size={20} color={'#fff'} />
             </TouchableOpacity>
-            <View style={{width: '70%', justifyContent: 'center'}}>
+            <View style={{ width: '70%', justifyContent: 'center' }}>
               <TextInput
                 placeholder="Search..."
                 placeholderTextColor={'#fff'}
@@ -1961,7 +1987,7 @@ const AllShops = ({navigation, route}) => {
         ) : null}
         {renderModal()}
         <TouchableOpacity
-          style={{width: '15%', alignItems: 'center', justifyContent: 'center'}}
+          style={{ width: '15%', alignItems: 'center', justifyContent: 'center' }}
           onPress={() => {
             navigation.goBack();
           }}>
@@ -1973,12 +1999,12 @@ const AllShops = ({navigation, route}) => {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-          <Text style={{color: '#fff', fontSize: 20}}>
+          <Text style={{ color: '#fff', fontSize: 20 }}>
             {Selectedroute?.name}
           </Text>
         </View>
         <TouchableOpacity
-          style={{width: '15%', alignItems: 'center', justifyContent: 'center'}}
+          style={{ width: '15%', alignItems: 'center', justifyContent: 'center' }}
           onPress={() => {
             togglesearch();
           }}>
@@ -2030,14 +2056,14 @@ const AllShops = ({navigation, route}) => {
                       Mark Unproductive Visit
                     </Text>
                   </TouchableOpacity>
-                  <View style={{flexDirection: 'row', width: '100%'}}>
+                  <View style={{ flexDirection: 'row', width: '100%' }}>
                     <TouchableOpacity onPress={closeModal}>
-                      <Text style={{color: 'red', marginTop: 20}}>Cancel</Text>
+                      <Text style={{ color: 'red', marginTop: 20 }}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={closeModal}
-                      style={{marginLeft: 'auto'}}>
-                      <Text style={{color: 'red', marginTop: 20}}>Confirm</Text>
+                      style={{ marginLeft: 'auto' }}>
+                      <Text style={{ color: 'red', marginTop: 20 }}>Confirm</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -2066,14 +2092,14 @@ const AllShops = ({navigation, route}) => {
                             style={[
                               styles.btn_cont,
                               view === 'Customer Refused' &&
-                                styles.selected_btn,
+                              styles.selected_btn,
                             ]}
                             onPress={() => handlePress('Customer Refused')}>
                             <Text
                               style={[
                                 styles.btn_txt,
                                 view === 'Customer Refused' &&
-                                  styles.selected_txt,
+                                styles.selected_txt,
                               ]}>
                               Customer
                             </Text>
@@ -2081,7 +2107,7 @@ const AllShops = ({navigation, route}) => {
                               style={[
                                 styles.btn_txt,
                                 view === 'Customer Refused' &&
-                                  styles.selected_txt,
+                                styles.selected_txt,
                               ]}>
                               Refused
                             </Text>
@@ -2091,14 +2117,14 @@ const AllShops = ({navigation, route}) => {
                             style={[
                               styles.btn_cont,
                               view === 'Stock Already Exist' &&
-                                styles.selected_btn,
+                              styles.selected_btn,
                             ]}
                             onPress={() => handlePress('Stock Already Exist')}>
                             <Text
                               style={[
                                 styles.btn_txt,
                                 view === 'Stock Already Exist' &&
-                                  styles.selected_txt,
+                                styles.selected_txt,
                               ]}>
                               Stock Already
                             </Text>
@@ -2106,7 +2132,7 @@ const AllShops = ({navigation, route}) => {
                               style={[
                                 styles.btn_txt,
                                 view === 'Stock Already Exist' &&
-                                  styles.selected_txt,
+                                styles.selected_txt,
                               ]}>
                               Exist
                             </Text>
@@ -2115,14 +2141,14 @@ const AllShops = ({navigation, route}) => {
 
                         {view === 'Shop Closed' && (
                           <View style={styles.view_cont}>
-                            <Text style={{color: '#a0a0a0'}}>Reason :</Text>
+                            <Text style={{ color: '#a0a0a0' }}>Reason :</Text>
                             <View
                               style={{
                                 borderBottomColor: '#000',
                                 borderBottomWidth: 1,
                               }}>
                               <TextInput
-                                style={{backgroundColor: '#fff', color: '#000'}}
+                                style={{ backgroundColor: '#fff', color: '#000' }}
                                 value={shopcloseReason}
                                 textColor={'#000'}
                                 // activeUnderlineColor='#3ef0c0'
@@ -2136,14 +2162,14 @@ const AllShops = ({navigation, route}) => {
 
                         {view === 'Customer Refused' && (
                           <View style={styles.view_cont}>
-                            <Text style={{color: '#a0a0a0'}}>Reason*:</Text>
+                            <Text style={{ color: '#a0a0a0' }}>Reason*:</Text>
                             <View
                               style={{
                                 borderBottomColor: '#000',
                                 borderBottomWidth: 1,
                               }}>
                               <TextInput
-                                style={{backgroundColor: '#fff', color: '#000'}}
+                                style={{ backgroundColor: '#fff', color: '#000' }}
                                 value={customerRefused}
                                 textColor={'#000'}
                                 // activeUnderlineColor='#3ef0c0'
@@ -2180,7 +2206,7 @@ const AllShops = ({navigation, route}) => {
                                     justifyContent: 'center',
                                   }}
                                   onPress={() => setSKUView(true)}>
-                                  <Text style={{color: '#000'}}>
+                                  <Text style={{ color: '#000' }}>
                                     Select SKU
                                   </Text>
                                 </TouchableOpacity>
@@ -2200,7 +2226,7 @@ const AllShops = ({navigation, route}) => {
                                   </TouchableOpacity>
 
                                   <TouchableOpacity
-                                    style={{marginLeft: 9}}
+                                    style={{ marginLeft: 9 }}
                                     onPress={() => {
                                       setExistingProduct([]);
 
@@ -2219,7 +2245,7 @@ const AllShops = ({navigation, route}) => {
                                 </View>
                               </View>
                             </View>
-                            <View style={{height: '80%'}}>
+                            <View style={{ height: '80%' }}>
                               <FlatList
                                 showsVerticalScrollIndicator={false}
                                 data={selectedProduct} // Ensure this contains the expected data
@@ -2227,7 +2253,7 @@ const AllShops = ({navigation, route}) => {
                                   item?.pricing.id?.toString() ||
                                   index.toString()
                                 }
-                                renderItem={({item}) => (
+                                renderItem={({ item }) => (
                                   <AddSingleProduct
                                     itemss={item}
                                     boxInCtn={boxFilter(
@@ -2276,13 +2302,13 @@ const AllShops = ({navigation, route}) => {
                                 justifyContent: 'space-between',
                               }}>
                               <TouchableOpacity onPress={closeModal}>
-                                <Text style={{color: 'red'}}>Cancel</Text>
+                                <Text style={{ color: 'red' }}>Cancel</Text>
                               </TouchableOpacity>
                               <TouchableOpacity
                                 onPress={() => {
                                   getLocation();
                                 }}>
-                                <Text style={{color: '#a0a0a0'}}>Confirm</Text>
+                                <Text style={{ color: '#a0a0a0' }}>Confirm</Text>
                               </TouchableOpacity>
                             </View>
                           </View>
@@ -2290,12 +2316,12 @@ const AllShops = ({navigation, route}) => {
                       </View>
                     </View>
                     {view !== 'Stock Already Exist' ? ( // Removed extra space
-                      <View style={{flexDirection: 'row', width: '100%'}}>
+                      <View style={{ flexDirection: 'row', width: '100%' }}>
                         <TouchableOpacity
                           onPress={() => {
                             setMarkUnproductiveButton(false);
                           }}>
-                          <Text style={{color: 'red', marginTop: 20}}>
+                          <Text style={{ color: 'red', marginTop: 20 }}>
                             Cancel
                           </Text>
                         </TouchableOpacity>
@@ -2303,8 +2329,8 @@ const AllShops = ({navigation, route}) => {
                           onPress={() => {
                             getLocation();
                           }}
-                          style={{marginLeft: 'auto'}}>
-                          <Text style={{color: 'red', marginTop: 20}}>
+                          style={{ marginLeft: 'auto' }}>
+                          <Text style={{ color: 'red', marginTop: 20 }}>
                             Confirm
                           </Text>
                         </TouchableOpacity>
@@ -2330,8 +2356,8 @@ const AllShops = ({navigation, route}) => {
           <View style={styles.modalSKUContainer}>
             <View style={styles.modalSKUContent}>
               <View style={styles.container}>
-                <View style={{flexDirection: 'row'}}>
-                  <View style={{width: '75%'}}>
+                <View style={{ flexDirection: 'row' }}>
+                  <View style={{ width: '75%' }}>
                     <Text style={styles.title}>Select SKU</Text>
                   </View>
                   <View
@@ -2352,7 +2378,7 @@ const AllShops = ({navigation, route}) => {
                       onPress={() => {
                         closeSKUModal();
                       }}>
-                      <Text style={{color: '#a0a0a0'}}>Done</Text>
+                      <Text style={{ color: '#a0a0a0' }}>Done</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -2375,9 +2401,9 @@ const AllShops = ({navigation, route}) => {
                   showsVerticalScrollIndicator={false}
                   data={filteredProducts}
                   keyExtractor={(item, index) => index.toString()}
-                  renderItem={({item}) => (
+                  renderItem={({ item }) => (
                     <View style={styles.skuItem}>
-                      <View style={{width: '10%'}}>
+                      <View style={{ width: '10%' }}>
                         <CheckBox
                           value={selectedSKUs.includes(item.pricing.id)}
                           onValueChange={() => {
@@ -2391,7 +2417,7 @@ const AllShops = ({navigation, route}) => {
                         />
                       </View>
                       <TouchableOpacity
-                        style={{width: '90%'}}
+                        style={{ width: '90%' }}
                         onPress={() => {
                           console.log(item, 'item in toggle search');
                           toggleSelect(item.pricing.id); // Update SKU selection on press
@@ -2415,19 +2441,19 @@ const AllShops = ({navigation, route}) => {
                       closeSKUModal();
                     }}>
                     {/* {console.log(selectedSKUs, 'selectedSKUs')} */}
-                    <Text style={{fontSize: 16}}>
+                    <Text style={{ fontSize: 16 }}>
                       {selectedSKUs.length === 0 && (
-                        <Text style={{color: '#000'}}>
+                        <Text style={{ color: '#000' }}>
                           Save without Selection
                         </Text>
                       )}
                       {selectedSKUs.length === 1 && (
-                        <Text style={{color: '#000'}}>
+                        <Text style={{ color: '#000' }}>
                           Save SKU "{selectedSKUs[0]}"
                         </Text>
                       )}
                       {selectedSKUs.length > 1 && (
-                        <Text style={{color: '#000'}}>
+                        <Text style={{ color: '#000' }}>
                           Save SKU ({selectedSKUs.length})
                         </Text>
                       )}
@@ -2446,7 +2472,7 @@ const AllShops = ({navigation, route}) => {
     </View>
   );
 };
-const {height, width} = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {

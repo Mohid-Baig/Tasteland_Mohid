@@ -7,19 +7,19 @@ import {
   View,
   ToastAndroid,
 } from 'react-native';
-import React, {useEffect, useState, useRef, useCallback} from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import instance from '../../Components/BaseUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {TouchableOpacity} from 'react-native-gesture-handler';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
-import {Remove_All_Cart} from '../../Components/redux/constants';
-import {useSelector, useDispatch} from 'react-redux';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Remove_All_Cart } from '../../Components/redux/constants';
+import { useSelector, useDispatch } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {AddToCart} from '../../Components/redux/action';
+import { AddToCart } from '../../Components/redux/action';
 
-const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
+const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
   const [internetAPI, setInternetAPI] = useState([]);
-  const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
+  const [weekDates, setWeekDates] = useState({ startDate: null, endDate: null });
   const [formattedDate, setFormattedDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [GrossAmount, setGrossAmount] = useState(0);
@@ -98,24 +98,34 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
         let gst = 0;
 
         cartItems.forEach(item => {
-          // Calculate Product Count
-          Product_Count +=
-            item?.itemss?.pricing.trade_price *
-              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) -
-            (item?.itemss?.trade_offer / 100) *
-              item?.itemss?.pricing.trade_price;
+          const { carton_ordered, box_ordered, itemss } = item;
+          const { trade_offer, pricing } = itemss;
+          const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing;
 
-          // Calculate Gross Amount
-          GrossAmount +=
-            item?.itemss?.pricing.trade_price *
-            (item?.pack_in_box * item?.carton_ordered + item?.box_ordered);
+          // Calculate the total quantity (boxes or pieces)
+          let quantity = 0;
+          if (carton_ordered > 0) {
+            // For carton orders, calculate total boxes
+            quantity = carton_ordered * box_in_carton + box_ordered;
+          } else {
+            // For box orders only
+            quantity = box_ordered;
+          }
 
-          // GST Calculation based on gst_base value
-          if (item?.itemss?.pricing.gst_base === 'Retail Price') {
-            gst +=
-              item.itemss.pricing.retail_price *
-              (item?.pack_in_box * item?.carton_ordered + item?.box_ordered) *
-              (item?.itemss?.pricing.pricing_gst / 100);
+          // Calculate Gross Amount (total price before any discount)
+          const itemGrossAmount = trade_price * quantity;
+          GrossAmount += itemGrossAmount;
+
+          // Calculate Trade Offer Discount
+          const itemTODiscount = (trade_offer / 100) * itemGrossAmount;
+
+          // Calculate Product_Count (total price after trade offer discount)
+          Product_Count += itemGrossAmount - itemTODiscount;
+
+          // Calculate GST
+          if (gst_base === 'Retail Price') {
+            const itemGST = retail_price * quantity * (pricing_gst / 100);
+            gst += itemGST;
           }
         });
 
@@ -130,7 +140,6 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
       }
     }, [cartItems]), // Add cartItems as dependency
   );
-
   const goTOEdit = () => {
     // navigation.navigate('ConfirmOrder', { Store: Store, "RouteDate": RouteDate,'applySpecialDiscount':applySpecialDiscount ,'FinalDistributiveDiscount':FinalDistributiveDiscount ,'GST':gst})
   };
@@ -184,7 +193,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
     startDate.setDate(dateObj.getDate() - daysUntilMonday);
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
-    return {startDate, endDate};
+    return { startDate, endDate };
   };
 
   const formatDateToYYYYMMDD = date => {
@@ -197,7 +206,7 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   useEffect(() => {
     const currentDate = new Date();
     if (currentDate) {
-      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      const { startDate, endDate } = getMondayToSundayWeek(currentDate);
       setWeekDates({
         startDate: formatDateToYYYYMMDD(startDate),
         endDate: formatDateToYYYYMMDD(endDate),
@@ -273,15 +282,15 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
   return (
     <View style={styles.main}>
       {isLoading ? (
-        <View style={{alignItems: 'center', flex: 1, marginTop: '60%'}}>
+        <View style={{ alignItems: 'center', flex: 1, marginTop: '60%' }}>
           <ActivityIndicator size={50} color={'#16a4dd'} />
         </View>
       ) : (
         <FlatList
-          contentContainerStyle={{paddingBottom: 50}}
+          contentContainerStyle={{ paddingBottom: 50 }}
           data={internetAPI} // Bind correct state here
           showsVerticalScrollIndicator={false}
-          renderItem={({item}) => (
+          renderItem={({ item }) => (
             <Pressable
               style={styles.flatlistbackground}
               onPress={() => {
@@ -316,32 +325,32 @@ const Internet = ({selectedDate, orderBokerId, routeID, shopID}) => {
               }}>
               <View style={styles.FlatList}>
                 <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Invoice #</Text>
-                  <Text style={{color: 'black'}}>{item.id}</Text>
+                  <Text style={{ color: 'black' }}>Invoice #</Text>
+                  <Text style={{ color: 'black' }}>{item.id}</Text>
                 </View>
                 <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Shop</Text>
-                  <Text style={{color: 'black'}}>{item.shop.name}</Text>
+                  <Text style={{ color: 'black' }}>Shop</Text>
+                  <Text style={{ color: 'black' }}>{item.shop.name}</Text>
                 </View>
                 <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Order Date</Text>
-                  <Text style={{color: 'black'}}>{getCurrentDate()}</Text>
+                  <Text style={{ color: 'black' }}>Order Date</Text>
+                  <Text style={{ color: 'black' }}>{getCurrentDate()}</Text>
                 </View>
               </View>
               <View style={styles.FlatList}>
                 <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Status</Text>
-                  <Text style={{color: 'black'}}>{item.status}</Text>
+                  <Text style={{ color: 'black' }}>Status</Text>
+                  <Text style={{ color: 'black' }}>{item.status}</Text>
                 </View>
                 <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Gross Amount</Text>
-                  <Text style={{color: 'black'}}>{`${item.gross_amount.toFixed(
+                  <Text style={{ color: 'black' }}>Gross Amount</Text>
+                  <Text style={{ color: 'black' }}>{`${item.gross_amount.toFixed(
                     1,
                   )}`}</Text>
                 </View>
                 <View style={styles.centre}>
-                  <Text style={{color: 'black'}}>Net Amount</Text>
-                  <Text style={{color: 'black'}}>
+                  <Text style={{ color: 'black' }}>Net Amount</Text>
+                  <Text style={{ color: 'black' }}>
                     {item.net_amount.toFixed(1)}
                   </Text>
                 </View>

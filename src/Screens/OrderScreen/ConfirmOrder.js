@@ -10,12 +10,12 @@ import {
   ToastAndroid,
   NativeModules,
 } from 'react-native';
-import React, {useEffect, useState, useContext} from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import OrderStatus from '../../Components/CreateOrderComponent.js/OrderStatus';
 // import {ScrollView} from 'react-native-gesture-handler';
 import ShopInvoiceCreate from '../../Components/CreateOrderComponent.js/ShopInvoiceCreate';
-import {useSelector, useDispatch} from 'react-redux';
-import {TouchableOpacity} from '@gorhom/bottom-sheet';
+import { useSelector, useDispatch } from 'react-redux';
+import { TouchableOpacity } from '@gorhom/bottom-sheet';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import GetLocation from 'react-native-get-location';
 import moment from 'moment';
@@ -23,11 +23,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import instance from '../../Components/BaseUrl';
 import ShowValues from '../../Components/CreateOrderComponent.js/ShowValues';
 import Loader from '../../Components/Loaders/Loader';
-import {Remove_All_Cart} from '../../Components/redux/constants';
+import { Remove_All_Cart } from '../../Components/redux/constants';
 import NetInfo from '@react-native-community/netinfo';
 import SpecialDis from '../../Components/CreateOrderComponent.js/SpecialDis';
 
-const ConfirmOrder = ({route, navigation}) => {
+const ConfirmOrder = ({ route, navigation }) => {
   const [allProducts, setAllProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [productNaame, SetProductname] = useState([]);
@@ -50,6 +50,8 @@ const ConfirmOrder = ({route, navigation}) => {
   const [isButtonVisible, setIsButtonVisible] = useState(true);
   const [gstText, setGstTxt] = useState([]);
   const [DateAuto, setDateAuto] = useState();
+  const [unproductiveShops, setUnproductiveShops] = useState([]);
+  const [unOfflineShops, setunOfflineShops] = useState();
   const isEditingOrder = !!orderId;
   const dispatch = useDispatch();
 
@@ -58,7 +60,7 @@ const ConfirmOrder = ({route, navigation}) => {
 
   console.log(JSON.stringify(cartItems), 'hello motherfather--');
 
-  const {DateTimeModule} = NativeModules;
+  const { DateTimeModule } = NativeModules;
   useEffect(() => {
     DateTimeModule.isAutoTimeEnabled(isEnabled => {
       console.log('Auto time enabled:', isEnabled);
@@ -79,9 +81,10 @@ const ConfirmOrder = ({route, navigation}) => {
     // Reset state when the component mounts or receives new cartItems
     const resetState = () => {
       setAllProducts([]);
-      SetProductname([]); // Reset product names properly
+      SetProductname([]);
       setGrossAmount(0);
       setTotalprice(0);
+      setTotalCartons(0); // Reset total cartons too
     };
     resetState();
 
@@ -100,28 +103,43 @@ const ConfirmOrder = ({route, navigation}) => {
       }
     });
 
-    SetProductname(Array.from(productNames)); // Ensure unique product names
+    SetProductname(Array.from(productNames));
     setAllProducts(cartItems);
-    // console.log(allProducts, 'allproducts');
 
     // Only update price calculations if cartItems exist
     if (cartItems.length > 0) {
       let productCount = 0;
       let grossAmount = 0;
+      let totalCartons = 0;
 
       cartItems.forEach(item => {
         const tradePrice = item?.itemss?.pricing.trade_price || 0;
         const tradeOffer = item?.itemss?.trade_offer || 0;
         const cartonOrdered = item?.carton_ordered || 0;
         const boxOrdered = item?.box_ordered || 0;
-        const packInBox = item?.pack_in_box || 0;
-        const totalUnits = cartonOrdered * packInBox + boxOrdered;
+
+        // The key fix: Use box_in_carton from the pricing for carton calculations
+        const boxInCarton = item?.itemss?.pricing?.box_in_carton || 0;
+
+        // Calculate total units properly for both cartons and boxes
+        const totalUnits = cartonOrdered * boxInCarton + boxOrdered;
+
+        // Calculate discount properly
         const discount = (tradeOffer / 100) * tradePrice * totalUnits;
+
+        // Calculate the price after trade offer discount
         productCount += tradePrice * totalUnits - discount;
+
+        // Calculate gross amount (before discount)
         grossAmount += tradePrice * totalUnits;
+
+        // Keep track of total cartons if needed
+        totalCartons += cartonOrdered;
       });
+
       setTotalprice(productCount);
       setGrossAmount(grossAmount);
+      setTotalCartons(totalCartons);
     }
   }, [cartItems]);
   useEffect(() => {
@@ -258,6 +276,47 @@ const ConfirmOrder = ({route, navigation}) => {
     }
   };
 
+  const loadUnproductiveShops = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const storedShops = await AsyncStorage.getItem(
+        `unproductiveShops_${userId}`,
+      );
+      if (storedShops !== null) {
+        const parsedShops = JSON.parse(storedShops);
+        if (Array.isArray(parsedShops)) {
+          setUnproductiveShops(parsedShops); // Set the unproductive shops state with stored data
+        } else {
+          console.log('Unexpected data format in AsyncStorage');
+        }
+      }
+    } catch (error) {
+      console.log('Error loading unproductive shops:', error);
+    }
+  };
+  const loadUnproductiveOfflineOrders = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    try {
+      const storedShops = await AsyncStorage.getItem(
+        `OfflinefailedUnProductiveOrders_${userId}`,
+      );
+      if (storedShops !== null) {
+        const parsedShops = JSON.parse(storedShops);
+        if (Array.isArray(parsedShops)) {
+          setunOfflineShops(parsedShops); // Set the unproductive shops state with stored data
+        } else {
+          console.log('Unexpected data format in AsyncStorage');
+        }
+      }
+    } catch (error) {
+      console.log('Error loading unproductive offline orders:', error);
+    }
+  };
+  useEffect(() => {
+    loadUnproductiveShops()
+    loadUnproductiveOfflineOrders()
+  }, [])
+
   useEffect(() => {
     setIsButtonVisible(true); // Reset the button to visible when the screen is revisited
   }, []);
@@ -290,32 +349,61 @@ const ConfirmOrder = ({route, navigation}) => {
     const userId = await AsyncStorage.getItem('userId');
     let totalCartons = 0;
 
-    orderItems.forEach(item => {
-      const {box_in_carton} = item.itemss.pricing; // Number of boxes in a carton
-      const boxOrdered = item.box_ordered; // Number of boxes ordered by the user
+    console.log('Starting calculation for total cartons (offline)...');
 
-      // Calculate the value (number of cartons) for the item
-      const cartonsForItem = boxOrdered / box_in_carton;
+    orderItems.forEach((item, index) => {
+      const { carton_ordered, box_ordered, itemss } = item;
+      const { box_in_carton } = itemss.pricing; // Number of boxes in a carton
 
-      // Add this item's carton value to the total carton value
-      totalCartons += cartonsForItem;
+      console.log(`\nProcessing item ${index + 1}:`);
+      console.log('carton_ordered:', carton_ordered);
+      console.log('box_ordered:', box_ordered);
+      console.log('box_in_carton:', box_in_carton);
+
+      // Add the carton_ordered directly to the total cartons
+      totalCartons += carton_ordered;
+      console.log('After adding carton_ordered, totalCartons:', totalCartons);
+
+      // Calculate the additional cartons from box_ordered
+      if (box_ordered > 0) {
+        const additionalCartons = box_ordered / box_in_carton;
+        totalCartons += additionalCartons;
+        console.log('After adding box_ordered, totalCartons:', totalCartons);
+      }
     });
+
+    console.log('\nFinal totalCartons (offline):', totalCartons);
     return totalCartons;
   };
   const calculateOrderForMultipleItems = async orderItems => {
     const userId = await AsyncStorage.getItem('userId');
     let totalCartons = 0;
 
-    orderItems.forEach(item => {
-      const {box_in_carton} = item.itemss.pricing; // Number of boxes in a carton
-      const boxOrdered = item.box_ordered; // Number of boxes ordered by the user
+    console.log('Starting calculation for total cartons...');
 
-      // Calculate the value (number of cartons) for the item
-      const cartonsForItem = boxOrdered / box_in_carton;
+    orderItems.forEach((item, index) => {
+      const { carton_ordered, box_ordered, itemss } = item;
+      const { box_in_carton } = itemss.pricing; // Number of boxes in a carton
 
-      // Add this item's carton value to the total carton value
-      totalCartons += cartonsForItem;
+      console.log(`\nProcessing item ${index + 1}:`);
+      console.log('carton_ordered:', carton_ordered);
+      console.log('box_ordered:', box_ordered);
+      console.log('box_in_carton:', box_in_carton);
+
+      // Add the carton_ordered directly to the total cartons
+      totalCartons += carton_ordered;
+      console.log('After adding carton_ordered, totalCartons:', totalCartons);
+
+      // Calculate the additional cartons from box_ordered
+      if (box_ordered > 0) {
+        const additionalCartons = box_ordered / box_in_carton;
+        totalCartons += additionalCartons;
+        console.log('After adding box_ordered, totalCartons:', totalCartons);
+      }
     });
+
+    console.log('\nFinal totalCartons:', totalCartons);
+
     await AsyncStorage.setItem(
       `totalCartons_${userId}`,
       totalCartons.toFixed(1),
@@ -381,7 +469,16 @@ const ConfirmOrder = ({route, navigation}) => {
 
       offlineOrders.push(offlineOrder);
       await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
-      incrementTotalVisits();
+      const isUnproductive = unproductiveShops.includes(Store.id);
+      const matchingUNOfflineOrderbyID = Array.isArray(unOfflineShops)
+        ? unOfflineShops.find(order => order.fk_shop === Store.id)
+        : null;
+      if (isUnproductive || matchingUNOfflineOrderbyID) {
+        console.log('Unproductive order is already marked')
+      } else {
+        incrementTotalVisits();
+      }
+
       Alert.alert('Order Saved', 'Order has been saved locally for syncing.', [
         {
           text: 'ok',
@@ -532,8 +629,17 @@ const ConfirmOrder = ({route, navigation}) => {
         );
 
         console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
+        const isUnproductive = unproductiveShops.includes(Store.id);
+        const matchingUNOfflineOrderbyID = Array.isArray(unOfflineShops)
+          ? unOfflineShops.find(order => order.fk_shop === Store.id)
+          : null;
+
         if (response.status == 200) {
-          incrementTotalVisits();
+          if (isUnproductive || matchingUNOfflineOrderbyID) {
+            console.log('Unproductive order is already marked')
+          } else {
+            incrementTotalVisits();
+          }
         }
         console.log('Post Data', response.data);
         const postorderId = response.data.id;
@@ -726,7 +832,7 @@ const ConfirmOrder = ({route, navigation}) => {
 
         console.log(response.data, 'Put data');
         console.log(response.status, 'status');
-        Alert.alert('Success', 'Order edited successfully!', [{text: 'OK'}]);
+        Alert.alert('Success', 'Order edited successfully!', [{ text: 'OK' }]);
       } else {
         // Offline: Save to offline edit storage
         const offlineEditOrders = await AsyncStorage.getItem(
@@ -747,7 +853,7 @@ const ConfirmOrder = ({route, navigation}) => {
 
         console.log('Order saved for offline update.');
         Alert.alert('Info', 'No network. Order saved for offline edit.', [
-          {text: 'OK'},
+          { text: 'OK' },
         ]);
       }
     } catch (error) {
@@ -777,7 +883,7 @@ const ConfirmOrder = ({route, navigation}) => {
 
         await saveFailedOrder(userId, failedOrder);
         Alert.alert('Error', 'An error occurred while updating the order.', [
-          {text: 'OK'},
+          { text: 'OK' },
         ]);
       }
     }
@@ -803,7 +909,7 @@ const ConfirmOrder = ({route, navigation}) => {
               }
 
               // Add the new orderId and shopId as an object
-              postorderIds.push({orderId: newOrderId, shopId: shopId});
+              postorderIds.push({ orderId: newOrderId, shopId: shopId });
               return postorderIds;
             },
           ),
@@ -836,16 +942,16 @@ const ConfirmOrder = ({route, navigation}) => {
   };
 
   return (
-    <View style={{flex: 1, position: 'relative'}}>
+    <View style={{ flex: 1, position: 'relative' }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{paddingBottom: 100}}>
-        <View style={{marginTop: 5}}>
+        contentContainerStyle={{ paddingBottom: 100 }}>
+        <View style={{ marginTop: 5 }}>
           <OrderStatus Lefttxt={'Invoice Number'} RightText={'-'} />
           <OrderStatus Lefttxt={'Order Status'} RightText={'Draft'} />
           <OrderStatus Lefttxt={'Payment Done'} RightText={'False'} />
         </View>
-        <View style={{padding: '3%'}}>
+        <View style={{ padding: '3%' }}>
           <OrderStatus Lefttxt={'Shop Id '} RightText={Store.id} />
           <OrderStatus Lefttxt={'Shop Name'} RightText={Store.name} />
           <OrderStatus Lefttxt={'Owner'} RightText={Store.owner} />
@@ -863,7 +969,7 @@ const ConfirmOrder = ({route, navigation}) => {
           <ShowValues
             Lefttxt={'Gross Amount:'}
             RightText={`(Inclusive of GST) ${GrossAmount.toFixed(2)}`}
-            leftStyle={{fontWeight: 'bold', color: '#000'}}
+            leftStyle={{ fontWeight: 'bold', color: '#000' }}
           />
           <ShowValues
             Lefttxt={'T.O Discount:'}
@@ -882,7 +988,7 @@ const ConfirmOrder = ({route, navigation}) => {
             gross={GrossAmount.toFixed(2)}
           />
         </View>
-        <View style={{padding: '2%'}}>
+        <View style={{ padding: '2%' }}>
           <View
             style={{
               width: '100%',
@@ -923,7 +1029,7 @@ const ConfirmOrder = ({route, navigation}) => {
             applySpecialDiscount -
             FinalDistributiveDiscount
           ).toFixed(2)}
-          leftStyle={{fontWeight: 'bold', color: '#000'}}
+          leftStyle={{ fontWeight: 'bold', color: '#000' }}
         />
       </ScrollView>
       {cartItems.length > 0 ? (
@@ -947,7 +1053,7 @@ const ConfirmOrder = ({route, navigation}) => {
               }}
               onPress={handleButtonPress}>
               <AntDesign name="shoppingcart" size={24} color="#fff" />
-              <Text style={{color: '#fff', marginLeft: 10}}>
+              <Text style={{ color: '#fff', marginLeft: 10 }}>
                 {!orderId ? 'Confirm Order' : 'Edit Order'}
               </Text>
             </TouchableOpacity>
