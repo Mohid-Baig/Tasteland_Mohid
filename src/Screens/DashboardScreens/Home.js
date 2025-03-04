@@ -209,11 +209,11 @@ const Home = ({ navigation }) => {
           // New day, reset the total visits
           await AsyncStorage.setItem(totalVisitsKey, '0');
           await AsyncStorage.setItem(lastVisitDateKey, today);
-          setTotalVisits(0);
+          // setTotalVisits(0);
         } else {
           // Get total visits for this user
           const visits = await AsyncStorage.getItem(totalVisitsKey);
-          setTotalVisits(parseInt(visits) || 0);
+          // setTotalVisits(parseInt(visits) || 0);
         }
       };
 
@@ -409,6 +409,124 @@ const Home = ({ navigation }) => {
       console.log('Attendance Error', error);
     }
   };
+
+
+  const bookingVisit = async () => {
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const fkEmployee = await AsyncStorage.getItem('fk_employee');
+    const userId = await AsyncStorage.getItem('userId');
+    const state = await NetInfo.fetch();
+
+    const getCurrentDate = () => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const formattedDate = getCurrentDate();
+
+    try {
+      let totalUniqueShops = new Set(); // A set to store unique fk_shop
+
+      if (state.isConnected) {
+        const response = await instance.get(
+          `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          },
+        );
+
+        await AsyncStorage.setItem(`ORDER_RESPONSE_${userId}`, JSON.stringify(response.data));
+        console.log('Order data saved to AsyncStorage');
+
+        // Extract the fk_shop from the booking visit response and add to the Set
+        response.data.forEach(order => {
+          totalUniqueShops.add(order.fk_shop);
+        });
+      }
+
+      const savedResponse = await AsyncStorage.getItem(`ORDER_RESPONSE_${userId}`);
+      const parsedResponse = JSON.parse(savedResponse);
+
+      if (parsedResponse) {
+        const totalNetAmount = parsedResponse.reduce((sum, order) => sum + order.net_amount, 0);
+        const NewTotalVisits = parsedResponse.length;
+
+        console.log(`Total Visits: ${NewTotalVisits}`);
+        console.log(`Total Net Amount: ${totalNetAmount}`);
+        setTotalVisits(NewTotalVisits);
+        setTotalAmount(totalNetAmount);
+        setOrderCount(NewTotalVisits);
+
+        let totalCartons = 0;
+        parsedResponse.forEach(it => {
+          it.details.forEach(item => {
+            const { box_in_carton, carton_ordered, box_ordered } = item;
+
+            totalCartons += carton_ordered;
+
+            if (box_ordered > 0) {
+              const additionalCartons = box_ordered / box_in_carton;
+              totalCartons += additionalCartons;
+            }
+          });
+        });
+        setTotalCartons(totalCartons);
+
+        // Call unproductive visits function and handle the combined unique fk_shop count
+        await handleUnproductiveVisits(totalUniqueShops, authToken, fkEmployee, formattedDate, userId);
+      } else {
+        console.log('No saved data found in AsyncStorage');
+      }
+    } catch (err) {
+      console.log('Error in booking Visits', err);
+    }
+  };
+
+  const handleUnproductiveVisits = async (totalUniqueShops, authToken, fkEmployee, formattedDate, userId) => {
+    const state = await NetInfo.fetch();
+    try {
+      if (state.isConnected) {
+        const response = await instance.get(
+          `/unproductive_visit/all?employee_id=${fkEmployee}&visit_date=${formattedDate}`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+        await AsyncStorage.setItem(`ORDER_UNPRODUCTIVE_${userId}`, JSON.stringify(response.data));
+      }
+      const savedResponse = await AsyncStorage.getItem(`ORDER_UNPRODUCTIVE_${userId}`);
+      const parsedResponse = JSON.parse(savedResponse);
+      if (parsedResponse) {
+        parsedResponse.forEach(unproductiveVisit => {
+          totalUniqueShops.add(unproductiveVisit.fk_shop);
+        });
+
+        const newTotalVisits = totalUniqueShops.size;
+        setTotalVisits(newTotalVisits);
+
+        console.log('Updated Total Visits:', newTotalVisits);
+      }
+    } catch (err) {
+      console.log('Error in Unproductive visits', err);
+    }
+  };
+
+
+
+
+  useFocusEffect(
+    useCallback(() => {
+      bookingVisit();
+      // handleUnproductiveVisits()
+    }, [])
+  );
 
   useEffect(() => {
     // Check the location permission when the component mounts
@@ -842,7 +960,7 @@ const Home = ({ navigation }) => {
           let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
           const newTotalCartons = await calculateOrderForMultipleItems(order);
           const updatedTotalCartons = previousTotalCartons + newTotalCartons;
-          setTotalCartons(updatedTotalCartons);
+          // setTotalCartons(updatedTotalCartons);
           await AsyncStorage.setItem(
             `totalCartons_${userId}`,
             updatedTotalCartons.toFixed(1),
@@ -1273,12 +1391,12 @@ const Home = ({ navigation }) => {
         // New day, reset the total amount
         await AsyncStorage.removeItem(`totalAmount_${userId}`); // Clear previous total amount
         await AsyncStorage.setItem(`lastUpdated_${userId}`, today); // Update the date to today
-        setTotalAmount(0); // Reset the displayed amount
+        // setTotalAmount(0); 
       } else {
         // Fetch the total amount for the current day
         const amount = await AsyncStorage.getItem(`totalAmount_${userId}`);
         if (amount !== null) {
-          setTotalAmount(parseFloat(amount)); // Set the total amount from AsyncStorage
+          // setTotalAmount(parseFloat(amount)); // Set the total amount from AsyncStorage
         }
       }
     } catch (error) {
@@ -1303,22 +1421,22 @@ const Home = ({ navigation }) => {
         await AsyncStorage.setItem(`lastOrderDate_${userId}`, today); // Store today's date
 
         // Reset state values
-        setOrderCount(0);
-        setTotalAmount(0);
+        // setOrderCount(0);
+        // setTotalAmount(0);
       } else {
         // If it's the same day, fetch the order count and total amount
         const storedOrderCount = await AsyncStorage.getItem(
           `orderCount_${userId}`,
         );
         if (storedOrderCount !== null) {
-          setOrderCount(parseInt(storedOrderCount)); // Set the order count if found
+          // setOrderCount(parseInt(storedOrderCount)); // Set the order count if found
         }
 
         const storedTotalAmount = await AsyncStorage.getItem(
           `totalAmount_${userId}`,
         );
         if (storedTotalAmount !== null) {
-          setTotalAmount(parseFloat(storedTotalAmount)); // Set the total amount if found
+          // setTotalAmount(parseFloat(storedTotalAmount)); // Set the total amount if found
         }
       }
     } catch (error) {
@@ -1345,14 +1463,14 @@ const Home = ({ navigation }) => {
       if (storedDate !== currentDate) {
         await AsyncStorage.setItem(storageKey, '0'); // Reset cartons count
         await AsyncStorage.setItem('lastOrderDate', currentDate); // Update stored date
-        setTotalCartons(0); // Update the state with the reset value
+        // setTotalCartons(0); // Update the state with the reset value
         console.log('New day detected. Total cartons reset.');
         await AsyncStorage.removeItem(`LocalAPI_${userId}`);
         await AsyncStorage.removeItem(`headingData_${userId}`);
         await AsyncStorage.removeItem(`attendanceData_${userId}`);
       } else {
         // If it's the same day, set the total cartons from AsyncStorage
-        setTotalCartons(cartonsValue);
+        // setTotalCartons(cartonsValue);
       }
     } catch (e) {
       console.error('Failed to fetch total cartons:', e);
@@ -1445,7 +1563,7 @@ const Home = ({ navigation }) => {
               </View>
             </MenuTrigger>
             <MenuOptions style={styles.menuOptions}>
-              <MenuOption onSelect={dateCheck}>
+              <MenuOption onSelect={() => { dateCheck(), bookingVisit() }}>
                 <Text style={styles.singleMenuOption}>Sync</Text>
               </MenuOption>
               <MenuOption>

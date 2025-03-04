@@ -240,7 +240,7 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
         },
       });
 
-      // console.log(JSON.stringify(response.data), 'For Edit ');
+      console.log(JSON.stringify(response.data), 'For Edit ');
       console.log(
         `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
         'apiUrl',
