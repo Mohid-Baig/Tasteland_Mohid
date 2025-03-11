@@ -43,6 +43,7 @@ const ConfirmOrder = ({ route, navigation }) => {
     distributiveDiscount,
     ratte,
     discountRate,
+    uuiddd
   } = route.params;
   const [GrossAmount, setGrossAmount] = useState(0);
   const [totalPrice, setTotalprice] = useState(0);
@@ -208,7 +209,6 @@ const ConfirmOrder = ({ route, navigation }) => {
       }
     }
   };
-  // Ensure that values are numbers and not NaN before rendering
   const safeNumber = value => {
     return !isNaN(value) && value !== null ? value : 0;
   };
@@ -335,7 +335,6 @@ const ConfirmOrder = ({ route, navigation }) => {
 
   const currentTime = moment().format('HH:mm:ss.SSS'); // Get the current time with milliseconds
 
-  // Combine the RouteDate with the current time
   const formattedDate = moment(
     `${route.params.RouteDate}T${currentTime}`,
   ).toISOString();
@@ -464,11 +463,44 @@ const ConfirmOrder = ({ route, navigation }) => {
 
     try {
       const key = `offlineOrders_${userId}`;
-      const existingOrders = await AsyncStorage.getItem(key);
-      let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
+      const key2 = `localofflinedata_${userId}`;
 
+      // Retrieve the existing orders from AsyncStorage
+      const existingOrders = await AsyncStorage.getItem(key);
+      const existingLocalOrders = await AsyncStorage.getItem(key2);
+      console.log("Existing Orders:", existingOrders);
+      console.log("Existing Local Orders:", existingLocalOrders);
+      // Parse the existing orders, default to an empty array if null or empty
+      let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
+      let offlineLocalOrders = existingLocalOrders ? JSON.parse(existingLocalOrders) : [];
+      if (!Array.isArray(offlineLocalOrders)) {
+        offlineLocalOrders = [];
+      }
+      if (uuiddd) {
+        offlineLocalOrders = offlineLocalOrders.filter(order => order.unid !== uuiddd);
+        await AsyncStorage.setItem(key2, JSON.stringify(offlineLocalOrders));
+      }
       offlineOrders.push(offlineOrder);
+      offlineLocalOrders.push(offlineOrder);
+
+      const storedTotalCartons = await AsyncStorage.getItem(
+        `totalCartons_${userId}`,
+      );
+      let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
+
+      // const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
+
+      const updatedTotalCartons = previousTotalCartons + totalCarton;
+      setTotalCartons(updatedTotalCartons);
+      await AsyncStorage.setItem(
+        `totalCartons_${userId}`,
+        updatedTotalCartons.toFixed(1),
+      );
+
+      console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
+
       await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
+      await AsyncStorage.setItem(key2, JSON.stringify(offlineLocalOrders));
       const isUnproductive = unproductiveShops.includes(Store.id);
       const matchingUNOfflineOrderbyID = Array.isArray(unOfflineShops)
         ? unOfflineShops.find(order => order.fk_shop === Store.id)
@@ -481,15 +513,18 @@ const ConfirmOrder = ({ route, navigation }) => {
 
       Alert.alert('Order Saved', 'Order has been saved locally for syncing.', [
         {
-          text: 'ok',
+          text: 'OK',
           onPress: () => {
-            navigation.navigate('AllShops', {
-              RouteDate: RouteDate,
-            }),
-              console.log(RouteDate, 'RouteDate');
+            if (!uuiddd) {
+              navigation.navigate('AllShops', {
+                RouteDate: RouteDate,
+              });
+            }
+            console.log(RouteDate, 'RouteDate');
           },
         },
       ]);
+
     } catch (error) {
       console.error('Failed to save order offline:', error);
       Alert.alert('Error', 'Failed to save the order locally.');
@@ -572,28 +607,56 @@ const ConfirmOrder = ({ route, navigation }) => {
       );
       setTotalCartons(totalCarton);
       if (!state.isConnected) {
-        const getCurrentDate = () => {
-          const today = new Date();
-          const year = today.getFullYear();
-          const month = String(today.getMonth() + 1).padStart(2, '0');
-          const day = String(today.getDate()).padStart(2, '0');
-          return `${day}-${month}-${year}`;
-        };
+        if (!uuiddd) {
+          const getCurrentDate = () => {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${day}-${month}-${year}`;
+          };
 
-        const storedData = await AsyncStorage.getItem(`totalAmountOffline_${userId}`);
-        let totalData = storedData ? JSON.parse(storedData) : { totalAmount: 0, date: '' }; // Default values
+          const storedData = await AsyncStorage.getItem(`totalAmountOffline_${userId}`);
+          let totalData = storedData ? JSON.parse(storedData) : { totalAmount: 0, date: '' }; // Default values
 
-        // Update totalAmount and set the current date
-        totalData.totalAmount += parseFloat(currentOrderAmount);
-        totalData.date = getCurrentDate();
+          // Update totalAmount and set the current date
+          totalData.totalAmount += parseFloat(currentOrderAmount);
+          totalData.date = getCurrentDate();
 
-        console.log(`Total Amount: ${totalData.totalAmount}, Date: ${totalData.date}`);
+          console.log(`Total Amount: ${totalData.totalAmount}, Date: ${totalData.date}`);
 
-        // Store the updated data as a string
-        await AsyncStorage.setItem(
-          `totalAmountOffline_${userId}`,
-          JSON.stringify(totalData)
-        );
+          // Store the updated data as a string
+          await AsyncStorage.setItem(
+            `totalAmountOffline_${userId}`,
+            JSON.stringify(totalData)
+          );
+        } else {
+          const getCurrentDate = () => {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${day}-${month}-${year}`;
+          };
+          const storedData = await AsyncStorage.getItem(`totalViewShopInvoice_${userId}`);
+          const storedEditData = await AsyncStorage.getItem(`totalEditlocalAmountOffline_${userId}`);
+
+          let totalData = JSON.parse(storedData);
+          let totalEditData = storedEditData ? JSON.parse(storedEditData) : { totalAmount: 0, date: '' };
+          const editamount = currentOrderAmount - totalData;
+
+          // Update totalEditData with the new edit amount
+          totalEditData.totalAmount += parseFloat(editamount.toString());
+          totalEditData.date = getCurrentDate();
+
+          console.log(`Total Amount: ${totalEditData.totalAmount}, Date: ${totalEditData.date}`);
+
+          // Store the updated totalEditAmountOffline data back to AsyncStorage
+          await AsyncStorage.setItem(
+            `totalEditAmountOffline_${userId}`,
+            JSON.stringify(totalEditData)
+          );
+        }
 
         await saveOrderOffline(currentLocation, totalCarton);
         return;
@@ -645,13 +708,13 @@ const ConfirmOrder = ({ route, navigation }) => {
           ? unOfflineShops.find(order => order.fk_shop === Store.id)
           : null;
 
-        if (response.status == 200) {
-          if (isUnproductive || matchingUNOfflineOrderbyID) {
-            console.log('Unproductive order is already marked')
-          } else {
-            incrementTotalVisits();
-          }
-        }
+        // if (response.status == 200) {
+        //   if (isUnproductive || matchingUNOfflineOrderbyID) {
+        //     console.log('Unproductive order is already marked')
+        //   } else {
+        //     incrementTotalVisits();
+        //   }
+        // }
         console.log('Post Data', response.data);
         const postorderId = response.data.id;
         const shop_id = Store.id;
@@ -846,6 +909,34 @@ const ConfirmOrder = ({ route, navigation }) => {
 
         // Save the updated list to AsyncStorage
         await AsyncStorage.setItem(`offlineEditOrders_${userId}`, JSON.stringify(parsedOfflineEditOrders));
+        const getCurrentDate = () => {
+          const today = new Date();
+          const year = today.getFullYear();
+          const month = String(today.getMonth() + 1).padStart(2, '0');
+          const day = String(today.getDate()).padStart(2, '0');
+          return `${day}-${month}-${year}`;
+        };
+
+        const storedData = await AsyncStorage.getItem(`totalViewInvoice_${userId}`);
+        const storedEditData = await AsyncStorage.getItem(`totalEditAmountOffline_${userId}`);
+
+        let totalData = JSON.parse(storedData);
+        let totalEditData = storedEditData ? JSON.parse(storedEditData) : { totalAmount: 0, date: '' };
+
+        // Calculate the edit amount
+        const editamount = totalAmount - totalData;
+
+        // Update totalEditData with the new edit amount
+        totalEditData.totalAmount += parseFloat(editamount.toString());
+        totalEditData.date = getCurrentDate();
+
+        console.log(`Total Amount: ${totalEditData.totalAmount}, Date: ${totalEditData.date}`);
+
+        // Store the updated totalEditAmountOffline data back to AsyncStorage
+        await AsyncStorage.setItem(
+          `totalEditAmountOffline_${userId}`,
+          JSON.stringify(totalEditData)
+        );
 
         console.log('Order saved for offline update.');
         Alert.alert('Info', 'No network. Order saved for offline edit.', [{ text: 'OK' }]);

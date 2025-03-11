@@ -11,6 +11,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useSelector, useDispatch } from 'react-redux';
 import { Remove_All_Cart } from '../../Components/redux/constants';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ViewInvoice = ({ route, navigation }) => {
   const [Detail, setDetail] = useState([]);
@@ -44,12 +45,40 @@ const ViewInvoice = ({ route, navigation }) => {
       cartItems?.special_discount +
       cartItems?.discount);
 
+  const storeTotalEditAmount = async () => {
+    const TO_amount =
+      cartItems.gross_amount -
+      (cartItems?.trade_discount +
+        cartItems?.special_discount +
+        cartItems?.discount);
+    const userId = await AsyncStorage.getItem('userId');
+
+    // Create the data object with TO_amount and the current date
+    const totalAmount = parseFloat(TO_amount)
+    try {
+      // Store the TO_amount value directly in AsyncStorage
+      await AsyncStorage.setItem(
+        `totalViewInvoice_${userId}`,
+        JSON.stringify(totalAmount)
+      );
+
+      console.log(`Stored Total Edit Amount: ${totalAmount}`);
+    } catch (error) {
+      console.error("Error storing total edit amount: ", error);
+    }
+  };
+
+
+
+
   const formatDate = dateString => {
     if (!dateString) return '';
     return dateString.slice(0, 10);
   };
 
   console.log(formatDate(cartItems.date));
+
+
 
   return (
     <View style={{ flex: 1 }}>
@@ -228,19 +257,25 @@ const ViewInvoice = ({ route, navigation }) => {
       {cartItems?.status.toLowerCase() === 'pending' && (
         <TouchableHighlight
           style={styles.EditButton}
-          onPress={() => {
-            navigation.navigate('CreateOrder', {
-              shopData: {
-                Shopid: cartItems?.shop?.id,
-                Shopname: cartItems?.shop?.name,
-              },
-              Invoiceitems: {
-                ...cartItems,
-              },
-              Store: cartItems?.shop,
-              existingOrderId: cartItems?.id,
-              RouteDate: formatDate(cartItems?.date),
-            });
+          onPress={async () => {
+            try {
+              await storeTotalEditAmount();
+
+              navigation.navigate('CreateOrder', {
+                shopData: {
+                  Shopid: cartItems?.shop?.id,
+                  Shopname: cartItems?.shop?.name,
+                },
+                Invoiceitems: {
+                  ...cartItems,
+                },
+                Store: cartItems?.shop,
+                existingOrderId: cartItems?.id,
+                RouteDate: formatDate(cartItems?.date),
+              });
+            } catch (error) {
+              console.error('Error during navigation or storing total edit amount:', error);
+            }
           }}
           underlayColor="#0e8ebd">
           <FontAwesome name="pencil" size={25} color={'#fff'} />

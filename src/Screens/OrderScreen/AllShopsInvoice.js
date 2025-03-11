@@ -11,6 +11,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useSelector, useDispatch } from 'react-redux';
 import { Remove_All_Cart } from '../../Components/redux/constants';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AllShopsInvoice = ({ route, navigation }) => {
   const [Detail, setDetail] = useState([]);
@@ -27,7 +28,7 @@ const AllShopsInvoice = ({ route, navigation }) => {
 
   // console.log(cartItems.gross_amount, 'grossamount');
   // console.log(Gst, 'On local screen gst');
-  // console.log(JSON.stringify(cartItems), '-----');
+  console.log(JSON.stringify(cartItems), '-----mm');
 
   useEffect(() => {
     if (cartItems?.details) {
@@ -39,6 +40,25 @@ const AllShopsInvoice = ({ route, navigation }) => {
   }, [cartItems]);
 
   const TO_amount = cartItems?.net_amount;
+
+  const storeTotalEditAmount = async () => {
+    const TO_amount = cartItems?.net_amount;
+    const userId = await AsyncStorage.getItem('userId');
+
+    // Create the data object with TO_amount and the current date
+    const totalAmount = parseFloat(TO_amount)
+    try {
+      // Store the TO_amount value directly in AsyncStorage
+      await AsyncStorage.setItem(
+        `totalViewShopInvoice_${userId}`,
+        JSON.stringify(totalAmount)
+      );
+
+      console.log(`Stored Total Edit Amount: ${totalAmount}`);
+    } catch (error) {
+      console.error("Error storing total edit amount: ", error);
+    }
+  };
 
   const formatDate = dateString => {
     if (!dateString) return '';
@@ -188,11 +208,7 @@ const AllShopsInvoice = ({ route, navigation }) => {
               </Text>
 
               <Text style={styles.Text2}>
-                {Math.round(cartItems?.distribution || 0)} (
-                {cartItems?.discount_rate != null
-                  ? Math.round(cartItems?.discount_rate)
-                  : 0}
-                %)
+                {Math.round(cartItems?.distribution || 0)}
               </Text>
 
               <Text style={styles.Text2}>
@@ -221,20 +237,28 @@ const AllShopsInvoice = ({ route, navigation }) => {
       {(cartItems?.status === 'pending' || cartItems?.unid) && (
         <TouchableHighlight
           style={styles.EditButton}
-          onPress={() => {
-            navigation.navigate('CreateOrder', {
-              shopData: {
-                Shopid: cartItems?.shop?.id,
-                Shopname: cartItems?.shop?.name,
-              },
-              Invoiceitems: {
-                ...cartItems,
-              },
-              Store: cartItems?.shop,
-              existingOrderId: cartItems?.id,
-              RouteDate: formatDate(cartItems?.date),
-            });
+          onPress={async () => {
+            try {
+              await storeTotalEditAmount();
+
+              navigation.navigate('CreateOrder', {
+                shopData: {
+                  Shopid: cartItems?.shop?.id,
+                  Shopname: cartItems?.shop?.name,
+                },
+                Invoiceitems: {
+                  ...cartItems,
+                },
+                Store: cartItems?.shop,
+                existingOrderId: cartItems?.id,
+                RouteDate: formatDate(cartItems?.date),
+                uuiddd: cartItems?.unid,
+              });
+            } catch (error) {
+              console.error('Error during navigation or storing total edit amount:', error);
+            }
           }}
+
           underlayColor="#0e8ebd">
           <FontAwesome name="pencil" size={25} color={'#fff'} />
         </TouchableHighlight>

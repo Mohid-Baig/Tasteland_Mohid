@@ -30,9 +30,13 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
   const [allProducts, setAllProducts] = useState([]);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
+  const [cartItems, setcartItems] = useState()
+  const [details, setdetails] = useState()
+  const [itemss, setitemss] = useState()
+  const [sendiiing, setsendiiing] = useState()
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const cartItems = useSelector(state => state.reducer);
+  // const cartItems = useSelector(state => state.reducer);
   // console.log(JSON.stringify(cartItems), 'cartItems');
   const gstRef = useRef(0);
 
@@ -47,7 +51,7 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
       gstRef.current = 0;
 
       // Add a check to ensure cartItems is available
-      if (cartItems.length > 0) {
+      if (cartItems) {
         console.log('cartItems found, recalculating values');
 
         let Product_Count = 0;
@@ -91,6 +95,13 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
         setTotalprice(Product_Count);
         setGrossAmount(GrossAmount);
         setGst(gst);
+        gstRef.current = gst;
+
+        // Update states with the new values after loop
+        console.log('New GST Calculated:', gst);
+        setTotalprice(Product_Count);
+        setGrossAmount(GrossAmount);
+        setGst(gst);
         gstRef.current = gst; // Store the final value in useRef
       } else {
         console.log('No cartItems found, values will remain 0');
@@ -120,10 +131,19 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
   const FetchLocalAPi = async () => {
     const userId = await AsyncStorage.getItem('userId');
     try {
-      const LocalAPIkey = `LocalAPI_${userId}`;
+      const LocalAPIkey = `localofflinedata_${userId}`;
       const LocalAPIDataJSON = await AsyncStorage.getItem(LocalAPIkey);
-      const LocalAPIData = JSON.parse(LocalAPIDataJSON);
+      const LocalAPIData = LocalAPIDataJSON ? JSON.parse(LocalAPIDataJSON) : [];
+      console.log(JSON.stringify(LocalAPIData), 'Local api data')
       setInternetAPI(LocalAPIData);
+      LocalAPIData.forEach(it => {
+        setcartItems(it.cartItems)
+        setdetails(it.details)
+        setsendiiing(it)
+        it.cartItems.forEach(item => {
+          setitemss(item.itemss)
+        })
+      })
     } catch (error) {
       console.error('Error getting data of all product', error);
     }
@@ -157,27 +177,32 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
               style={styles.flatlistbackground}
               onPress={() => {
                 // Add items to cart first
-                item.details.forEach(val => {
+                details.forEach(val => {
                   let pro = allProducts.filter(
-                    valfil => valfil.pricing.id === val.pricing_id,
+                    valfil => (
+                      console.log(valfil.pricing.id, 'allproduct id'),
+                      valfil.pricing_id === val.pricing_id
+                    ),
                   );
-                  console.log(pro, 'pro');
+                  console.log(val.pricing_id);
+                  console.log(pro, 'kejle');
                   let items = {
                     carton_ordered: val.carton_ordered,
                     box_ordered: val.box_ordered,
                     pricing_id: val.pricing_id,
-                    itemss: pro[0],
+                    itemss: itemss,
                     pack_in_box: val.box_ordered,
                   };
+                  console.log(items, 'items')
                   dispatch(AddToCart(items));
                 });
 
                 // Wait for GST to update before navigating
                 setTimeout(() => {
                   console.log('Current GST after setting:', gstRef.current); // Ensure GST is correctly updated
-                  navigation.navigate('ViewInvoice', {
-                    cartItems: item,
-                    Gst: gstRef.current, // Use the gstRef value here
+                  navigation.navigate('AllShopsInvoice', {
+                    cartItems: sendiiing,
+                    Gst: gstRef.current,
                     grossAmount: GrossAmount,
                   });
                 }, 200);
@@ -203,14 +228,12 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
                 </View>
                 <View style={styles.centre}>
                   <Text style={{ color: 'black' }}>Gross Amount</Text>
-                  <Text style={{ color: 'black' }}>{`${item.gross_amount.toFixed(
-                    1,
-                  )}`}</Text>
+                  <Text style={{ color: 'black' }}>{`${item.gross_amount}`}</Text>
                 </View>
                 <View style={styles.centre}>
                   <Text style={{ color: 'black' }}>Net Amount</Text>
                   <Text style={{ color: 'black' }}>
-                    {item.net_amount.toFixed(1)}
+                    {item.net_amount}
                   </Text>
                 </View>
               </View>

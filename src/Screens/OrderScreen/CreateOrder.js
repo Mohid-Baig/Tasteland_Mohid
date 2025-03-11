@@ -30,7 +30,7 @@ const CreateOrder = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
-  const { Store, shopData, Invoiceitems, existingOrderId, cItems } = route.params;
+  const { Store, shopData, Invoiceitems, existingOrderId, cItems, uuiddd } = route.params;
   const [searchText, setSearchText] = useState('');
   const [GrossAmount, setGrossAmount] = useState(0);
   const [distributiveDiscount, setDistributiveDiscount] = useState(null);
@@ -128,7 +128,7 @@ const CreateOrder = ({ navigation, route }) => {
   // } else {
   //   cartItems = useSelector(state => state.reducer); // Assign conditionally
   // }
-  // console.log(JSON.stringify(cartItems), 'cartItems...');
+  console.log(JSON.stringify(cartItems), 'cartItems...');
   useEffect(() => {
     if (cartItems.length > 0) {
       let Product_Count = 0;
@@ -707,6 +707,7 @@ const CreateOrder = ({ navigation, route }) => {
                 distributiveDiscount: distributiveDiscount,
                 ratte: ratte,
                 discountRate: discountRate,
+                uuiddd: uuiddd,
               });
             }}
             style={styles.createOrderButton}>
