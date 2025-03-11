@@ -51,18 +51,46 @@ const Home = ({ navigation }) => {
   const [DateAuto, setDateAuto] = useState();
 
   const { DateTimeModule } = NativeModules;
+  const getTodayCurrentDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${day}-${month}-${year}`;
+  };
+
   useEffect(() => {
-    DateTimeModule.isAutoTimeEnabled(isEnabled => {
+    DateTimeModule.isAutoTimeEnabled(async (isEnabled) => {
       console.log('Auto time enabled:', isEnabled);
       setDateAuto(prev => isEnabled);
+
       if (isEnabled == false) {
         Alert.alert(
           'Date Issue',
           'Please enable "Set Automatically" for date and time in your settings till then no request will be sent to server',
         );
+      } else {
+        // Fetch totalAmount data from AsyncStorage
+        const storedData = await AsyncStorage.getItem(`totalAmountOffline_${userId}`);
+
+        if (storedData) {
+          const totalData = JSON.parse(storedData);
+          const storedDate = totalData.date;
+          const currentDate = getTodayCurrentDate();
+
+          // Check if the stored date is different from the current date
+          if (storedDate !== currentDate) {
+            // Remove the item if the date does not match
+            await AsyncStorage.removeItem(`totalAmountOffline_${userId}`);
+            console.log('Stored data removed due to date mismatch');
+          } else {
+            console.log('Stored data date matches the current date');
+          }
+        }
       }
     });
   }, []);
+
 
   const getAllStoredOrderIds = async userId => {
     try {
@@ -431,40 +459,36 @@ const Home = ({ navigation }) => {
       let totalUniqueShops = new Set(); // A set to store unique fk_shop
 
       if (state.isConnected) {
+        // When online, call the API and get the order data
         const response = await instance.get(
           `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
           {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },
-          },
+          }
         );
 
+        // Save the response in AsyncStorage
         await AsyncStorage.setItem(`ORDER_RESPONSE_${userId}`, JSON.stringify(response.data));
         console.log('Order data saved to AsyncStorage');
+        // await AsyncStorage.removeItem(`totalAmountOffline_${userId}`)
 
         // Extract the fk_shop from the booking visit response and add to the Set
-        response.data.forEach(order => {
+        response.data.forEach((order) => {
           totalUniqueShops.add(order.fk_shop);
         });
-      }
 
-      const savedResponse = await AsyncStorage.getItem(`ORDER_RESPONSE_${userId}`);
-      const parsedResponse = JSON.parse(savedResponse);
+        const totalNetAmount = response.data.reduce((sum, order) => sum + order.net_amount, 0);
+        const NewTotalVisits = response.data.length;
 
-      if (parsedResponse) {
-        const totalNetAmount = parsedResponse.reduce((sum, order) => sum + order.net_amount, 0);
-        const NewTotalVisits = parsedResponse.length;
-
-        console.log(`Total Visits: ${NewTotalVisits}`);
-        console.log(`Total Net Amount: ${totalNetAmount}`);
         setTotalVisits(NewTotalVisits);
         setTotalAmount(totalNetAmount);
         setOrderCount(NewTotalVisits);
 
         let totalCartons = 0;
-        parsedResponse.forEach(it => {
-          it.details.forEach(item => {
+        response.data.forEach((it) => {
+          it.details.forEach((item) => {
             const { box_in_carton, carton_ordered, box_ordered } = item;
 
             totalCartons += carton_ordered;
@@ -477,15 +501,45 @@ const Home = ({ navigation }) => {
         });
         setTotalCartons(totalCartons);
 
-        // Call unproductive visits function and handle the combined unique fk_shop count
+        // Handle unproductive visits
         await handleUnproductiveVisits(totalUniqueShops, authToken, fkEmployee, formattedDate, userId);
       } else {
-        console.log('No saved data found in AsyncStorage');
+        // When offline, retrieve the total amount from AsyncStorage
+        const savedTotalAmountOffline = await AsyncStorage.getItem(`totalAmountOffline_${userId}`);
+        const savedOrderResponse = await AsyncStorage.getItem(`ORDER_RESPONSE_${userId}`);
+
+        if (savedOrderResponse) {
+          // Parse the saved order response and calculate the total net amount
+          const parsedOrderResponse = JSON.parse(savedOrderResponse);
+          const totalOrderNetAmount = parsedOrderResponse.reduce((sum, order) => sum + order.net_amount, 0);
+
+          console.log(`Total net amount from saved orders: ${totalOrderNetAmount}`);
+
+          if (savedTotalAmountOffline) {
+            // Parse the offline total amount and add it to the order total
+            const parsedTotalAmountOffline = JSON.parse(savedTotalAmountOffline);
+            const offlineAmount = parseFloat(parsedTotalAmountOffline.totalAmount);
+
+            const newTotalAmount = totalOrderNetAmount + offlineAmount;
+
+            console.log(`Total amount after adding offline amount: ${newTotalAmount}`);
+
+            // Set the new total amount
+            setTotalAmount(newTotalAmount);
+          } else {
+            // If no saved offline amount, just set the order total amount
+            setTotalAmount(totalOrderNetAmount);
+          }
+        } else {
+          console.log('No saved order response found in AsyncStorage');
+        }
       }
     } catch (err) {
       console.log('Error in booking Visits', err);
     }
   };
+
+
 
   const handleUnproductiveVisits = async (totalUniqueShops, authToken, fkEmployee, formattedDate, userId) => {
     const state = await NetInfo.fetch();
@@ -500,6 +554,7 @@ const Home = ({ navigation }) => {
           }
         );
         await AsyncStorage.setItem(`ORDER_UNPRODUCTIVE_${userId}`, JSON.stringify(response.data));
+        await AsyncStorage.removeItem(`totalAmountOffline_${userId}`);
       }
       const savedResponse = await AsyncStorage.getItem(`ORDER_UNPRODUCTIVE_${userId}`);
       const parsedResponse = JSON.parse(savedResponse);
@@ -1389,7 +1444,7 @@ const Home = ({ navigation }) => {
       // Check if stored date is different from today's date (new day)
       if (storedDate !== today) {
         // New day, reset the total amount
-        await AsyncStorage.removeItem(`totalAmount_${userId}`); // Clear previous total amount
+        // await AsyncStorage.removeItem(`totalAmount_${userId}`); // Clear previous total amount
         await AsyncStorage.setItem(`lastUpdated_${userId}`, today); // Update the date to today
         // setTotalAmount(0); 
       } else {
