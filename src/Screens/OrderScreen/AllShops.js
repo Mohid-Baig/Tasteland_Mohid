@@ -1547,7 +1547,7 @@ const AllShops = ({ navigation, route }) => {
             );
             console.log(response.data);
             console.log(response.status);
-            incrementTotalVisits();
+            // incrementTotalVisits();
             closeModal();
             setUnproductiveShops(prev => {
               const updatedShops = [...prev, singleId];
@@ -1670,7 +1670,7 @@ const AllShops = ({ navigation, route }) => {
             console.log(response.data);
             console.log(response.status);
             closeModal();
-            incrementTotalVisits();
+            // incrementTotalVisits();
             setUnproductiveShops(prev => {
               const updatedShops = [...prev, singleId];
               storeUnproductiveShops(singleId);
@@ -1802,7 +1802,7 @@ const AllShops = ({ navigation, route }) => {
           console.log(response.data);
           console.log(response.status);
           closeModal();
-          incrementTotalVisits();
+          // incrementTotalVisits();
           setUnproductiveShops(prev => {
             const updatedShops = [...prev, singleId];
             storeUnproductiveShops(singleId);
