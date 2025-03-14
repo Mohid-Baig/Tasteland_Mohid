@@ -881,7 +881,7 @@ const AllShops = ({ navigation, route }) => {
       handleVisitButtonClick(item.id);
     } else {
       const offlinePostOrders = await AsyncStorage.getItem(
-        `offlineOrders_${userId}`,
+        `localofflinedata_${userId}`,
       );
 
       if (offlinePostOrders) {
