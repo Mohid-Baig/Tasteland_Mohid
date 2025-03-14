@@ -12,13 +12,15 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Remove_All_Cart } from '../../Components/redux/constants';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 const AllShopsInvoice = ({ route, navigation }) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
   const [gstRate, setGSTrate] = useState();
-  const { cartItems, Gst, orderBokerId, local } = route.params;
+  const { cartItems, Gst, orderBokerId, local, existingOrderId } = route.params;
   const dispatch = useDispatch();
+  // const state =  NetInfo.fetch();
 
   useEffect(() => {
     return () => {
@@ -26,8 +28,7 @@ const AllShopsInvoice = ({ route, navigation }) => {
     };
   }, [dispatch]);
 
-  // console.log(cartItems.gross_amount, 'grossamount');
-  // console.log(Gst, 'On local screen gst');
+
   console.log(JSON.stringify(cartItems), '-----mm');
 
   useEffect(() => {
@@ -45,10 +46,9 @@ const AllShopsInvoice = ({ route, navigation }) => {
     const TO_amount = cartItems?.net_amount;
     const userId = await AsyncStorage.getItem('userId');
 
-    // Create the data object with TO_amount and the current date
+
     const totalAmount = parseFloat(TO_amount)
     try {
-      // Store the TO_amount value directly in AsyncStorage
       await AsyncStorage.setItem(
         `totalViewShopInvoice_${userId}`,
         JSON.stringify(totalAmount)
@@ -58,6 +58,39 @@ const AllShopsInvoice = ({ route, navigation }) => {
     } catch (error) {
       console.error("Error storing total edit amount: ", error);
     }
+  };
+  const calculateOrderForMultipleItems = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    let totalCartons = 0;
+
+    console.log('Starting calculation for total cartons...');
+
+    cartItems.cartItems.forEach((item, index) => {
+      const { carton_ordered, box_ordered, itemss } = item;
+      const { box_in_carton } = itemss.pricing;
+
+      console.log(`\nProcessing item ${index + 1}:`);
+      console.log('carton_ordered:', carton_ordered);
+      console.log('box_ordered:', box_ordered);
+      console.log('box_in_carton:', box_in_carton);
+
+      totalCartons += carton_ordered;
+      console.log('After adding carton_ordered, totalCartons:', totalCartons);
+
+      if (box_ordered > 0) {
+        const additionalCartons = box_ordered / box_in_carton;
+        totalCartons += additionalCartons;
+        console.log('After adding box_ordered, totalCartons:', totalCartons);
+      }
+    });
+
+    console.log('\nFinal totalCartons:', totalCartons);
+
+    await AsyncStorage.setItem(
+      `totalCartonsinInvoice_${userId}`,
+      totalCartons.toFixed(1),
+    );
+    return totalCartons;
   };
 
   const formatDate = dateString => {
@@ -80,7 +113,7 @@ const AllShopsInvoice = ({ route, navigation }) => {
             <Text style={styles.Text1}>Payment Done</Text>
           </View>
           <View style={{ marginLeft: 25 }}>
-            <Text style={styles.Text2}>--</Text>
+            <Text style={styles.Text2}>{existingOrderId ? existingOrderId : '--'}</Text>
             {cartItems?.status ? (
               <View style={styles.pending}>
                 <Text style={[styles.Text2, { color: '#fff' }]}>
@@ -240,7 +273,7 @@ const AllShopsInvoice = ({ route, navigation }) => {
           onPress={async () => {
             try {
               await storeTotalEditAmount();
-
+              calculateOrderForMultipleItems();
               navigation.navigate('CreateOrder', {
                 shopData: {
                   Shopid: cartItems?.shop?.id,
@@ -250,7 +283,7 @@ const AllShopsInvoice = ({ route, navigation }) => {
                   ...cartItems,
                 },
                 Store: cartItems?.shop,
-                existingOrderId: cartItems?.id,
+                existingOrderId: existingOrderId,
                 RouteDate: formatDate(cartItems?.date),
                 uuiddd: cartItems?.unid,
               });

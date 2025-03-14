@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,11 +15,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Loader from '../../Components/Loaders/Loader';
 import instance from '../../Components/BaseUrl';
 import ViewInvoice from '../InvoiceScreen/ViewInvoice';
-import {Remove_All_Cart} from '../../Components/redux/constants';
-import {useSelector, useDispatch} from 'react-redux';
-import {AddToCart} from '../../Components/redux/action';
+import { Remove_All_Cart } from '../../Components/redux/constants';
+import { useSelector, useDispatch } from 'react-redux';
+import { AddToCart } from '../../Components/redux/action';
 import NetInfo from '@react-native-community/netinfo';
-const FailedOrdersScreen = ({route, navigation, userId}) => {
+const FailedOrdersScreen = ({ route, navigation, userId }) => {
   //   const {userId} = route.params;
   const [failedOrders, setFailedOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,27 +40,26 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
 
   useEffect(() => {
     return () => {
-      dispatch({type: Remove_All_Cart}); // Clear cart when leaving the screen
+      dispatch({ type: Remove_All_Cart }); // Clear cart when leaving the screen
     };
   }, [dispatch]);
+  useEffect(() => {
+    if (userId) {
+      loadFailedOrders();
+    }
+  }, [userId]);
+
   const loadFailedOrders = async () => {
     try {
-      const storedFailedOrders = await AsyncStorage.getItem(
-        `failedOrders_${userId}`,
-      );
+      const storedFailedOrders = await AsyncStorage.getItem(`failedOrders_${userId}`);
+      console.log('Stored Failed Orders:', storedFailedOrders); // Log the stored data
 
       if (storedFailedOrders) {
         const parsedOrders = JSON.parse(storedFailedOrders);
-        // console.log(JSON.stringify(parsedOrders));
+        console.log('Parsed Orders:', JSON.stringify(parsedOrders)); // Log the parsed data
 
         if (Array.isArray(parsedOrders)) {
           setFailedOrders(parsedOrders);
-
-          parsedOrders.forEach(item => {
-            setdate(item.date);
-            setLocation(item.location);
-            setcartItems(item.cartItems);
-          });
         } else {
           console.error('Parsed data is not an array:', parsedOrders);
         }
@@ -192,7 +191,7 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
 
             // Filter out the order using uniqueId
             const updatedOrders = failedOrders.filter(
-              order => order.unid !== uniqueId,
+              order => order?.order?.unid || order?.unid !== uniqueId,
             );
 
             // Save the updated orders back to AsyncStorage
@@ -202,7 +201,7 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
           },
         },
       ],
-      {cancelable: true},
+      { cancelable: true },
     );
   };
 
@@ -229,7 +228,7 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
           },
         },
       ],
-      {cancelable: true},
+      { cancelable: true },
     );
   };
   const postOrder = async order => {
@@ -275,11 +274,11 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
       console.log(response.status, 'status');
 
       if (response.status === 200) {
-        Alert.alert('Success', 'Order created successfully!', [{text: 'OK'}]);
+        Alert.alert('Success', 'Order created successfully!', [{ text: 'OK' }]);
 
         // Remove the order from failed orders after a successful post
         const updatedOrders = failedOrders.filter(
-          failedOrder => failedOrder.shop.id !== order.shop.id,
+          failedOrder => failedOrder.order.shop.id || failedOrder.shop.id !== order.shop.id,
         );
         saveFailedOrders(updatedOrders); // Save updated orders to AsyncStorage
       } else {
@@ -337,7 +336,7 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
 
         // Remove the order from failed orders after a successful update
         const updatedOrders = failedOrders.filter(
-          failedOrder => failedOrder.shop.id !== item.shop.id,
+          failedOrder => failedOrder.order.shop.id || failedOrder.shop.id !== item.shop.id || item.order.shop.id,
         );
         saveFailedOrders(updatedOrders); // Save updated orders to AsyncStorage
       } else {
@@ -365,11 +364,12 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
     }
   }, [userId]);
 
-  const renderItem = ({item}) => {
-    // console.log(item.totalPrice);
-    const shopName = item?.shop ? item?.shop?.name : 'No Shop Info';
-    const orderDate = item?.date ? formatDate(item.date) : 'No Date';
-
+  const renderItem = ({ item }) => {
+    const order = item.order || item; // Access the nested `order` object
+    const shopName = order?.shop ? order?.shop?.name : 'No Shop Info';
+    const orderDate = order?.date ? formatDate(order.date) : 'No Date';
+    console.log(JSON.stringify(order), 'order it'); // Log the order data
+    console.log(order.unid)
     return (
       <View style={styles.orderDetailContainer}>
         <View style={styles.orderInfoContainer}>
@@ -384,7 +384,7 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
           <View style={styles.center}>
             <Text style={styles.infoLabel}>Net Amount</Text>
             <Text style={styles.infoValue}>
-              {item.net_amount ?? item.totalPrice ?? '--'}
+              {order.net_amount ?? order.totalPrice ?? '--'}
             </Text>
           </View>
         </View>
@@ -395,72 +395,62 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
           <Text style={styles.errorText}>{orderDate}</Text>
         </View>
         <View style={styles.errorMessageContainer}>
-          <Text style={styles.errorText}>{item.error}</Text>
+          <Text style={styles.errorText}>{order.error}</Text>
         </View>
         <View style={styles.actionContainer}>
           <TouchableOpacity
             onPress={() => {
-              if (item.id) {
-                updateOrder(item);
+              if (order.id) {
+                updateOrder(order);
               } else {
-                postOrder(item);
+                postOrder(order);
               }
             }}>
             <MaterialCommunityIcons name="reload" color={'#16a4dd'} size={25} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              // console.log(JSON.stringify(item), 'Selected order');
-              // console.log(JSON.stringify(cartItems), 'cartItems');
-              console.log(
-                item.details.forEach(it => {
-                  it.id;
-                }),
-                'hello',
-              );
-              dispatch({type: Remove_All_Cart});
-              item.details.forEach(val => {
-                let pro = allProducts.filter(
-                  valfil => valfil.pricing.id === val.pricing_id,
-                );
-                console.log(JSON.stringify(pro), 'pro');
-                console.log(JSON.stringify(val), 'val');
+              dispatch({ type: Remove_All_Cart });
+              if (order.details && Array.isArray(order.details)) {
+                order.details.forEach(val => {
+                  let pro = allProducts.filter(
+                    valfil => valfil.pricing.id === val.pricing_id,
+                  );
+                  let items = {
+                    carton_ordered: val.carton_ordered,
+                    box_ordered: val.box_ordered,
+                    pricing_id: val.pricing_id,
+                    itemss: pro[0],
+                    pack_in_box: val.box_ordered,
+                  };
+                  dispatch(AddToCart(items));
+                });
 
-                let items = {
-                  carton_ordered: val.carton_ordered,
-                  box_ordered: val.box_ordered,
-                  pricing_id: val.pricing_id,
-                  itemss: pro[0],
-                  pack_in_box: val.box_ordered,
-                };
-                dispatch(AddToCart(items));
-              });
-
-              navigation.navigate('CreateOrder', {
-                // cartItems: item,
-                existingOrderId: item.id,
-                Invoiceitems: {
-                  date: item.date,
-                  details: item.details,
-                  id: item.id,
-                  shop: item.shop,
-                  totalCarton: item.totalCarton,
-                  totalPrice: item.totalPrice,
-                },
-                Store: item.shop,
-                RouteDate: orderDate,
-                // cItems: item.cartItems,
-              });
+                navigation.navigate('CreateOrder', {
+                  existingOrderId: order.id,
+                  Invoiceitems: {
+                    date: order.date,
+                    details: order.details,
+                    id: order.id,
+                    shop: order.shop,
+                    totalCarton: order.totalCarton,
+                    totalPrice: order.totalPrice,
+                  },
+                  Store: order.shop,
+                  RouteDate: orderDate,
+                });
+              } else {
+                console.error('Order details are missing or invalid.');
+              }
             }}>
             <MaterialIcons name="edit" color={'#16a4dd'} size={25} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              console.log(item.unid);
-              if (item.details && item.details.length > 0 && item.unid) {
-                handleDeleteOrder(item.unid);
+              if (order.unid) {
+                handleDeleteOrder(order.unid);
               } else {
-                console.error('Order details are missing or invalid.');
+                console.error('Order unique ID is missing.');
               }
             }}>
             <Entypo name="circle-with-cross" color={'red'} size={25} />
@@ -480,7 +470,7 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
           <TouchableOpacity
             style={[styles.DeleteContainer]}
             onPress={handleDeleteAllOrders}>
-            <Text style={[styles.headerText, {fontSize: 13, marginRight: 12}]}>
+            <Text style={[styles.headerText, { fontSize: 13, marginRight: 12 }]}>
               Delete All Orders
             </Text>
           </TouchableOpacity>
@@ -499,11 +489,15 @@ const FailedOrdersScreen = ({route, navigation, userId}) => {
         showsVerticalScrollIndicator={false}
         data={failedOrders}
         keyExtractor={item =>
-          item.shop && item.shop.id
-            ? item.shop.id.toString()
-            : item.details && item.details[0]
-            ? item.details[0].pricing_id.toString()
-            : 'defaultKey'
+          item.order?.shop?.id
+            ? item.order.shop.id.toString()
+            : item.order?.details?.[0]?.pricing_id
+              ? item.order.details[0].pricing_id.toString()
+              : 'defaultKey' || item?.shop?.id
+                ? item.shop.id.toString()
+                : item?.details?.[0]?.pricing_id
+                  ? item.details[0].pricing_id.toString()
+                  : 'defaultKey'
         }
         renderItem={renderItem}
       />
@@ -563,7 +557,7 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     borderRadius: 10,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,

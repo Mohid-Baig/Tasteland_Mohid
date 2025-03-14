@@ -70,29 +70,35 @@ const Home = ({ navigation }) => {
           'Please enable "Set Automatically" for date and time in your settings till then no request will be sent to server',
         );
       } else {
-        // Fetch totalAmount data from AsyncStorage
-        const storedData = await AsyncStorage.getItem(`totalAmountOffline_${userId}`);
-        // await AsyncStorage.removeItem(`totalEditAmountOffline_${userId}`)
-        // await AsyncStorage.removeItem(`localofflinedata_${userId}`)
-        // await AsyncStorage.removeItem(`totalCartons_${userId}`)
+        try {
+          // Fetch totalAmount data from AsyncStorage
+          const storedData = await AsyncStorage.getItem(`localofflinedata_${userId}`);
+          // await AsyncStorage.removeItem(`localofflinedata_${userId}`);
+          // await AsyncStorage.removeItem(`postorderId_${userId}`);
 
-        if (storedData) {
-          const totalData = JSON.parse(storedData);
-          const storedDate = totalData.date;
-          const currentDate = getTodayCurrentDate();
+          if (storedData) {
+            const totalData = JSON.parse(storedData);
+            const storedDate = totalData.ordercreationdate;
+            const currentDate = getTodayCurrentDate();
+            console.log(storedDate, currentDate, '------------------------------------------------------------');
+            // Check if the stored date is different from the current date
+            if (storedDate !== currentDate) {
+              // Remove the item if the date does not match
+              await AsyncStorage.removeItem(`totalAmountOffline_${userId}`);
+              await AsyncStorage.removeItem(`totalEditAmountOffline_${userId}`);
+              await AsyncStorage.removeItem(`localofflinedata_${userId}`);
+              await AsyncStorage.removeItem(`totalCartons_${userId}`);
+              await AsyncStorage.removeItem(`postorderId_${userId}`);
 
-          // Check if the stored date is different from the current date
-          if (storedDate !== currentDate) {
-            // Remove the item if the date does not match
-            await AsyncStorage.removeItem(`totalAmountOffline_${userId}`);
-            await AsyncStorage.removeItem(`totalEditAmountOffline_${userId}`);
-            await AsyncStorage.removeItem(`localofflinedata_${userId}`)
-            await AsyncStorage.removeItem(`totalCartons_${userId}`)
-
-            console.log('Stored data removed due to date mismatch');
+              console.log('Stored data removed due to date mismatch');
+            } else {
+              console.log('Stored data date matches the current date');
+            }
           } else {
-            console.log('Stored data date matches the current date');
+            console.log('No stored data found.');
           }
+        } catch (error) {
+          console.error('Error fetching or removing stored data:', error);
         }
       }
     });
@@ -446,6 +452,127 @@ const Home = ({ navigation }) => {
   };
 
 
+  // const bookingVisit = async () => {
+  //   const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+  //   const fkEmployee = await AsyncStorage.getItem('fk_employee');
+  //   const userId = await AsyncStorage.getItem('userId');
+  //   const state = await NetInfo.fetch();
+
+  //   const getCurrentDate = () => {
+  //     const today = new Date();
+  //     const year = today.getFullYear();
+  //     const month = String(today.getMonth() + 1).padStart(2, '0');
+  //     const day = String(today.getDate()).padStart(2, '0');
+  //     return `${year}-${month}-${day}`;
+  //   };
+
+  //   const formattedDate = getCurrentDate();
+
+  //   try {
+  //     let totalUniqueShops = new Set(); // A set to store unique fk_shop
+
+  //     if (state.isConnected) {
+  //       // When online, call the API and get the order data
+  //       const response = await instance.get(
+  //         `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`,
+  //         {
+  //           headers: {
+  //             Authorization: `Bearer ${authToken}`,
+  //           },
+  //         }
+  //       );
+
+  //       // Save the response in AsyncStorage
+  //       await AsyncStorage.setItem(`ORDER_RESPONSE_${userId}`, JSON.stringify(response.data));
+  //       console.log('Order data saved to AsyncStorage');
+  //       // await AsyncStorage.removeItem(`totalAmountOffline_${userId}`)
+
+
+  //       // Extract the fk_shop from the booking visit response and add to the Set
+  //       response.data.forEach((order) => {
+  //         totalUniqueShops.add(order.fk_shop);
+  //       });
+
+  //       const totalNetAmount = response.data.reduce((sum, order) => sum + order.net_amount, 0);
+  //       const NewTotalVisits = response.data.length;
+
+  //       setTotalVisits(NewTotalVisits);
+  //       setTotalAmount(totalNetAmount);
+  //       setOrderCount(NewTotalVisits);
+
+  //       let totalCartons = 0;
+  //       response.data.forEach((it) => {
+  //         it.details.forEach((item) => {
+  //           const { box_in_carton, carton_ordered, box_ordered } = item;
+
+  //           totalCartons += carton_ordered;
+
+  //           if (box_ordered > 0) {
+  //             const additionalCartons = box_ordered / box_in_carton;
+  //             totalCartons += additionalCartons;
+  //           }
+  //         });
+  //       });
+  //       setTotalCartons(totalCartons);
+
+  //       await handleUnproductiveVisits(totalUniqueShops, authToken, fkEmployee, formattedDate, userId);
+  //     } else {
+  //       const savedTotalAmountOffline = await AsyncStorage.getItem(`totalAmountOffline_${userId}`);
+  //       const savedTotalEditAmountOffline = await AsyncStorage.getItem(`totalEditAmountOffline_${userId}`);
+  //       const savedTotalLocalAmountOffline = await AsyncStorage.getItem(`totalEditlocalAmountOffline_${userId}`);
+  //       const savedOrderResponse = await AsyncStorage.getItem(`ORDER_RESPONSE_${userId}`);
+  //       const savedTotalCartons = await AsyncStorage.getItem(`totalCartons_${userId}`);
+  //       const savedVisits = await AsyncStorage.getItem(`totalVisits_${userId}`);
+
+  //       // let totalCartons = 0
+
+  //       if (savedOrderResponse) {
+  //         const parsedOrderResponse = JSON.parse(savedOrderResponse);
+  //         const totalOrderNetAmount = parsedOrderResponse.reduce((sum, order) => sum + order.net_amount, 0);
+
+  //         console.log(`Total net amount from saved orders: ${totalOrderNetAmount}`);
+
+  //         if (savedTotalAmountOffline || savedTotalEditAmountOffline || savedTotalLocalAmountOffline) {
+  //           const parsedTotalAmountOffline = savedTotalAmountOffline ? JSON.parse(savedTotalAmountOffline) : { totalAmount: 0 };
+  //           const parsedTotalEditAmountOffline = savedTotalEditAmountOffline ? JSON.parse(savedTotalEditAmountOffline) : { totalAmount: 0 };
+  //           const parsedTotalEditLocalAmountOffline = savedTotalLocalAmountOffline ? JSON.parse(savedTotalLocalAmountOffline) : { totalAmount: 0 };
+
+  //           console.log(JSON.stringify(parsedTotalAmountOffline), JSON.stringify(parsedTotalEditAmountOffline), JSON.stringify(parsedTotalEditLocalAmountOffline));
+
+  //           const offlineAmount = parseFloat(parsedTotalAmountOffline.totalAmount) || 0;
+  //           const offlineEditAmount = parseFloat(parsedTotalEditAmountOffline.totalAmount) || 0;
+  //           const offlineLocalAmount = parseFloat(parsedTotalEditLocalAmountOffline.totalAmount) || 0;
+
+  //           const newTotalAmount = totalOrderNetAmount + offlineAmount + offlineEditAmount + offlineLocalAmount;
+
+  //           console.log(`Total amount after adding offline amount: ${newTotalAmount}`);
+
+  //           setTotalAmount(newTotalAmount);
+  //         }
+  //         else {
+  //           setTotalAmount(totalOrderNetAmount);
+  //         }
+  //       } else {
+  //         console.log('No saved order response found in AsyncStorage');
+  //       }
+  //       const parsedCartons = savedTotalCartons ? JSON.parse(savedTotalCartons) : 0;
+  //       const parsedSavedTotalCartons = parseFloat(parsedCartons) || 0;
+
+  //       setTotalCartons((prevTotalCartons) => prevTotalCartons + parsedSavedTotalCartons);
+  //       console.log(`Total Cartons after adding offline cartons: ${parsedSavedTotalCartons}`);
+  //       if (savedVisits) {
+  //         const parsedd = savedVisits ? JSON.parse(savedVisits) : 0;
+  //         console.log(JSON.stringify(parsedd), 'visits count')
+  //         const parsedVisits = parseInt(parsedd);
+  //         setTotalVisits((prevTotalVisits) => prevTotalVisits + parsedVisits);
+  //         setOrderCount((prevOrderCount) => prevOrderCount + parsedVisits);
+  //       }
+  //     }
+  //   } catch (err) {
+  //     console.log('Error in booking Visits', err);
+  //   }
+  // };
+
   const bookingVisit = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
     const fkEmployee = await AsyncStorage.getItem('fk_employee');
@@ -465,6 +592,11 @@ const Home = ({ navigation }) => {
     try {
       let totalUniqueShops = new Set(); // A set to store unique fk_shop
 
+      // Initialize baseline values from online data
+      let baselineVisits = 0;
+      let baselineAmount = 0;
+      let baselineCartons = 0;
+
       if (state.isConnected) {
         // When online, call the API and get the order data
         const response = await instance.get(
@@ -481,19 +613,21 @@ const Home = ({ navigation }) => {
         console.log('Order data saved to AsyncStorage');
         // await AsyncStorage.removeItem(`totalAmountOffline_${userId}`)
 
-
         // Extract the fk_shop from the booking visit response and add to the Set
         response.data.forEach((order) => {
           totalUniqueShops.add(order.fk_shop);
         });
 
-        const totalNetAmount = response.data.reduce((sum, order) => sum + order.net_amount, 0);
-        const NewTotalVisits = response.data.length;
+        // Calculate baseline values from API response
+        baselineAmount = response.data.reduce((sum, order) => sum + order.net_amount, 0);
+        baselineVisits = response.data.length;
 
-        setTotalVisits(NewTotalVisits);
-        setTotalAmount(totalNetAmount);
-        setOrderCount(NewTotalVisits);
+        // Set base values from API response
+        setTotalVisits(baselineVisits);
+        setTotalAmount(baselineAmount);
+        setOrderCount(baselineVisits);
 
+        // Calculate cartons
         let totalCartons = 0;
         response.data.forEach((it) => {
           it.details.forEach((item) => {
@@ -507,66 +641,95 @@ const Home = ({ navigation }) => {
             }
           });
         });
-        setTotalCartons(totalCartons);
+        baselineCartons = totalCartons;
+        setTotalCartons(baselineCartons);
 
         await handleUnproductiveVisits(totalUniqueShops, authToken, fkEmployee, formattedDate, userId);
       } else {
-        const savedTotalAmountOffline = await AsyncStorage.getItem(`totalAmountOffline_${userId}`);
-        const savedTotalEditAmountOffline = await AsyncStorage.getItem(`totalEditAmountOffline_${userId}`);
-        const savedTotalLocalAmountOffline = await AsyncStorage.getItem(`totalEditlocalAmountOffline_${userId}`);
+        // In offline mode, first get the saved online data as baseline
         const savedOrderResponse = await AsyncStorage.getItem(`ORDER_RESPONSE_${userId}`);
-        const savedTotalCartons = await AsyncStorage.getItem(`totalCartons_${userId}`);
-        const savedVisits = await AsyncStorage.getItem(`totalVisits_${userId}`);
-
-        // let totalCartons = 0
 
         if (savedOrderResponse) {
           const parsedOrderResponse = JSON.parse(savedOrderResponse);
-          const totalOrderNetAmount = parsedOrderResponse.reduce((sum, order) => sum + order.net_amount, 0);
 
-          console.log(`Total net amount from saved orders: ${totalOrderNetAmount}`);
+          // Calculate baseline values from saved online data
+          baselineAmount = parsedOrderResponse.reduce((sum, order) => sum + order.net_amount, 0);
+          baselineVisits = parsedOrderResponse.length;
 
-          if (savedTotalAmountOffline || savedTotalEditAmountOffline || savedTotalLocalAmountOffline) {
-            const parsedTotalAmountOffline = savedTotalAmountOffline ? JSON.parse(savedTotalAmountOffline) : { totalAmount: 0 };
-            const parsedTotalEditAmountOffline = savedTotalEditAmountOffline ? JSON.parse(savedTotalEditAmountOffline) : { totalAmount: 0 };
-            const parsedTotalEditLocalAmountOffline = savedTotalLocalAmountOffline ? JSON.parse(savedTotalLocalAmountOffline) : { totalAmount: 0 };
+          // Calculate baseline cartons
+          parsedOrderResponse.forEach((it) => {
+            it.details.forEach((item) => {
+              const { box_in_carton, carton_ordered, box_ordered } = item;
+              baselineCartons += carton_ordered;
+              if (box_ordered > 0) {
+                const additionalCartons = box_ordered / box_in_carton;
+                baselineCartons += additionalCartons;
+              }
+            });
+          });
 
-            console.log(JSON.stringify(parsedTotalAmountOffline), JSON.stringify(parsedTotalEditAmountOffline), JSON.stringify(parsedTotalEditLocalAmountOffline));
-
-            const offlineAmount = parseFloat(parsedTotalAmountOffline.totalAmount) || 0;
-            const offlineEditAmount = parseFloat(parsedTotalEditAmountOffline.totalAmount) || 0;
-            const offlineLocalAmount = parseFloat(parsedTotalEditLocalAmountOffline.totalAmount) || 0;
-
-            const newTotalAmount = totalOrderNetAmount + offlineAmount + offlineEditAmount + offlineLocalAmount;
-
-            console.log(`Total amount after adding offline amount: ${newTotalAmount}`);
-
-            setTotalAmount(newTotalAmount);
-          }
-          else {
-            setTotalAmount(totalOrderNetAmount);
-          }
-        } else {
-          console.log('No saved order response found in AsyncStorage');
+          console.log(`Base values from saved online data - Amount: ${baselineAmount}, Visits: ${baselineVisits}, Cartons: ${baselineCartons}`);
         }
-        const parsedCartons = savedTotalCartons ? JSON.parse(savedTotalCartons) : 0;
-        const parsedSavedTotalCartons = parseFloat(parsedCartons) || 0;
+      }
 
-        setTotalCartons((prevTotalCartons) => prevTotalCartons + parsedSavedTotalCartons);
-        console.log(`Total Cartons after adding offline cartons: ${parsedSavedTotalCartons}`);
+      // After handling online or offline baseline values, add offline-created data
+      if (!state.isConnected) {
+        // Get offline data that needs to be added
+        const savedTotalAmountOffline = await AsyncStorage.getItem(`totalAmountOffline_${userId}`);
+        const savedTotalEditAmountOffline = await AsyncStorage.getItem(`totalEditAmountOffline_${userId}`);
+        const savedTotalLocalAmountOffline = await AsyncStorage.getItem(`totalEditlocalAmountOffline_${userId}`);
+        const savedTotalCartons = await AsyncStorage.getItem(`totalCartons_${userId}`);
+        const savedVisits = await AsyncStorage.getItem(`totalVisits_${userId}`);
+
+        // Add offline amounts to baseline amount
+        let additionalAmount = 0;
+        if (savedTotalAmountOffline || savedTotalEditAmountOffline || savedTotalLocalAmountOffline) {
+          const parsedTotalAmountOffline = savedTotalAmountOffline ? JSON.parse(savedTotalAmountOffline) : { totalAmount: 0 };
+          const parsedTotalEditAmountOffline = savedTotalEditAmountOffline ? JSON.parse(savedTotalEditAmountOffline) : { totalAmount: 0 };
+          const parsedTotalEditLocalAmountOffline = savedTotalLocalAmountOffline ? JSON.parse(savedTotalLocalAmountOffline) : { totalAmount: 0 };
+
+          console.log(JSON.stringify(parsedTotalAmountOffline), JSON.stringify(parsedTotalEditAmountOffline), JSON.stringify(parsedTotalEditLocalAmountOffline));
+
+          const offlineAmount = parseFloat(parsedTotalAmountOffline.totalAmount) || 0;
+          const offlineEditAmount = parseFloat(parsedTotalEditAmountOffline.totalAmount) || 0;
+          const offlineLocalAmount = parseFloat(parsedTotalEditLocalAmountOffline.totalAmount) || 0;
+
+          additionalAmount = offlineAmount + offlineEditAmount + offlineLocalAmount;
+          console.log(`Additional amount from offline: ${additionalAmount}`);
+
+          setTotalAmount(baselineAmount + additionalAmount);
+        } else {
+          setTotalAmount(baselineAmount);
+        }
+
+        let additionalCartons = 0;
+        if (savedTotalCartons) {
+          const parsedCartons = JSON.parse(savedTotalCartons);
+          additionalCartons = parseFloat(parsedCartons) || 0;
+          console.log(`Additional cartons from offline: ${additionalCartons}`);
+
+          setTotalCartons(baselineCartons + additionalCartons);
+        } else {
+          setTotalCartons(baselineCartons);
+        }
+
+        let additionalVisits = 0;
         if (savedVisits) {
-          const parsedd = savedVisits ? JSON.parse(savedVisits) : 0;
-          console.log(JSON.stringify(parsedd), 'visits count')
-          const parsedVisits = parseInt(parsedd);
-          setTotalVisits((prevTotalVisits) => prevTotalVisits + parsedVisits);
-          setOrderCount((prevOrderCount) => prevOrderCount + parsedVisits);
+          additionalVisits = parseInt(JSON.parse(savedVisits) || 0);
+          console.log(`Additional visits from offline: ${additionalVisits}`);
+
+          // Set total visits and order count = baseline + offline
+          setTotalVisits(baselineVisits + additionalVisits);
+          setOrderCount(baselineVisits + additionalVisits);
+        } else {
+          setTotalVisits(baselineVisits);
+          setOrderCount(baselineVisits);
         }
       }
     } catch (err) {
       console.log('Error in booking Visits', err);
     }
   };
-
 
 
   const handleUnproductiveVisits = async (totalUniqueShops, authToken, fkEmployee, formattedDate, userId) => {
@@ -958,7 +1121,9 @@ const Home = ({ navigation }) => {
 
           const postorderId = response.data.id;
           const shop_id = order.shop.id;
-          await updateStoredOrderIds(userId, postorderId, shop_id);
+          const date = response.data.date
+          const status = response.data.status
+          await updateStoredOrderIds(userId, postorderId, shop_id, date, status);
 
           const storedTotalAmount = await AsyncStorage.getItem(
             `totalAmount_${userId}`,
@@ -1143,7 +1308,7 @@ const Home = ({ navigation }) => {
     }
   };
 
-  const updateStoredOrderIds = async (userId, newOrderId, shopId) => {
+  const updateStoredOrderIds = async (userId, newOrderId, shopId, date, status) => {
     try {
       // Use a transaction to ensure atomicity
       await AsyncStorage.setItem(
@@ -1164,7 +1329,7 @@ const Home = ({ navigation }) => {
               }
 
               // Add the new orderId and shopId as an object
-              postorderIds.push({ orderId: newOrderId, shopId: shopId });
+              postorderIds.push({ orderId: newOrderId, shopId: shopId, date: date, status: status });
               return postorderIds;
             },
           ),

@@ -919,25 +919,36 @@ const AllShops = ({ navigation, route }) => {
           console.log('itemss:', itemss); // Log to verify the correct structure of itemss
 
           // dispatch({type: Remove_All_Cart});
+          // console.log(allProducts)
 
           details.forEach(val => {
-            let pro = allProducts.filter(
-              valfil => (
-                console.log(valfil.pricing.id, 'allproduct id'),
-                valfil.pricing_id === val.pricing_id
-              ),
-            );
-            console.log(val.pricing_id);
-            console.log(pro, 'kejle');
-            let items = {
-              carton_ordered: val.carton_ordered,
-              box_ordered: val.box_ordered,
-              pricing_id: val.pricing_id,
-              itemss: itemss, // Ensure that itemss is properly passed
-              pack_in_box: val.box_ordered,
-            };
+            console.log('Processing detail:', val);
 
-            dispatch(AddToCart(items));
+            // Find the corresponding product in allProducts
+            const product = allProducts.find(
+              prod => prod.pricing.id === val.pricing_id || prod.pricing_id === val.pricing_id
+            );
+
+            if (product) {
+              console.log('Product found:', product);
+
+              // Create a deep copy of the product to ensure uniqueness
+              const uniqueItemss = JSON.parse(JSON.stringify(product));
+
+              // Create the cart item with the unique itemss object
+              const cartItem = {
+                carton_ordered: val.carton_ordered,
+                box_ordered: val.box_ordered,
+                pricing_id: val.pricing_id,
+                itemss: uniqueItemss, // Use the unique itemss object
+                pack_in_box: val.box_ordered,
+              };
+
+              console.log('Dispatching cart item:', cartItem);
+              dispatch(AddToCart(cartItem));
+            } else {
+              console.warn(`Product not found for pricing_id: ${val.pricing_id}`);
+            }
           });
 
           if (item.id === shopID && cartItems) {
@@ -1164,10 +1175,115 @@ const AllShops = ({ navigation, route }) => {
     });
   };
 
+  // const renderItem = ({ item, index }) => {
+  //   const matchingOrder = offlineOrders.find(
+  //     order => order.shop.id === item.id,
+  //   );
+  //   const isUnproductive = unproductiveShops.includes(item.id);
+  //   const matchingOrderbyID = Array.isArray(matchingOrderID)
+  //     ? matchingOrderID.find(order => order.shopId === item.id)
+  //     : null;
+  //   const matchingUNOfflineOrderbyID = Array.isArray(unOfflineShops)
+  //     ? unOfflineShops.find(order => order.fk_shop === item.id)
+  //     : null;
+
+  //   // if (matchingOrderbyID) {
+  //   //   console.log('Matching order found:', matchingOrderbyID);
+  //   // } else {
+  //   //   console.log('No matching order found for shopId:', item.id);
+  //   // }
+  //   return (
+  //     <View style={styles.listItem}>
+  //       <View>
+  //         <Text style={styles.storeName}>
+  //           {index + 1}. {item.name}
+  //         </Text>
+  //         <Text style={styles.storeType}>{item.category}</Text>
+  //       </View>
+
+  //       <View style={styles.actions}>
+  //         <View
+  //           style={{
+  //             justifyContent: 'center',
+  //             alignItems: 'center',
+  //             marginTop: 10,
+  //           }}>
+  //           <View
+  //             style={{
+  //               flexDirection: 'row',
+  //               justifyContent: 'center',
+  //               alignItems: 'center',
+  //             }}>
+  //             {matchingOrderbyID || matchingOrder ? (
+  //               <FontAwesome name="check" size={25} color={'green'} />
+  //             ) : isUnproductive || matchingUNOfflineOrderbyID ? (
+  //               <FontAwesome name="check" size={25} color={'red'} />
+  //             ) : null}
+  //             <View style={{ marginLeft: 10 }}>
+  //               <TouchableOpacity
+  //                 style={[styles.button, { marginBottom: 5 }]}
+  //                 onPress={() => {
+  //                   console.log(item);
+  //                   if (isOffline && matchingOrder) {
+  //                     console.log('Invoice Action for Offline Order');
+  //                     offline(item);
+  //                   } else {
+  //                     console.log('Visit Action');
+  //                     handleVisit(item);
+  //                     setSingleId(item.id); // Set selected shop's ID
+  //                   }
+  //                 }}>
+  //                 <Text style={styles.buttonText}>
+  //                   {isOffline && matchingOrder ? 'INVOICE' : 'VISIT'}
+  //                 </Text>
+  //               </TouchableOpacity>
+  //               {item.pending_order > 0 ? (
+  //                 <View
+  //                   style={{
+  //                     backgroundColor: 'red',
+  //                     width: 70,
+  //                     height: 15,
+  //                     borderRadius: 10,
+  //                     justifyContent: 'center',
+  //                     alignItems: 'center',
+  //                   }}>
+  //                   <Text style={{ fontSize: 9, color: '#fff' }}>pending</Text>
+  //                 </View>
+  //               ) : (
+  //                 <View
+  //                   style={{
+  //                     backgroundColor: 'green',
+  //                     width: 70,
+  //                     height: 15,
+  //                     borderRadius: 10,
+  //                     justifyContent: 'center',
+  //                     alignItems: 'center',
+  //                   }}>
+  //                   <Text style={{ fontSize: 9, color: '#fff' }}>No pending</Text>
+  //                 </View>
+  //               )}
+  //             </View>
+  //           </View>
+  //         </View>
+
+  //         <View style={{ width: 20 }}></View>
+
+  //         {/* Info button to show more details in a modal */}
+  //         <TouchableOpacity
+  //           style={styles.infoButton}
+  //           onPress={() => {
+  //             console.log(item, 'item');
+  //             setSSelectedShop(item); // Set the selected shop data
+  //             setMModalVisible(true); // Show the modal
+  //           }}>
+  //           <FontAwesome6 name={'circle-info'} size={20} color={'#2196f3'} />
+  //         </TouchableOpacity>
+  //       </View>
+  //     </View>
+  //   );
+  // };
   const renderItem = ({ item, index }) => {
-    const matchingOrder = offlineOrders.find(
-      order => order.shop.id === item.id,
-    );
+    const matchingOrder = offlineOrders.find(order => order.shop.id === item.id);
     const isUnproductive = unproductiveShops.includes(item.id);
     const matchingOrderbyID = Array.isArray(matchingOrderID)
       ? matchingOrderID.find(order => order.shopId === item.id)
@@ -1176,11 +1292,20 @@ const AllShops = ({ navigation, route }) => {
       ? unOfflineShops.find(order => order.fk_shop === item.id)
       : null;
 
-    // if (matchingOrderbyID) {
-    //   console.log('Matching order found:', matchingOrderbyID);
-    // } else {
-    //   console.log('No matching order found for shopId:', item.id);
-    // }
+    const handleVisitPress = async () => {
+      const state = await NetInfo.fetch();
+      const isOffline = !state.isConnected;
+
+      if (isOffline && matchingOrder) {
+        console.log('Invoice Action for Offline Order');
+        await offline(item);
+      } else {
+        console.log('Visit Action');
+        handleVisit(item);
+        setSingleId(item.id); // Set selected shop's ID
+      }
+    };
+
     return (
       <View style={styles.listItem}>
         <View>
@@ -1211,17 +1336,7 @@ const AllShops = ({ navigation, route }) => {
               <View style={{ marginLeft: 10 }}>
                 <TouchableOpacity
                   style={[styles.button, { marginBottom: 5 }]}
-                  onPress={() => {
-                    console.log(item);
-                    if (isOffline && matchingOrder) {
-                      console.log('Invoice Action for Offline Order');
-                      offline(item);
-                    } else {
-                      console.log('Visit Action');
-                      handleVisit(item);
-                      setSingleId(item.id); // Set selected shop's ID
-                    }
-                  }}>
+                  onPress={handleVisitPress}>
                   <Text style={styles.buttonText}>
                     {isOffline && matchingOrder ? 'INVOICE' : 'VISIT'}
                   </Text>

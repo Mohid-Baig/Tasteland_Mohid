@@ -58,6 +58,7 @@ const ConfirmOrder = ({ route, navigation }) => {
 
   const cartItems = route.params?.cItems || useSelector(state => state.reducer);
   // const cartItems = route.params.cartItems;
+  console.log(uuiddd, 'unid')
 
   console.log(JSON.stringify(cartItems), 'hello motherfather--');
 
@@ -389,11 +390,9 @@ const ConfirmOrder = ({ route, navigation }) => {
       console.log('box_ordered:', box_ordered);
       console.log('box_in_carton:', box_in_carton);
 
-      // Add the carton_ordered directly to the total cartons
       totalCartons += carton_ordered;
       console.log('After adding carton_ordered, totalCartons:', totalCartons);
 
-      // Calculate the additional cartons from box_ordered
       if (box_ordered > 0) {
         const additionalCartons = box_ordered / box_in_carton;
         totalCartons += additionalCartons;
@@ -409,6 +408,7 @@ const ConfirmOrder = ({ route, navigation }) => {
     );
     return totalCartons;
   };
+
   const generateUniqueId = () => {
     return `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
   };
@@ -425,6 +425,13 @@ const ConfirmOrder = ({ route, navigation }) => {
       box_ordered: item.box_ordered,
       pricing_id: item.pricing_id,
     }));
+    const getCurrentDate = () => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${day}-${month}-${year}`;
+    };
 
     const offlineOrder = {
       unid: uniqueOrderId,
@@ -459,26 +466,30 @@ const ConfirmOrder = ({ route, navigation }) => {
       special: applySpecialDiscount,
       trade_price: cartItems.itemss?.pricing.trade_price,
       trade_offer: cartItems.itemss?.trade_offer,
+      ordercreationdate: getCurrentDate()
     };
 
     try {
       const key = `offlineOrders_${userId}`;
       const key2 = `localofflinedata_${userId}`;
 
-      // Retrieve the existing orders from AsyncStorage
       const existingOrders = await AsyncStorage.getItem(key);
       const existingLocalOrders = await AsyncStorage.getItem(key2);
       console.log("Existing Orders:", existingOrders);
       console.log("Existing Local Orders:", existingLocalOrders);
-      // Parse the existing orders, default to an empty array if null or empty
       let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
       let offlineLocalOrders = existingLocalOrders ? JSON.parse(existingLocalOrders) : [];
       if (!Array.isArray(offlineLocalOrders)) {
         offlineLocalOrders = [];
       }
+      if (!Array.isArray(offlineOrders)) {
+        offlineOrders = [];
+      }
       if (uuiddd) {
         offlineLocalOrders = offlineLocalOrders.filter(order => order.unid !== uuiddd);
         await AsyncStorage.setItem(key2, JSON.stringify(offlineLocalOrders));
+        offlineOrders = offlineOrders.filter(order => order.unid !== uuiddd);
+        await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
       }
       offlineOrders.push(offlineOrder);
       offlineLocalOrders.push(offlineOrder);
@@ -486,18 +497,26 @@ const ConfirmOrder = ({ route, navigation }) => {
       const storedTotalCartons = await AsyncStorage.getItem(
         `totalCartons_${userId}`,
       );
-      let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
+      const storedCartons = await AsyncStorage.getItem(`totalCartonsinInvoice_${userId}`);
+      if (storedCartons) {
+        const storedCartonsValue = parseFloat(storedCartons) || 0;
+        let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
 
-      // const newTotalCartons = await calculateOrderForMultipleItems(cartItems);
+        const cartonedit = totalCarton - storedCartonsValue
+        const updatedTotalCartons = previousTotalCartons + cartonedit;
+        setTotalCartons(updatedTotalCartons);
+        await AsyncStorage.setItem(
+          `totalCartons_${userId}`,
+          updatedTotalCartons.toFixed(1),
+        );
+        console.log(`Updated Total Cartons in offline: ${updatedTotalCartons}`);
+      } else {
+        await AsyncStorage.setItem(
+          `totalCartons_${userId}`,
+          totalCarton.toFixed(1),)
+      }
 
-      const updatedTotalCartons = previousTotalCartons + totalCarton;
-      setTotalCartons(updatedTotalCartons);
-      await AsyncStorage.setItem(
-        `totalCartons_${userId}`,
-        updatedTotalCartons.toFixed(1),
-      );
-
-      console.log(`Updated Total Cartons: ${updatedTotalCartons}`);
+      console.log(`Updated Total Cartons in offline second: ${totalCarton}`);
 
       await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
       await AsyncStorage.setItem(key2, JSON.stringify(offlineLocalOrders));
@@ -508,13 +527,16 @@ const ConfirmOrder = ({ route, navigation }) => {
       if (isUnproductive || matchingUNOfflineOrderbyID) {
         console.log('Unproductive order is already marked')
       } else {
-        incrementTotalVisits();
+        if (!uuiddd) {
+          incrementTotalVisits();
+        }
       }
 
       Alert.alert('Order Saved', 'Order has been saved locally for syncing.', [
         {
           text: 'OK',
           onPress: () => {
+            console.log('UUID Value:', uuiddd);
             if (!uuiddd) {
               navigation.navigate('AllShops', {
                 RouteDate: RouteDate,
@@ -524,6 +546,7 @@ const ConfirmOrder = ({ route, navigation }) => {
           },
         },
       ]);
+
 
     } catch (error) {
       console.error('Failed to save order offline:', error);
@@ -722,10 +745,13 @@ const ConfirmOrder = ({ route, navigation }) => {
           {
             text: 'OK',
             onPress: () => {
-              navigation.navigate('AllShops', {
-                RouteDate: RouteDate,
-              }),
-                console.log(RouteDate, 'RouteDate');
+              console.log('UUID Value:', uuiddd);
+              if (!uuiddd) {
+                navigation.navigate('AllShops', {
+                  RouteDate: RouteDate,
+                });
+              }
+              console.log(RouteDate, 'RouteDate');
             },
           },
         ]);
@@ -770,10 +796,13 @@ const ConfirmOrder = ({ route, navigation }) => {
         {
           text: 'ok',
           onPress: () => {
-            navigation.navigate('AllShops', {
-              RouteDate: RouteDate,
-            }),
-              console.log(RouteDate, 'RouteDate');
+            console.log('UUID Value:', uuiddd);
+            if (!uuiddd) {
+              navigation.navigate('AllShops', {
+                RouteDate: RouteDate,
+              });
+            }
+            console.log(RouteDate, 'RouteDate');
           },
         },
       ]);
@@ -782,9 +811,60 @@ const ConfirmOrder = ({ route, navigation }) => {
     }
   };
 
+  let orderDetails = cartItems.map(item => ({
+    carton_ordered: item.carton_ordered,
+    box_ordered: item.box_ordered,
+    pricing_id: item.pricing_id,
+  }));
+  const getCurrentDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${day}-${month}-${year}`;
+  };
+
+  const offlineOrder = {
+    unid: generateUniqueId(),
+    // lng: currentLocation.longitude,
+    // lat: currentLocation.latitude,
+    detailss: orderDetails,
+    totalPrice: currentOrderAmount,
+    todiscount: Math.round(GrossAmount - totalPrice),
+    // totalCarton: TotalCarton,
+    // date: formattedDate,
+    // details: mergedCartItems,
+    // shop: Store,
+    // location: currentLocation,
+    // fk_distribution: parseInt(distributor_id),
+    fk_shop: Store.id,
+    // fk_orderbooker_employee: parseInt(fk_employee),
+    discount: (GrossAmount - totalPrice).toFixed(2),
+    // cartItems: cartItems,
+    gst_amount: GST,
+    net_amount: (
+      totalPrice -
+      applySpecialDiscount -
+      FinalDistributiveDiscount
+    ).toFixed(2),
+    gross_amount: GrossAmount.toFixed(2),
+    distributionTO:
+      GrossAmount -
+      totalPrice +
+      applySpecialDiscount +
+      FinalDistributiveDiscount,
+    distribution: FinalDistributiveDiscount,
+    special: applySpecialDiscount,
+    trade_price: cartItems.itemss?.pricing.trade_price,
+    trade_offer: cartItems.itemss?.trade_offer,
+    ordercreationdate: getCurrentDate()
+  };
+
   const updateOrder = async (currentLocation) => {
     const userId = await AsyncStorage.getItem('userId');
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const distributor_id = await AsyncStorage.getItem('distribution_id');
+    const fk_employee = await AsyncStorage.getItem('fk_employee');
 
     const networkInfo = await NetInfo.fetch();
     const networkAvailable = networkInfo.isConnected;
@@ -896,6 +976,51 @@ const ConfirmOrder = ({ route, navigation }) => {
         await AsyncStorage.setItem(`totalAmount_${userId}`, totalAmount.toString());
         await AsyncStorage.setItem(`totalCartons_${userId}`, totalCartons.toFixed(1));
 
+
+        const key2 = `localofflinedata_${userId}`;
+
+        const existingLocalOrders = await AsyncStorage.getItem(key2);
+
+        let offlineLocalOrders = existingLocalOrders ? JSON.parse(existingLocalOrders) : [];
+
+        if (!Array.isArray(offlineLocalOrders)) {
+          offlineLocalOrders = [];
+        }
+
+        offlineLocalOrders = offlineLocalOrders.filter(order => order.unid !== uuiddd);
+
+        // More explicit approach with control over which properties to include
+        offlineLocalOrders.push({
+          id: data.id,
+          details: data.details,
+          shop: data.shop,
+          date: data.date,
+          totalPrice: data.totalPrice,
+          totalCarton: data.totalCarton,
+          cartItems: data.cartItems,
+
+          unid: offlineOrder.unid,
+          detailss: offlineOrder.detailss,
+          todiscount: offlineOrder.todiscount,
+          fk_shop: offlineOrder.fk_shop,
+          discount: offlineOrder.discount,
+          gst_amount: offlineOrder.gst_amount,
+          net_amount: offlineOrder.net_amount,
+          gross_amount: offlineOrder.gross_amount,
+          distributionTO: offlineOrder.distributionTO,
+          distribution: offlineOrder.distribution,
+          special: offlineOrder.special,
+          ordercreationdate: offlineOrder.ordercreationdate,
+
+          fk_distribution: parseInt(distributor_id),
+          fk_orderbooker_employee: parseInt(fk_employee),
+        });
+
+        await AsyncStorage.setItem(key2, JSON.stringify(offlineLocalOrders));
+
+        console.log("Order updated successfully!");
+
+
         console.log(response.data, 'Put data');
         console.log(response.status, 'status');
         Alert.alert('Success', 'Order edited successfully!', [{ text: 'OK' }]);
@@ -905,7 +1030,31 @@ const ConfirmOrder = ({ route, navigation }) => {
         const parsedOfflineEditOrders = offlineEditOrders ? JSON.parse(offlineEditOrders) : [];
 
         // Append the new order to the list
-        parsedOfflineEditOrders.push(data);
+        parsedOfflineEditOrders.push({
+          id: data.id,
+          details: data.details,
+          shop: data.shop,
+          date: data.date,
+          totalPrice: data.totalPrice,
+          totalCarton: data.totalCarton,
+          cartItems: data.cartItems,
+
+          unid: offlineOrder.unid,
+          detailss: offlineOrder.detailss,
+          todiscount: offlineOrder.todiscount,
+          fk_shop: offlineOrder.fk_shop,
+          discount: offlineOrder.discount,
+          gst_amount: offlineOrder.gst_amount,
+          net_amount: offlineOrder.net_amount,
+          gross_amount: offlineOrder.gross_amount,
+          distributionTO: offlineOrder.distributionTO,
+          distribution: offlineOrder.distribution,
+          special: offlineOrder.special,
+          ordercreationdate: offlineOrder.ordercreationdate,
+
+          fk_distribution: parseInt(distributor_id),
+          fk_orderbooker_employee: parseInt(fk_employee),
+        });
 
         // Save the updated list to AsyncStorage
         await AsyncStorage.setItem(`offlineEditOrders_${userId}`, JSON.stringify(parsedOfflineEditOrders));
@@ -916,6 +1065,49 @@ const ConfirmOrder = ({ route, navigation }) => {
           const day = String(today.getDate()).padStart(2, '0');
           return `${day}-${month}-${year}`;
         };
+
+        const key2 = `localofflinedata_${userId}`;
+
+        const existingLocalOrders = await AsyncStorage.getItem(key2);
+
+        let offlineLocalOrders = existingLocalOrders ? JSON.parse(existingLocalOrders) : [];
+
+        if (!Array.isArray(offlineLocalOrders)) {
+          offlineLocalOrders = [];
+        }
+
+        offlineLocalOrders = offlineLocalOrders.filter(order => order.unid !== uuiddd);
+
+        offlineLocalOrders.push({
+          id: data.id,
+          details: data.details,
+          shop: data.shop,
+          date: data.date,
+          totalPrice: data.totalPrice,
+          totalCarton: data.totalCarton,
+          cartItems: data.cartItems,
+
+          unid: offlineOrder.unid,
+          detailss: offlineOrder.detailss,
+          todiscount: offlineOrder.todiscount,
+          fk_shop: offlineOrder.fk_shop,
+          discount: offlineOrder.discount,
+          gst_amount: offlineOrder.gst_amount,
+          net_amount: offlineOrder.net_amount,
+          gross_amount: offlineOrder.gross_amount,
+          distributionTO: offlineOrder.distributionTO,
+          distribution: offlineOrder.distribution,
+          special: offlineOrder.special,
+          ordercreationdate: offlineOrder.ordercreationdate,
+
+          fk_distribution: parseInt(distributor_id),
+          fk_orderbooker_employee: parseInt(fk_employee),
+        });
+
+        await AsyncStorage.setItem(key2, JSON.stringify(offlineLocalOrders));
+
+        console.log("Order updated successfully!");
+
 
         const storedData = await AsyncStorage.getItem(`totalViewInvoice_${userId}`);
         const storedEditData = await AsyncStorage.getItem(`totalEditAmountOffline_${userId}`);
