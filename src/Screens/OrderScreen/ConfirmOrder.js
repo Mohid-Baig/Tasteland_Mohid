@@ -498,13 +498,15 @@ const ConfirmOrder = ({ route, navigation }) => {
         `totalCartons_${userId}`,
       );
       const storedCartons = await AsyncStorage.getItem(`totalCartonsinInvoice_${userId}`);
-      if (storedCartons) {
+      if (storedCartons && uuiddd) {
         const storedCartonsValue = parseFloat(storedCartons) || 0;
         let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
 
-        const cartonedit = totalCarton - storedCartonsValue
+        const cartonedit = totalCarton - storedCartonsValue;
         const updatedTotalCartons = previousTotalCartons + cartonedit;
+
         setTotalCartons(updatedTotalCartons);
+
         await AsyncStorage.setItem(
           `totalCartons_${userId}`,
           updatedTotalCartons.toFixed(1),
@@ -513,10 +515,13 @@ const ConfirmOrder = ({ route, navigation }) => {
       } else {
         await AsyncStorage.setItem(
           `totalCartons_${userId}`,
-          totalCarton.toFixed(1),)
+          totalCarton.toFixed(1),
+        );
+        console.log(`Updated Total Cartons in offline second: ${totalCarton}`);
       }
 
-      console.log(`Updated Total Cartons in offline second: ${totalCarton}`);
+
+      // console.log(`Updated Total Cartons in offline second: ${totalCarton}`);
 
       await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
       await AsyncStorage.setItem(key2, JSON.stringify(offlineLocalOrders));
