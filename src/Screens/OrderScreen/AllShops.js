@@ -891,68 +891,53 @@ const AllShops = ({ navigation, route }) => {
           Array.isArray(parsedOfflinePostOrders) &&
           parsedOfflinePostOrders.length > 0
         ) {
-          let shopID;
-          let cartItems;
-          let details;
-          let itemss = {}; // Initialize as an empty array
+          // Find the specific order for this shop
+          const shopOrder = parsedOfflinePostOrders.find(
+            order => order.shop && order.shop.id === item.id
+          );
 
-          parsedOfflinePostOrders.forEach(it => {
-            console.log('Item in parsedOfflinePostOrders:', JSON.stringify(it));
+          if (shopOrder) {
+            // This shop has an offline order, process it
+            const cartItems = shopOrder.cartItems;
+            const details = shopOrder.details || [];
+            let itemss = {};
 
-            if (it.shop && it.shop.id && it.cartItems) {
-              shopID = it.shop.id;
-              cartItems = it.cartItems;
-              details = it.details || [];
+            if (cartItems) {
+              cartItems.forEach(cartItem => {
+                itemss = cartItem.itemss;
+              });
+            }
 
-              // Using map instead of forEach to ensure itemss gets populated properly
-              if (it.cartItems) {
-                it.cartItems.forEach(cartItem => {
-                  itemss = cartItem.itemss; // Merges all `itemss` objects into one
-                });
+            console.log('Shop order found:', shopOrder);
+            console.log('itemss:', itemss);
+
+            details.forEach(val => {
+              console.log('Processing detail:', val);
+
+              const product = allProducts.find(
+                prod => prod.pricing.id === val.pricing_id || prod.pricing_id === val.pricing_id
+              );
+
+              if (product) {
+                console.log('Product found:', product);
+                const uniqueItemss = JSON.parse(JSON.stringify(product));
+
+                const cartItem = {
+                  carton_ordered: val.carton_ordered,
+                  box_ordered: val.box_ordered,
+                  pricing_id: val.pricing_id,
+                  itemss: uniqueItemss,
+                  pack_in_box: val.box_ordered,
+                };
+
+                console.log('Dispatching cart item:', cartItem);
+                dispatch(AddToCart(cartItem));
+              } else {
+                console.warn(`Product not found for pricing_id: ${val.pricing_id}`);
               }
-            }
-          });
+            });
 
-          // console.log('shopID:', shopID);
-          // console.log('cartItems:', cartItems);
-          // console.log('details:', details);
-          console.log('itemss:', itemss); // Log to verify the correct structure of itemss
-
-          // dispatch({type: Remove_All_Cart});
-          // console.log(allProducts)
-
-          details.forEach(val => {
-            console.log('Processing detail:', val);
-
-            // Find the corresponding product in allProducts
-            const product = allProducts.find(
-              prod => prod.pricing.id === val.pricing_id || prod.pricing_id === val.pricing_id
-            );
-
-            if (product) {
-              console.log('Product found:', product);
-
-              // Create a deep copy of the product to ensure uniqueness
-              const uniqueItemss = JSON.parse(JSON.stringify(product));
-
-              // Create the cart item with the unique itemss object
-              const cartItem = {
-                carton_ordered: val.carton_ordered,
-                box_ordered: val.box_ordered,
-                pricing_id: val.pricing_id,
-                itemss: uniqueItemss, // Use the unique itemss object
-                pack_in_box: val.box_ordered,
-              };
-
-              console.log('Dispatching cart item:', cartItem);
-              dispatch(AddToCart(cartItem));
-            } else {
-              console.warn(`Product not found for pricing_id: ${val.pricing_id}`);
-            }
-          });
-
-          if (item.id === shopID && cartItems) {
-            console.log('cartItems found, recalculating values');
+            // Calculate values for this specific shop order
             let Product_Count = 0;
             let GrossAmount = 0;
             let gst = 0;
@@ -962,52 +947,38 @@ const AllShops = ({ navigation, route }) => {
               const { trade_offer, pricing } = itemss;
               const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing;
 
-              // Calculate the total quantity (boxes or pieces)
               let quantity = 0;
               if (carton_ordered > 0) {
-                // For carton orders, calculate total boxes
                 quantity = carton_ordered * box_in_carton + box_ordered;
               } else {
-                // For box orders only
                 quantity = box_ordered;
               }
 
-              // Calculate Gross Amount (total price before any discount)
               const itemGrossAmount = trade_price * quantity;
               GrossAmount += itemGrossAmount;
 
-              // Calculate Trade Offer Discount
               const itemTODiscount = (trade_offer / 100) * itemGrossAmount;
-
-              // Calculate Product_Count (total price after trade offer discount)
               Product_Count += itemGrossAmount - itemTODiscount;
 
-              // Calculate GST
               if (gst_base === 'Retail Price') {
                 const itemGST = retail_price * quantity * (pricing_gst / 100);
                 gst += itemGST;
               }
             });
 
-            // Update states with the new values after loop
-            console.log('New GST Calculated:', gst);
             setTotalprice(Product_Count);
             setGrossAmount(GrossAmount);
             setGst(gst);
             gstRef.current = gst;
 
-            let sendiiing;
-            parsedOfflinePostOrders.forEach(itt => {
-              sendiiing = itt;
-            });
-
             console.log('Current GST after setting:', gstRef.current);
             navigation.navigate('AllShopsInvoice', {
-              cartItems: sendiiing,
+              cartItems: shopOrder,
               Gst: gstRef.current,
               grossAmount: GrossAmount,
             });
           } else {
+            // No offline order for this shop
             handleVisit(item);
             setSingleId(item.id);
             handleVisitButtonClick(item.id);
@@ -1029,7 +1000,7 @@ const AllShops = ({ navigation, route }) => {
     useCallback(() => {
       const fetchOfflineOrders = async () => {
         const userId = await AsyncStorage.getItem('userId');
-        const orders = await AsyncStorage.getItem(`offlineOrders_${userId}`);
+        const orders = await AsyncStorage.getItem(`localofflinedata_${userId}`);
         setOfflineOrders(JSON.parse(orders) || []);
       };
 
@@ -1050,7 +1021,7 @@ const AllShops = ({ navigation, route }) => {
     useCallback(() => {
       const matchOrderID = async () => {
         const userId = await AsyncStorage.getItem('userId');
-        const matching = await AsyncStorage.getItem(`postorderId_${userId}`);
+        const matching = await AsyncStorage.getItem(`localofflinedata_${userId}`);
         setMatchingOrderID(JSON.parse(matching) || []);
         console.log(matching, 'matching');
       };
@@ -1282,27 +1253,30 @@ const AllShops = ({ navigation, route }) => {
   //     </View>
   //   );
   // };
+  const selectedShopRef = useRef(null);
+
   const renderItem = ({ item, index }) => {
-    const matchingOrder = offlineOrders.find(order => order.shop.id === item.id);
+    const matchingOrder = offlineOrders.find(order => order.fk_shop === item.id);
     const isUnproductive = unproductiveShops.includes(item.id);
     const matchingOrderbyID = Array.isArray(matchingOrderID)
-      ? matchingOrderID.find(order => order.shopId === item.id)
+      ? matchingOrderID.find(order => order.fk_shop === item.id)
       : null;
     const matchingUNOfflineOrderbyID = Array.isArray(unOfflineShops)
       ? unOfflineShops.find(order => order.fk_shop === item.id)
       : null;
 
     const handleVisitPress = async () => {
+      selectedShopRef.current = item
       const state = await NetInfo.fetch();
       const isOffline = !state.isConnected;
 
       if (isOffline && matchingOrder) {
         console.log('Invoice Action for Offline Order');
-        await offline(item);
+        await offline(selectedShopRef.current);
       } else {
         console.log('Visit Action');
-        handleVisit(item);
-        setSingleId(item.id); // Set selected shop's ID
+        handleVisit(selectedShopRef.current);
+        setSingleId(selectedShopRef.current.id); // Set selected shop's ID
       }
     };
 

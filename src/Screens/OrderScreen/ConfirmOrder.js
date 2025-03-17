@@ -513,9 +513,14 @@ const ConfirmOrder = ({ route, navigation }) => {
         );
         console.log(`Updated Total Cartons in offline: ${updatedTotalCartons}`);
       } else {
+        const storedTotalCartons = await AsyncStorage.getItem(
+          `totalCartons_${userId}`,
+        );
+        let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
+        const add = previousTotalCartons + totalCarton
         await AsyncStorage.setItem(
           `totalCartons_${userId}`,
-          totalCarton.toFixed(1),
+          add.toFixed(1),
         );
         console.log(`Updated Total Cartons in offline second: ${totalCarton}`);
       }

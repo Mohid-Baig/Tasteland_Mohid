@@ -281,6 +281,11 @@ const FailedOrdersScreen = ({ route, navigation, userId }) => {
           failedOrder => failedOrder.order.shop.id || failedOrder.shop.id !== order.shop.id,
         );
         saveFailedOrders(updatedOrders); // Save updated orders to AsyncStorage
+        const postorderId = response.data.id;
+        const shop_id = order.shop.id;
+        const date = response.data.date
+        const status = response.data.status
+        await updateStoredOrderIds(userId, postorderId, shop_id, date, status);
       } else {
         Alert.alert(
           'Error',
@@ -355,6 +360,40 @@ const FailedOrdersScreen = ({ route, navigation, userId }) => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+  const updateStoredOrderIds = async (userId, newOrderId, shopId, date, status) => {
+    try {
+      // Use a transaction to ensure atomicity
+      await AsyncStorage.setItem(
+        `postorderId_${userId}`,
+        JSON.stringify(
+          await AsyncStorage.getItem(`postorderId_${userId}`).then(
+            storedOrderIds => {
+              let postorderIds = [];
+              if (storedOrderIds) {
+                try {
+                  postorderIds = JSON.parse(storedOrderIds);
+                  if (!Array.isArray(postorderIds)) {
+                    postorderIds = [];
+                  }
+                } catch (e) {
+                  console.error('Error in parsing:', e);
+                }
+              }
+
+              // Add the new orderId and shopId as an object
+              postorderIds.push({ orderId: newOrderId, shopId: shopId, date: date, status: status });
+              return postorderIds;
+            },
+          ),
+        ),
+      );
+      console.log(
+        `Order ID ${newOrderId} and Shop ID ${shopId} added successfully.`,
+      );
+    } catch (error) {
+      console.error('Error updating stored order IDs:', error);
     }
   };
 

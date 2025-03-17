@@ -73,14 +73,17 @@ const Home = ({ navigation }) => {
         try {
           // Fetch totalAmount data from AsyncStorage
           const storedData = await AsyncStorage.getItem(`localofflinedata_${userId}`);
-          // await AsyncStorage.removeItem(`localofflinedata_${userId}`);
-          // await AsyncStorage.removeItem(`postorderId_${userId}`);
 
+          // Check if storedData exists and is not null
           if (storedData) {
             const totalData = JSON.parse(storedData);
-            const storedDate = totalData.ordercreationdate;
+            const storedDate = totalData.forEach(it => (
+              it.ordercreationdate
+            ));
             const currentDate = getTodayCurrentDate();
+
             console.log(storedDate, currentDate, '------------------------------------------------------------');
+
             // Check if the stored date is different from the current date
             if (storedDate !== currentDate) {
               // Remove the item if the date does not match
@@ -103,6 +106,7 @@ const Home = ({ navigation }) => {
       }
     });
   }, []);
+
 
 
   const getAllStoredOrderIds = async userId => {
