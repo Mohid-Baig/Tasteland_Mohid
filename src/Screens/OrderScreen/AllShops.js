@@ -308,10 +308,16 @@ const AllShops = ({ navigation, route }) => {
   const [weekDates, setWeekDates] = useState({ startDate: null, endDate: null });
   const [OrderBokerId, setorderBokerId] = useState();
   const [cartITT, setCariTT] = useState();
+  const [onlineOrder, setOnlineOrder] = useState();
+  const [internetapi, setinternetapi] = useState();
+  const [order, setOrder] = useState(null);
   const gstRef = useRef(0);
   // console.log(selectedProduct, 'selectedproduct');
   // console.log(existingProduct, 'exsistikj0');
   // console.log(selectedSKUs, 'sesku');
+
+  const cartItemss = useSelector(state => state.reducer);
+
 
   const Add_Left_Stock = useCallback(payload => {
     if (!payload) return;
@@ -1016,7 +1022,115 @@ const AllShops = ({ navigation, route }) => {
     }, []), // Empty dependency array ensures this only runs when the screen is focused
   );
 
-  // Second useEffect converted to useFocusEffect
+
+  const getInternetAPi = async () => {
+    const fkEmployee = await AsyncStorage.getItem('fk_employee');
+    const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const getFormattedDate = () => {
+      const date = new Date();
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+
+      return `${year}-${month}-${day}`; // Return formatted date
+    };
+    try {
+
+      const response = await instance.get(`/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${getFormattedDate()}`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      })
+      console.log(JSON.stringify(response.data), 'response . data ')
+      setinternetapi(response.data)
+
+
+
+    } catch (error) {
+      console.log('Error in get internet api line 1023', error)
+    }
+  }
+  useEffect(() => {
+    getInternetAPi()
+  }, [])
+
+  const onlineordercheck = async (itemm) => {
+    try {
+      const foundOrder = internetapi.find(order => order.fk_shop === itemm.id);
+      if (!foundOrder) {
+        console.log('No matching order found');
+        return;
+      }
+
+      setOrder(foundOrder); // Save the order for later use
+
+      // Add items to cart
+      for (const item of foundOrder.details) {
+        const product = allProducts.find(prod => prod.pricing.id === item.pricing_id);
+        if (!product) {
+          console.log('Product not found for pricing_id:', item.pricing_id);
+          continue;
+        }
+
+        const cartItem = {
+          carton_ordered: item.carton_ordered,
+          box_ordered: item.box_ordered,
+          pricing_id: item.pricing_id,
+          itemss: product,
+          pack_in_box: item.box_ordered,
+        };
+
+        dispatch(AddToCart(cartItem));
+      }
+    } catch (error) {
+      console.log(error, 'error in online order check');
+    }
+  };
+
+  // React to changes in cartItems
+  useEffect(() => {
+    if (order && cartItemss.length > 0) {
+      console.log('cartItems found, recalculating values');
+
+      let Product_Count = 0;
+      let GrossAmount = 0;
+      let gst = 0;
+
+      for (const item of cartItemss) {
+        const { carton_ordered, box_ordered, itemss } = item;
+        const { trade_offer, pricing } = itemss;
+        const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing;
+
+        const quantity = carton_ordered > 0 ? carton_ordered * box_in_carton + box_ordered : box_ordered;
+        const itemGrossAmount = trade_price * quantity;
+        GrossAmount += itemGrossAmount;
+
+        const itemTODiscount = (trade_offer / 100) * itemGrossAmount;
+        Product_Count += itemGrossAmount - itemTODiscount;
+
+        if (gst_base === 'Retail Price') {
+          const itemGST = retail_price * quantity * (pricing_gst / 100);
+          gst += itemGST;
+        }
+      }
+
+      console.log('New GST Calculated:', gst);
+      setTotalprice(Product_Count);
+      setGrossAmount(GrossAmount);
+      setGst(gst);
+      gstRef.current = gst;
+
+      // Navigate to ViewInvoice with updated values
+      navigation.navigate('ViewInvoice', {
+        cartItems: order,
+        Gst: gstRef.current,
+        grossAmount: GrossAmount,
+      });
+    }
+  }, [cartItemss, order]);
+
+
+
   useFocusEffect(
     useCallback(() => {
       const matchOrderID = async () => {
@@ -1264,6 +1378,7 @@ const AllShops = ({ navigation, route }) => {
     const matchingUNOfflineOrderbyID = Array.isArray(unOfflineShops)
       ? unOfflineShops.find(order => order.fk_shop === item.id)
       : null;
+    const internetordermatch = Array.isArray(internetapi) ? internetapi.find(order => order.fk_shop == item.id) : [];
 
     const handleVisitPress = async () => {
       selectedShopRef.current = item
@@ -1273,10 +1388,12 @@ const AllShops = ({ navigation, route }) => {
       if (isOffline && matchingOrder) {
         console.log('Invoice Action for Offline Order');
         await offline(selectedShopRef.current);
+      } else if (internetordermatch) {
+        await onlineordercheck(item)
       } else {
         console.log('Visit Action');
         handleVisit(selectedShopRef.current);
-        setSingleId(selectedShopRef.current.id); // Set selected shop's ID
+        setSingleId(selectedShopRef.current.id);
       }
     };
 
@@ -1312,7 +1429,7 @@ const AllShops = ({ navigation, route }) => {
                   style={[styles.button, { marginBottom: 5 }]}
                   onPress={handleVisitPress}>
                   <Text style={styles.buttonText}>
-                    {isOffline && matchingOrder ? 'INVOICE' : 'VISIT'}
+                    {isOffline && matchingOrder || !isOffline && internetordermatch ? 'INVOICE' : 'VISIT'}
                   </Text>
                 </TouchableOpacity>
                 {item.pending_order > 0 ? (

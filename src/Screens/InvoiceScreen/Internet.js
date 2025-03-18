@@ -89,7 +89,6 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
       setGst(0);
       gstRef.current = 0;
 
-      // Add a check to ensure cartItems is available
       if (cartItems.length > 0) {
         console.log('cartItems found, recalculating values');
 
@@ -102,47 +101,37 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
           const { trade_offer, pricing } = itemss;
           const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing;
 
-          // Calculate the total quantity (boxes or pieces)
           let quantity = 0;
           if (carton_ordered > 0) {
-            // For carton orders, calculate total boxes
             quantity = carton_ordered * box_in_carton + box_ordered;
           } else {
             // For box orders only
             quantity = box_ordered;
           }
 
-          // Calculate Gross Amount (total price before any discount)
           const itemGrossAmount = trade_price * quantity;
           GrossAmount += itemGrossAmount;
 
-          // Calculate Trade Offer Discount
           const itemTODiscount = (trade_offer / 100) * itemGrossAmount;
 
-          // Calculate Product_Count (total price after trade offer discount)
           Product_Count += itemGrossAmount - itemTODiscount;
 
-          // Calculate GST
           if (gst_base === 'Retail Price') {
             const itemGST = retail_price * quantity * (pricing_gst / 100);
             gst += itemGST;
           }
         });
 
-        // Update states with the new values after loop
         console.log('New GST Calculated:', gst);
         setTotalprice(Product_Count);
         setGrossAmount(GrossAmount);
         setGst(gst);
-        gstRef.current = gst; // Store the final value in useRef
+        gstRef.current = gst;
       } else {
         console.log('No cartItems found, values will remain 0');
       }
-    }, [cartItems]), // Add cartItems as dependency
+    }, [cartItems]),
   );
-  const goTOEdit = () => {
-    // navigation.navigate('ConfirmOrder', { Store: Store, "RouteDate": RouteDate,'applySpecialDiscount':applySpecialDiscount ,'FinalDistributiveDiscount':FinalDistributiveDiscount ,'GST':gst})
-  };
 
   const getProduct = async () => {
     setIsLoading(true);
@@ -158,7 +147,6 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
         },
       );
       setAllProducts(response.data);
-      // console.log(JSON.stringify(response.data), '---111----');
       console.log('data of allProducts successfully coming');
     } catch (error) {
       if (error.response && error.response.status === 401) {
@@ -226,7 +214,6 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
       const fkEmployee = await AsyncStorage.getItem('fk_employee');
       let apiUrl = `/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${formattedDate}`;
 
-      // Conditionally add the routeID if it's available
       if (routeID) {
         apiUrl += `&route_id=${routeID}`;
       }

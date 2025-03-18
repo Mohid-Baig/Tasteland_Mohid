@@ -77,9 +77,8 @@ const Home = ({ navigation }) => {
           // Check if storedData exists and is not null
           if (storedData) {
             const totalData = JSON.parse(storedData);
-            const storedDate = totalData.forEach(it => (
-              it.ordercreationdate
-            ));
+            const storedDate = totalData[0]?.ordercreationdate; // Assuming the date is in the first item
+
             const currentDate = getTodayCurrentDate();
 
             console.log(storedDate, currentDate, '------------------------------------------------------------');
@@ -106,7 +105,6 @@ const Home = ({ navigation }) => {
       }
     });
   }, []);
-
 
 
   const getAllStoredOrderIds = async userId => {
