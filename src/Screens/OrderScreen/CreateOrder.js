@@ -260,7 +260,7 @@ const CreateOrder = ({ navigation, route }) => {
         );
 
         processProducts(response.data);
-        // console.log(response.data);
+        // console.log(JSON.stringify(response.data));
         // Optionally save the fetched data to AsyncStorage
         // const pricingDataKey = `pricingData_${userId}`;
         // await AsyncStorage.setItem(pricingDataKey, JSON.stringify(response.data));
