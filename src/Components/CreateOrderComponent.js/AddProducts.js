@@ -6,12 +6,12 @@ import React, {
   useMemo,
   useRef,
 } from 'react';
-import {View, Text, TouchableOpacity, FlatList, TextInput} from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import Collapsible from 'react-native-collapsible';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import {shallowEqual, useDispatch, useSelector} from 'react-redux';
-import {AddToCart} from '../redux/action';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { AddToCart } from '../redux/action';
 
 // Reducer for managing counts
 const countsReducer = (state, action) => {
@@ -29,17 +29,43 @@ const countsReducer = (state, action) => {
   }
 };
 
+// Optimized TextInput component to prevent re-renders
+const CountInput = React.memo(({
+  value,
+  onChangeText,
+  onFocus,
+  placeholder = "0"
+}) => {
+  return (
+    <View
+      style={{
+        padding: '1%',
+        borderBottomColor: '#c0c0c0',
+        borderBottomWidth: 1,
+      }}>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={'#000'}
+        keyboardType="numeric"
+        style={{ color: '#000' }}
+        onFocus={onFocus}
+      />
+    </View>
+  );
+});
+
 const AddSingleProduct = React.memo(
-  ({boxInCtn, itemss, Invoiceitems, datas}) => {
+  ({ boxInCtn, itemss, Invoiceitems, datas }) => {
     const dispatch = useDispatch();
     const [counts, dispatchCounts] = useReducer(countsReducer, {});
     const [addOn, setAddOn] = useState('pack');
-    const previousCounts = useRef({});
 
-    useEffect(() => {
-      previousCounts.current = counts;
-    }, [counts]);
+    // Pre-calculate item ID for performance
+    const itemId = itemss.id;
 
+    // Initialize counts from invoice items
     useEffect(() => {
       if (Invoiceitems?.details) {
         Invoiceitems.details.forEach(detail => {
@@ -67,23 +93,21 @@ const AddSingleProduct = React.memo(
       }
     }, [Invoiceitems, datas]);
 
+    // Memoized update counts function
     const updateCounts = useCallback(
       (type, value) => {
         dispatchCounts({
           type: 'UPDATE_COUNT',
-          id: itemss.id,
+          id: itemId,
           countType: type,
           value,
         });
       },
-      [itemss.id],
+      [itemId],
     );
 
-    const AddProduct = (carton, pack) => {
-      // console.log(carton, pack, '-3-3');
-      // console.log(itemss.id, 'itemms id');
-      // console.log(boxInCtn, 'boxincation');
-      // console.log(itemss, 'itemss');
+    // Memoized add product function
+    const AddProduct = useCallback((carton, pack) => {
       const item = {
         carton_ordered: carton,
         box_ordered: pack,
@@ -92,22 +116,22 @@ const AddSingleProduct = React.memo(
         pack_in_box: boxInCtn,
       };
       dispatch(AddToCart(item));
-    };
+    }, [dispatch, itemss, boxInCtn]);
 
-    const AddSub = val => {
-      const currentCounts = previousCounts.current[itemss.id] || {
-        pack: 0,
-        carton: 0,
-      };
-      let updatedPack = currentCounts.pack;
-      let updatedCarton = currentCounts.carton;
+    // Optimized AddSub function
+    const AddSub = useCallback(val => {
+      // Get counts from the current state
+      const currentPack = counts[itemId]?.pack || 0;
+      const currentCarton = counts[itemId]?.carton || 0;
+
+      let updatedPack = currentPack;
+      let updatedCarton = currentCarton;
 
       if (val === 'Add') {
-        // Logic to increase the counts
         if (addOn === 'pack') {
-          if (updatedPack >= 23) {
+          if (updatedPack >= boxInCtn - 1) {
+            updatedCarton += 1;
             updatedPack = 0;
-            updatedCarton += 1; // Increment carton when pack goes beyond limit
           } else {
             updatedPack += 1;
           }
@@ -115,23 +139,30 @@ const AddSingleProduct = React.memo(
           updatedCarton += 1;
         }
       } else if (val === 'Sub') {
-        // Logic to decrease the counts
         if (addOn === 'pack') {
           if (updatedPack === 0 && updatedCarton > 0) {
+            updatedCarton -= 1;
+            updatedPack = boxInCtn - 1;
           } else {
-            updatedPack = Math.max(updatedPack - 1, 0); // Ensure pack doesn't go below 0
+            updatedPack = Math.max(updatedPack - 1, 0);
           }
         } else if (addOn === 'carton') {
-          updatedCarton = Math.max(updatedCarton - 1, 0); // Ensure carton doesn't go below 0
+          updatedCarton = Math.max(updatedCarton - 1, 0);
         }
       }
 
-      // Update the counts and call the AddProduct function with the new values
-      AddProduct(updatedCarton, updatedPack);
+      // Update local state immediately for responsiveness
       updateCounts('carton', updatedCarton);
       updateCounts('pack', updatedPack);
-    };
-    const handleInputChange = (type, txt) => {
+
+      // Defer Redux update to next animation frame for better performance
+      requestAnimationFrame(() => {
+        AddProduct(updatedCarton, updatedPack);
+      });
+    }, [counts, itemId, addOn, boxInCtn, updateCounts, AddProduct]);
+
+    // Optimized input change handler
+    const handleInputChange = useCallback((type, txt) => {
       let num = parseInt(txt);
       if (isNaN(num) || num < 0) {
         num = 0;
@@ -139,25 +170,39 @@ const AddSingleProduct = React.memo(
         num = 9999;
       }
 
-      const newCounts = {
-        ...previousCounts.current,
-        [itemss.id]: {
-          ...previousCounts.current?.[itemss.id],
-          [type]: num,
-        },
-      };
+      // Update the local state immediately
+      updateCounts(type, num);
 
-      dispatchCounts({
-        type: 'UPDATE_COUNT',
-        id: itemss.id,
-        countType: type,
-        value: num,
+      // Get the current values for the other type
+      const otherType = type === 'pack' ? 'carton' : 'pack';
+      const otherValue = counts[itemId]?.[otherType] || 0;
+
+      // Update Redux in the next frame
+      requestAnimationFrame(() => {
+        if (type === 'pack') {
+          AddProduct(otherValue, num);
+        } else {
+          AddProduct(num, otherValue);
+        }
       });
+    }, [counts, itemId, updateCounts, AddProduct]);
 
-      const updatedPack = newCounts[itemss.id]?.pack || 0;
-      const updatedCarton = newCounts[itemss.id]?.carton || 0;
-      AddProduct(updatedCarton, updatedPack);
-    };
+    // Memoize values to prevent re-renders
+    const cartonValue = useMemo(() =>
+      counts[itemId]?.carton ? counts[itemId].carton.toString() : '',
+      [counts, itemId]);
+
+    const packValue = useMemo(() =>
+      counts[itemId]?.pack ? counts[itemId].pack.toString() : '',
+      [counts, itemId]);
+
+    // Set addOn handlers
+    const setToCarton = useCallback(() => setAddOn('carton'), []);
+    const setToPack = useCallback(() => setAddOn('pack'), []);
+
+    // Add/Sub handlers
+    const handleAdd = useCallback(() => AddSub('Add'), [AddSub]);
+    const handleSub = useCallback(() => AddSub('Sub'), [AddSub]);
 
     return (
       <View
@@ -167,58 +212,43 @@ const AddSingleProduct = React.memo(
           width: '100%',
           justifyContent: 'flex-end',
         }}>
-        <TouchableOpacity style={{padding: '1%'}} onPress={() => AddSub('Sub')}>
+        <TouchableOpacity style={{ padding: '1%' }} onPress={handleSub}>
           <AntDesign name="minuscircle" size={24} color={'#2196f3'} />
         </TouchableOpacity>
-        <View
-          style={{
-            padding: '1%',
-            borderBottomColor: '#c0c0c0',
-            borderBottomWidth: 1,
-          }}>
-          <TextInput
-            value={
-              counts[itemss.id]?.carton
-                ? counts[itemss.id].carton.toString()
-                : ''
-            }
-            onChangeText={txt => handleInputChange('carton', txt)}
-            placeholder="0"
-            placeholderTextColor={'#000'}
-            keyboardType="numeric"
-            style={{color: '#000'}}
-            onFocus={() => setAddOn('carton')}
-          />
-        </View>
-        <View style={{padding: '1%'}}>
+
+        <CountInput
+          value={cartonValue}
+          onChangeText={txt => handleInputChange('carton', txt)}
+          onFocus={setToCarton}
+        />
+
+        <View style={{ padding: '1%' }}>
           <Text>-</Text>
         </View>
-        <View
-          style={{
-            padding: '1%',
-            borderBottomColor: '#c0c0c0',
-            borderBottomWidth: 1,
-          }}>
-          <TextInput
-            value={
-              counts[itemss.id]?.pack ? counts[itemss.id].pack.toString() : ''
-            }
-            onChangeText={txt => handleInputChange('pack', txt)}
-            placeholder="0"
-            style={{color: '#000'}}
-            placeholderTextColor={'#000'}
-            keyboardType="numeric"
-            onFocus={() => setAddOn('pack')}
-          />
-        </View>
-        <TouchableOpacity style={{padding: '1%'}} onPress={() => AddSub('Add')}>
+
+        <CountInput
+          value={packValue}
+          onChangeText={txt => handleInputChange('pack', txt)}
+          onFocus={setToPack}
+        />
+
+        <TouchableOpacity style={{ padding: '1%' }} onPress={handleAdd}>
           <AntDesign name="pluscircle" size={24} color={'#2196f3'} />
         </TouchableOpacity>
       </View>
     );
   },
+  // Custom comparison function for the memo
+  (prevProps, nextProps) => {
+    return (
+      prevProps.itemss.id === nextProps.itemss.id &&
+      prevProps.boxInCtn === nextProps.boxInCtn &&
+      JSON.stringify(prevProps.Invoiceitems?.details) === JSON.stringify(nextProps.Invoiceitems?.details)
+    );
+  }
 );
-const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
+
+const AccordionItem = React.memo(({ title, items, Invoiceitems, datas }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   const boxFilter = useCallback(inputString => {
@@ -227,16 +257,20 @@ const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
     return matches && matches[2] !== undefined ? parseInt(matches[2]) : 96;
   }, []);
 
-  const renderItem = ({item}) => (
-    <View key={item.pricing.id} style={{padding: '5%'}}>
-      <Text style={{fontSize: 12, color: '#000'}}>
+  const toggleCollapsed = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, []);
+
+  const renderItem = useCallback(({ item }) => (
+    <View key={item.pricing.id} style={{ padding: '5%' }}>
+      <Text style={{ fontSize: 12, color: '#000' }}>
         {`${item.pricing.product.name} ${item.pricing.sku.name} ${item.pricing.variant.name}`}
       </Text>
-      <View style={{flexDirection: 'row'}}>
-        <Text style={{color: '#a0a0a0'}}>
+      <View style={{ flexDirection: 'row' }}>
+        <Text style={{ color: '#a0a0a0' }}>
           Trade Price: {item.pricing.trade_price}
         </Text>
-        <Text style={{marginLeft: 'auto', color: '#a0a0a0'}}>
+        <Text style={{ marginLeft: 'auto', color: '#a0a0a0' }}>
           Trade Offer: {item.trade_offer}%
         </Text>
       </View>
@@ -247,19 +281,19 @@ const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
         datas={datas}
       />
     </View>
-  );
+  ), [boxFilter, Invoiceitems, datas]);
 
   return (
-    <View style={{marginBottom: 10, backgroundColor: '#fff'}}>
+    <View style={{ marginBottom: 10, backgroundColor: '#fff' }}>
       <TouchableOpacity
-        onPress={() => setIsCollapsed(prev => !prev)}
+        onPress={toggleCollapsed}
         style={{
           flexDirection: 'row',
           justifyContent: 'space-between',
           padding: '5%',
           alignItems: 'center',
         }}>
-        <Text style={{fontSize: 18, color: isCollapsed ? '#000' : '#2196f3'}}>
+        <Text style={{ fontSize: 18, color: isCollapsed ? '#000' : '#2196f3' }}>
           {title}
         </Text>
         <Icon
@@ -271,99 +305,97 @@ const AccordionItem = React.memo(({title, items, Invoiceitems, datas}) => {
       <Collapsible collapsed={isCollapsed}>
         <FlatList
           data={items}
-          keyExtractor={item => item.pricing.id.toString()} // Assuming item has a unique id
+          keyExtractor={item => item.pricing.id.toString()}
           renderItem={renderItem}
+          removeClippedSubviews={true}
+          initialNumToRender={8}
+          maxToRenderPerBatch={5}
+          updateCellsBatchingPeriod={50}
+          windowSize={10}
         />
       </Collapsible>
     </View>
   );
 });
 
-const AddProducts = ({datas, allProduct, search, Invoiceitems}) => {
-  // console.log(datas.length, 'datas length');
-  // console.log(allProduct.length, 'allProduct length');
-  // console.log(allProduct, 'allproduct');
-  // console.log(JSON.stringify(datas.title), 'data');
-
+const AddProducts = ({ datas, allProduct, search, Invoiceitems }) => {
   const [ProductName, SetProductname] = useState([]);
   const order = useSelector(state => state.UnProductive_reducer, shallowEqual);
 
   const filter = useCallback(() => {
-    let productName = [];
     let FinalProduct = [];
 
-    allProduct.forEach((data, index) => {
-      productName.push(data);
-      FinalProduct[index] = {
-        title: data,
-        item: [],
-      };
+    if (Array.isArray(allProduct) && allProduct.length > 0) {
+      allProduct.forEach((data, index) => {
+        FinalProduct[index] = {
+          title: data,
+          item: [],
+        };
 
-      if (Array.isArray(datas)) {
-        datas.forEach(item => {
-          if (item.pricing.product.name === data) {
-            FinalProduct[index].item.push(item);
-          }
-        });
-      } else {
-        console.warn(
-          `Expected 'datas' to be an array, but got ${typeof datas}`,
+        if (Array.isArray(datas)) {
+          datas.forEach(item => {
+            if (item.pricing.product.name === data) {
+              FinalProduct[index].item.push(item);
+            }
+          });
+        } else {
+          console.warn(
+            `Expected 'datas' to be an array, but got ${typeof datas}`,
+          );
+        }
+      });
+
+      // Filter based on search term if provided
+      if (search) {
+        FinalProduct = FinalProduct.filter(product =>
+          product.title.toLowerCase().includes(search.toLowerCase()),
         );
       }
-    });
 
-    if (search) {
-      FinalProduct = FinalProduct.filter(product =>
-        product.title.toLowerCase().includes(search.toLowerCase()),
-      );
+      SetProductname(FinalProduct);
     }
-
-    // console.log('FinalProduct:', FinalProduct);
-    /* The code is logging the length of the variable `FinalProduct` to the console. */
-    // console.log('FinalProduct Length:', FinalProduct.length);
-
-    SetProductname(FinalProduct);
   }, [allProduct, datas, search]);
 
   useEffect(() => {
     filter();
-  }, [datas, search, filter]);
+  }, [filter]);
 
+  // Optimized filtering with memoization
   const filteredProductName = useMemo(() => {
-    return ProductName?.filter(product =>
-      product.title.toLowerCase().includes(search.toLowerCase()),
+    if (!ProductName) return [];
+    if (!search) return ProductName;
+
+    return ProductName.filter(product =>
+      product.title.toLowerCase().includes(search.toLowerCase())
     );
   }, [ProductName, search]);
 
-  // console.log('filteredProductName Length', filteredProductName?.length);
+  // Optimized keyExtractor
+  const keyExtractor = useCallback((item, index) => index.toString(), []);
 
+  // Optimized renderItem
+  const renderItem = useCallback(({ item }) => (
+    <AccordionItem
+      title={item.title}
+      items={item.item}
+      Invoiceitems={Invoiceitems}
+      datas={datas}
+    />
+  ), [Invoiceitems, datas]);
+
+  // Optimized FlatList configuration
   return (
     <FlatList
-      data={filteredProductName} // Pass all filtered items here
-      keyExtractor={(item, index) => index.toString()}
-      renderItem={({item}) => {
-        // console.log(
-        //   'filteredProductName Length in flatlist',
-        //   filteredProductName?.length,
-        // );
-        // console.log('Rendering item:', JSON.stringify(item));
-        // console.log(item.title, 'Title');
-
-        return (
-          <AccordionItem
-            title={item.title}
-            items={item.item}
-            Invoiceitems={Invoiceitems}
-            datas={datas}
-          />
-        );
-      }}
-      initialNumToRender={filteredProductName.length}
-      maxToRenderPerBatch={filteredProductName.length}
-      windowSize={filteredProductName.length + 6}
-      removeClippedSubviews={false}
+      data={filteredProductName}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      initialNumToRender={10}
+      maxToRenderPerBatch={5}
+      windowSize={11}
+      removeClippedSubviews={true}
+      updateCellsBatchingPeriod={50}
     />
   );
 };
 
-export default AddProducts;
+export default React.memo(AddProducts);
