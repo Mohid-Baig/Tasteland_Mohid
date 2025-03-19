@@ -28,7 +28,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { RemoveAllCart } from '../../Components/redux/action';
 
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import instance from '../../Components/BaseUrl';
 import CheckBox from '@react-native-community/checkbox';
@@ -265,7 +265,7 @@ const AddSingleProduct = memo(
 );
 
 // import AntDesign from 'react-native-vector-icons/AntDesign'
-const AllShops = ({ navigation, route }) => {
+const AllShops = ({ route }) => {
   const [search, setSearch] = useState('');
   const [openclosesearch, setopenclosesearch] = useState(false);
   const [stores, setStores] = useState(null);
@@ -310,8 +310,10 @@ const AllShops = ({ navigation, route }) => {
   const [cartITT, setCariTT] = useState();
   const [onlineOrder, setOnlineOrder] = useState();
   const [internetapi, setinternetapi] = useState();
+  const [navigateToInvoice, setNavigateToInvoice] = useState(false);
   const [order, setOrder] = useState(null);
   const gstRef = useRef(0);
+  const navigation = useNavigation()
   // console.log(selectedProduct, 'selectedproduct');
   // console.log(existingProduct, 'exsistikj0');
   // console.log(selectedSKUs, 'sesku');
@@ -1026,6 +1028,8 @@ const AllShops = ({ navigation, route }) => {
   const getInternetAPi = async () => {
     const fkEmployee = await AsyncStorage.getItem('fk_employee');
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+    const state = await NetInfo.fetch();
+    const userId = await AsyncStorage.getItem('userId');
     const getFormattedDate = () => {
       const date = new Date();
       const year = date.getFullYear();
@@ -1035,15 +1039,20 @@ const AllShops = ({ navigation, route }) => {
       return `${year}-${month}-${day}`; // Return formatted date
     };
     try {
+      if (state.isConnected) {
 
-      const response = await instance.get(`/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${getFormattedDate()}`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      })
-      console.log(JSON.stringify(response.data), 'response . data ')
-      setinternetapi(response.data)
-
+        const response = await instance.get(`/secondary_order/all?employee_id=${fkEmployee}&include_shop=true&include_detail=true&order_date=${getFormattedDate()}`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        })
+        console.log(JSON.stringify(response.data), 'response . data ')
+        setinternetapi(response.data)
+      } else {
+        const localonlineorder = await AsyncStorage.getItem(`LocalAPI_${userId}`)
+        const parsedlocalonline = localonlineorder ? JSON.parse(localonlineorder) : [];
+        setinternetapi(parsedlocalonline)
+      }
 
 
     } catch (error) {
@@ -1053,20 +1062,32 @@ const AllShops = ({ navigation, route }) => {
   useEffect(() => {
     getInternetAPi()
   }, [])
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Screen Focused - Resetting States');
+      setOrder(null);
+      setTotalprice(0);
+      setGrossAmount(0);
+      setGst(0);
+      gstRef.current = 0;
+      dispatch(RemoveAllCart());
+    }, [])
+  );
 
   const onlineordercheck = async (itemm) => {
     try {
       const foundOrder = internetapi.find(order => order.fk_shop === itemm.id);
+
       if (!foundOrder) {
         console.log('No matching order found');
         return;
       }
 
-      setOrder(foundOrder); // Save the order for later use
+      const orderDetails = foundOrder.details || [];
 
-      // Add items to cart
-      for (const item of foundOrder.details) {
+      for (const item of orderDetails) {
         const product = allProducts.find(prod => prod.pricing.id === item.pricing_id);
+
         if (!product) {
           console.log('Product not found for pricing_id:', item.pricing_id);
           continue;
@@ -1076,12 +1097,48 @@ const AllShops = ({ navigation, route }) => {
           carton_ordered: item.carton_ordered,
           box_ordered: item.box_ordered,
           pricing_id: item.pricing_id,
-          itemss: product,
+          itemss: JSON.parse(JSON.stringify(product)),
           pack_in_box: item.box_ordered,
         };
 
         dispatch(AddToCart(cartItem));
       }
+
+      let Product_Count = 0;
+      let GrossAmount = 0;
+      let gst = 0;
+
+      orderDetails.forEach(val => {
+        const product = allProducts.find(prod => prod.pricing.id === val.pricing_id);
+
+        if (product) {
+          const { trade_offer, pricing } = product;
+          const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing;
+
+          const quantity = val.carton_ordered > 0 ? val.carton_ordered * box_in_carton + val.box_ordered : val.box_ordered;
+          const itemGrossAmount = trade_price * quantity;
+          GrossAmount += itemGrossAmount;
+
+          const itemTODiscount = (trade_offer / 100) * itemGrossAmount;
+          Product_Count += itemGrossAmount - itemTODiscount;
+
+          if (gst_base === 'Retail Price') {
+            const itemGST = retail_price * quantity * (pricing_gst / 100);
+            gst += itemGST;
+          }
+        }
+      });
+
+      setTotalprice(Product_Count);
+      setGrossAmount(GrossAmount);
+      setGst(gst);
+      gstRef.current = gst;
+
+      navigation.navigate('ViewInvoice', {
+        cartItems: foundOrder,
+        Gst: gstRef.current,
+        grossAmount: GrossAmount,
+      });
     } catch (error) {
       console.log(error, 'error in online order check');
     }
@@ -1114,7 +1171,6 @@ const AllShops = ({ navigation, route }) => {
         }
       }
 
-      console.log('New GST Calculated:', gst);
       setTotalprice(Product_Count);
       setGrossAmount(GrossAmount);
       setGst(gst);
@@ -1127,7 +1183,17 @@ const AllShops = ({ navigation, route }) => {
         grossAmount: GrossAmount,
       });
     }
-  }, [cartItemss, order]);
+  }, [cartItemss, order, navigation]);
+
+  // Reset order state when navigating back to ConfirmOrder screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setOrder(null); // Reset order state
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
 
 
 
@@ -1390,7 +1456,8 @@ const AllShops = ({ navigation, route }) => {
         await offline(selectedShopRef.current);
       } else if (internetordermatch) {
         await onlineordercheck(item)
-      } else {
+      }
+      else {
         console.log('Visit Action');
         handleVisit(selectedShopRef.current);
         setSingleId(selectedShopRef.current.id);
@@ -1429,7 +1496,7 @@ const AllShops = ({ navigation, route }) => {
                   style={[styles.button, { marginBottom: 5 }]}
                   onPress={handleVisitPress}>
                   <Text style={styles.buttonText}>
-                    {isOffline && matchingOrder || !isOffline && internetordermatch ? 'INVOICE' : 'VISIT'}
+                    {isOffline && matchingOrder || internetordermatch ? 'INVOICE' : 'VISIT'}
                   </Text>
                 </TouchableOpacity>
                 {item.pending_order > 0 ? (

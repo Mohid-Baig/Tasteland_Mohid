@@ -1291,7 +1291,7 @@ const Home = ({ navigation }) => {
       await fetchAndStorePricingData();
       await fetchShopType();
       await FetchAllProductdata();
-      // await FetchLocalAPIdata();
+      await FetchLocalAPIdata();
       if (hasSyncErrors) {
         Alert.alert(
           'Sync Incomplete',

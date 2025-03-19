@@ -1142,7 +1142,7 @@ const ConfirmOrder = ({ route, navigation }) => {
         );
 
         console.log('Order saved for offline update.');
-        Alert.alert('Info', 'No network. Order saved for offline edit.', [{ text: 'OK' }]);
+        Alert.alert('Info', 'No network. Changes saved offline and will be synced when online', [{ text: 'OK' }]);
       }
     } catch (error) {
       if (error.response && error.response.status === 401) {
