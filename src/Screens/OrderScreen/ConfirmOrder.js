@@ -1140,6 +1140,37 @@ const ConfirmOrder = ({ route, navigation }) => {
           `totalEditAmountOffline_${userId}`,
           JSON.stringify(totalEditData)
         );
+        let totalcartons = 0;
+
+        cartItems.forEach((item) => {
+          const tradePrice = item?.itemss?.pricing.trade_price || 0;
+          const tradeOffer = item?.itemss?.trade_offer || 0;
+          const cartonOrdered = item?.carton_ordered || 0;
+          const boxOrdered = item?.box_ordered || 0;
+          const boxInCarton = item?.itemss?.pricing?.box_in_carton || 0;
+
+          const totalUnits = cartonOrdered * boxInCarton + boxOrdered;
+          const discount = (tradeOffer / 100) * tradePrice * totalUnits;
+          totalAmount += tradePrice * totalUnits - discount;
+          totalcartons += cartonOrdered;
+        });
+        const storedTotalCartons = await AsyncStorage.getItem(
+          `totalCartons_${userId}`,
+        );
+        const storedCartons = await AsyncStorage.getItem(`totalCartonsinInvoice_${userId}`);
+        const storedCartonsValue = parseFloat(storedCartons) || 0;
+        let previousTotalCartons = parseFloat(storedTotalCartons) || 0;
+
+        const cartonedit = totalcartons - storedCartonsValue;
+        const updatedTotalCartons = previousTotalCartons + cartonedit;
+
+        setTotalCartons(updatedTotalCartons);
+
+        await AsyncStorage.setItem(
+          `totalCartons_${userId}`,
+          updatedTotalCartons.toFixed(1),
+        );
+        console.log(`Updated Total Cartons in offline: ${updatedTotalCartons}`);
 
         console.log('Order saved for offline update.');
         Alert.alert('Info', 'No network. Changes saved offline and will be synced when online', [{ text: 'OK' }]);

@@ -68,6 +68,40 @@ const ViewInvoice = ({ route, navigation }) => {
     }
   };
 
+  const calculateOrderForMultipleItems = async () => {
+    const userId = await AsyncStorage.getItem('userId');
+    let totalCartons = 0;
+
+    console.log('Starting calculation for total cartons...');
+
+    cartItems.cartItems.forEach((item, index) => {
+      const { carton_ordered, box_ordered, itemss } = item;
+      const { box_in_carton } = itemss.pricing;
+
+      console.log(`\nProcessing item ${index + 1}:`);
+      console.log('carton_ordered:', carton_ordered);
+      console.log('box_ordered:', box_ordered);
+      console.log('box_in_carton:', box_in_carton);
+
+      totalCartons += carton_ordered;
+      console.log('After adding carton_ordered, totalCartons:', totalCartons);
+
+      if (box_ordered > 0) {
+        const additionalCartons = box_ordered / box_in_carton;
+        totalCartons += additionalCartons;
+        console.log('After adding box_ordered, totalCartons:', totalCartons);
+      }
+    });
+
+    console.log('\nFinal totalCartons:', totalCartons);
+
+    await AsyncStorage.setItem(
+      `totalCartonsinInvoice_${userId}`,
+      totalCartons.toFixed(1),
+    );
+    return totalCartons;
+  };
+
 
 
 
@@ -260,7 +294,7 @@ const ViewInvoice = ({ route, navigation }) => {
           onPress={async () => {
             try {
               await storeTotalEditAmount();
-
+              calculateOrderForMultipleItems()
               navigation.navigate('CreateOrder', {
                 shopData: {
                   Shopid: cartItems?.shop?.id,
