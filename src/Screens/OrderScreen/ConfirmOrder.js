@@ -563,96 +563,7 @@ const ConfirmOrder = ({ route, navigation }) => {
       Alert.alert('Error', 'Failed to save the order locally.');
     }
   };
-  const saveOrderOnline = async (currentLocation, totalCarton, existingOrderId) => {
-    console.log("Starting saveOrderOnline function");
-    const userId = await AsyncStorage.getItem('userId');
-    const distributor_id = await AsyncStorage.getItem('distribution_id');
-    const fk_employee = await AsyncStorage.getItem('fk_employee');
 
-    const uniqueOrderId = generateUniqueId();
-
-    let orderDetails = cartItems.map(item => ({
-      carton_ordered: item.carton_ordered,
-      box_ordered: item.box_ordered,
-      pricing_id: item.pricing_id,
-    }));
-
-    const getCurrentDate = () => {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      return `${day}-${month}-${year}`;
-    };
-
-    const offlineOrder = {
-      id: existingOrderId,
-      unid: uniqueOrderId(),
-      lng: currentLocation.longitude,
-      lat: currentLocation.latitude,
-      detailss: orderDetails,
-      totalPrice: currentOrderAmount,
-      todiscount: Math.round(GrossAmount - totalPrice),
-      totalCarton: totalCarton,
-      date: formattedDate,
-      details: mergedCartItems,
-      shop: Store,
-      location: currentLocation,
-      fk_distribution: parseInt(distributor_id),
-      fk_shop: Store.id,
-      fk_orderbooker_employee: parseInt(fk_employee),
-      discount: (GrossAmount - totalPrice).toFixed(2),
-      cartItems: cartItems,
-      gst_amount: GST,
-      net_amount: (
-        totalPrice -
-        applySpecialDiscount -
-        FinalDistributiveDiscount
-      ).toFixed(2),
-      gross_amount: GrossAmount.toFixed(2),
-      distributionTO:
-        GrossAmount -
-        totalPrice +
-        applySpecialDiscount +
-        FinalDistributiveDiscount,
-      distribution: FinalDistributiveDiscount,
-      special: applySpecialDiscount,
-      trade_price: cartItems.itemss?.pricing.trade_price,
-      trade_offer: cartItems.itemss?.trade_offer,
-      ordercreationdate: getCurrentDate()
-    };
-
-    try {
-      const key = `OnlineInvoiceOrders_${userId}`;
-      console.log("Fetching existing orders for key:", key); // Check if key is valid
-
-      const existingOrders = await AsyncStorage.getItem(key);
-      console.log("Existing online Orders:", existingOrders); // Check if data is fetched correctly
-
-      let offlineOrders = existingOrders ? JSON.parse(existingOrders) : [];
-      console.log("Parsed offline orders:", offlineOrders); // Check after parsing
-
-      if (!Array.isArray(offlineOrders)) {
-        console.log("Offline orders is not an array, initializing empty array.");
-        offlineOrders = [];
-      }
-
-      if (uuiddd) {
-        console.log("UUID detected, filtering orders:", uuiddd); // Log the UUID
-        offlineOrders = offlineOrders.filter(order => order.unid !== uuiddd);
-        await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
-        console.log("Filtered and updated orders after UUID filter.");
-      }
-
-      offlineOrders.push(offlineOrder);
-      console.log("Orders after push:", offlineOrders); // Log the orders before setting to AsyncStorage
-
-      await AsyncStorage.setItem(key, JSON.stringify(offlineOrders));
-      console.log("Data saved to AsyncStorage successfully.");
-    } catch (error) {
-      console.log('Error in try block:', error.message, 'Location:', error.stack);
-    }
-  };
 
   const mergedCartItems = cartItems.map(item => {
     const {
@@ -798,13 +709,6 @@ const ConfirmOrder = ({ route, navigation }) => {
         );
 
         console.log('Response data after posting', JSON.stringify(response.data))
-        if (response.status == 200) {
-          const totalCarton = await calculateOrderForMultipleOfflineItems(
-            cartItems,
-          );
-          const invoiceid = response.data.id;
-          saveOrderOnline(currentLocation, totalCarton, invoiceid)
-        }
 
         let orderCount = await AsyncStorage.getItem(`orderCount_${userId}`);
         orderCount = parseInt(orderCount) || 0;
