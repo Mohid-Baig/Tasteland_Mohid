@@ -30,7 +30,7 @@ const CreateOrder = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
-  const { Store, shopData, Invoiceitems, existingOrderId, cItems, uuiddd } = route.params;
+  const { Store, shopData, Invoiceitems, existingOrderId, cItems, uuiddd, RouteDDate } = route.params;
   const [searchText, setSearchText] = useState('');
   const [GrossAmount, setGrossAmount] = useState(0);
   const [distributiveDiscount, setDistributiveDiscount] = useState(null);
@@ -55,6 +55,8 @@ const CreateOrder = ({ navigation, route }) => {
   // console.log(existingOrderId, 'Exsisting order id');
   // console.log(Invoiceitems, 'InvoiceItems');
   // Handle closing the Bottom Sheet
+  console.log(RouteDDate, 'RouteDDate in create order')
+
 
   const TokenRenew = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -708,6 +710,7 @@ const CreateOrder = ({ navigation, route }) => {
                 ratte: ratte,
                 discountRate: discountRate,
                 uuiddd: uuiddd,
+                RouteDDate: RouteDDate
               });
             }}
             style={styles.createOrderButton}>

@@ -1177,6 +1177,7 @@ const AllShops = ({ route }) => {
         cartItems: foundOrder,
         Gst: gstRef.current,
         grossAmount: GrossAmount,
+        RouteDate: RouteDate
       });
     } catch (error) {
       console.log(error, 'error in online order check');
@@ -1220,6 +1221,7 @@ const AllShops = ({ route }) => {
         cartItems: order,
         Gst: gstRef.current,
         grossAmount: GrossAmount,
+        RouteDate: RouteDate,
       });
     }
   }, [cartItemss, order, navigation]);

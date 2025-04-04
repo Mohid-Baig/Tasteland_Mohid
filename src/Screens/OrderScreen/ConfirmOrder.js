@@ -43,7 +43,8 @@ const ConfirmOrder = ({ route, navigation }) => {
     distributiveDiscount,
     ratte,
     discountRate,
-    uuiddd
+    uuiddd,
+    RouteDDate
   } = route.params;
   console.log(RouteDate, 'Route date')
   const [GrossAmount, setGrossAmount] = useState(0);
@@ -60,6 +61,7 @@ const ConfirmOrder = ({ route, navigation }) => {
   const cartItems = route.params?.cItems || useSelector(state => state.reducer);
   // const cartItems = route.params.cartItems;
   console.log(uuiddd, 'unid')
+  console.log(RouteDDate, 'RouteDDate in confirm order')
 
   console.log(JSON.stringify(cartItems), 'hello motherfather--');
 
@@ -1035,7 +1037,20 @@ const ConfirmOrder = ({ route, navigation }) => {
 
         console.log(response.data, 'Put data');
         console.log(response.status, 'status');
-        Alert.alert('Success', 'Order edited successfully!', [{ text: 'OK' }]);
+        Alert.alert('Success', 'Order edited successfully!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              console.log('UUID Value:', uuiddd);
+              if (RouteDDate) {
+                navigation.navigate('AllShops', {
+                  RouteDate: RouteDDate,
+                });
+              }
+              console.log(RouteDate, 'RouteDate');
+            },
+          },
+        ]);
       } else {
         // Offline: Save to offline edit storage
         const offlineEditOrders = await AsyncStorage.getItem(`offlineEditOrders_${userId}`);

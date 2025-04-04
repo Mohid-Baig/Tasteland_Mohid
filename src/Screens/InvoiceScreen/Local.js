@@ -97,7 +97,7 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
   const findMatchingOrderId = (shopId, date) => {
     const currentDate = getCurrentDate();
     const matchedOrder = postOrderIds.find(
-      order => order.shopId === shopId && order.date.split('T')[0] === currentDate
+      order => order?.shopId === shopId && order?.date?.split('T')[0] === currentDate
     );
     return matchedOrder ? matchedOrder.orderId : null;
   };

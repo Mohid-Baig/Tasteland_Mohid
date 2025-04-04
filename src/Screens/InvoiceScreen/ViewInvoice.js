@@ -17,7 +17,7 @@ const ViewInvoice = ({ route, navigation }) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
   const [gstRate, setGSTrate] = useState();
-  const { cartItems, Gst, orderBokerId, local } = route.params;
+  const { cartItems, Gst, orderBokerId, local, RouteDate } = route.params;
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -29,6 +29,7 @@ const ViewInvoice = ({ route, navigation }) => {
   console.log(cartItems.gross_amount, 'grossamount');
   console.log(Gst, 'On local screen gst');
   console.log(JSON.stringify(cartItems), '-----');
+  console.log(RouteDate, 'RouteDate in view invoice')
 
   useEffect(() => {
     if (cartItems?.details) {
@@ -305,7 +306,7 @@ const ViewInvoice = ({ route, navigation }) => {
                 },
                 Store: cartItems?.shop,
                 existingOrderId: cartItems?.id,
-                RouteDate: formatDate(cartItems?.date),
+                RouteDDate: RouteDate,
               });
             } catch (error) {
               console.error('Error during navigation or storing total edit amount:', error);
