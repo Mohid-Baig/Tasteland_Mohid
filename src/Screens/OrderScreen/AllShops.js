@@ -613,37 +613,71 @@ const AllShops = ({ route }) => {
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      const wasConnected = isConnected;
-      setIsConnected(state.isConnected);
-      console.log(
-        'Network connectivity changed:',
-        state.isConnected ? 'Online' : 'Offline',
-      );
+  // useEffect(() => {
+  //   const unsubscribe = NetInfo.addEventListener(state => {
+  //     const wasConnected = isConnected;
+  //     setIsConnected(state.isConnected);
+  //     console.log(
+  //       'Network connectivity changed:',
+  //       state.isConnected ? 'Online' : 'Offline',
+  //     );
 
-      // Optional: If the device reconnects, fetch fresh data
-      if (!wasConnected && state.isConnected) {
-        console.log('Device reconnected. Fetching fresh data.');
-        loadData();
-      }
-    });
+  //     // Optional: If the device reconnects, fetch fresh data
+  //     if (!wasConnected && state.isConnected) {
+  //       console.log('Device reconnected. Fetching fresh data.');
+  //       loadData();
+  //     }
+  //   });
 
-    return () => {
-      unsubscribe();
-    };
-  }, [isConnected]);
+  //   return () => {
+  //     unsubscribe();
+  //   };
+  // }, [isConnected]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const unsubscribe = NetInfo.addEventListener(state => {
+        const wasConnected = isConnected;
+        setIsConnected(state.isConnected);
+        console.log(
+          'Network connectivity changed:',
+          state.isConnected ? 'Online' : 'Offline',
+        );
+
+        // Optional: If the device reconnects, fetch fresh data
+        if (!wasConnected && state.isConnected) {
+          console.log('Device reconnected. Fetching fresh data.');
+          loadData();
+        }
+      });
+
+      return () => {
+        unsubscribe();
+      };
+    }, [isConnected]) // Keep the dependency on isConnected
+  );
   const { Shops, RouteName, RouteDate } = route.params;
 
-  useEffect(() => {
-    // console.log('Shops:', Shops);
-    console.log('RouteName:', RouteName);
-    // if (!Shops || !RouteName) {
-    if (weekDates.startDate && weekDates.endDate && orderBokerId) {
-      loadData();
-      // }
-    }
-  }, [RouteDate, weekDates, orderBokerId]);
+  // useEffect(() => {
+  //   // console.log('Shops:', Shops);
+  //   console.log('RouteName:', RouteName);
+  //   // if (!Shops || !RouteName) {
+  //   if (weekDates.startDate && weekDates.endDate && orderBokerId) {
+  //     loadData();
+  //     // }
+  //   }
+  // }, [RouteDate, weekDates, orderBokerId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('RouteName:', RouteName);
+
+      if (weekDates.startDate && weekDates.endDate && orderBokerId) {
+        loadData();
+      }
+
+    }, [RouteDate, weekDates, orderBokerId])
+  );
 
   useEffect(() => {
     const { Shops, RouteName, RouteDate, orderBokerId } = route.params;
@@ -1059,9 +1093,14 @@ const AllShops = ({ route }) => {
       console.log('Error in get internet api line 1023', error)
     }
   }
-  useEffect(() => {
-    getInternetAPi()
-  }, [])
+  // useEffect(() => {
+  //   getInternetAPi()
+  // }, [])
+  useFocusEffect(
+    useCallback(() => {
+      getInternetAPi()
+    }, [])
+  )
   useFocusEffect(
     useCallback(() => {
       console.log('Screen Focused - Resetting States');
@@ -1664,9 +1703,14 @@ const AllShops = ({ route }) => {
     }
   };
 
-  useEffect(() => {
-    getProduct();
-  }, []);
+  // useEffect(() => {
+  //   getProduct();
+  // }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getProduct()
+    }, [])
+  )
 
   const toggleSelect = skuId => {
     // Check if SKU is already selected

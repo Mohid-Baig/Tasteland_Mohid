@@ -170,22 +170,42 @@ const AddSingleProduct = React.memo(
         num = 9999;
       }
 
-      // Update the local state immediately
-      updateCounts(type, num);
+      // If type is 'pack' and number of boxes equals or exceeds boxInCtn
+      if (type === 'pack' && num >= boxInCtn) {
+        // Calculate cartons and remaining boxes
+        const cartonsToAdd = Math.floor(num / boxInCtn);
+        const remainingBoxes = num % boxInCtn;
 
-      // Get the current values for the other type
-      const otherType = type === 'pack' ? 'carton' : 'pack';
-      const otherValue = counts[itemId]?.[otherType] || 0;
+        // Update carton count
+        const currentCartons = counts[itemId]?.carton || 0;
+        const newCartonValue = currentCartons + cartonsToAdd;
 
-      // Update Redux in the next frame
-      requestAnimationFrame(() => {
-        if (type === 'pack') {
-          AddProduct(otherValue, num);
-        } else {
-          AddProduct(num, otherValue);
-        }
-      });
-    }, [counts, itemId, updateCounts, AddProduct]);
+        // Update both values
+        updateCounts('carton', newCartonValue);
+        updateCounts('pack', remainingBoxes);
+
+        // Update Redux
+        requestAnimationFrame(() => {
+          AddProduct(newCartonValue, remainingBoxes);
+        });
+      } else {
+        // Original behavior for other cases
+        updateCounts(type, num);
+
+        // Get the current values for the other type
+        const otherType = type === 'pack' ? 'carton' : 'pack';
+        const otherValue = counts[itemId]?.[otherType] || 0;
+
+        // Update Redux in the next frame
+        requestAnimationFrame(() => {
+          if (type === 'pack') {
+            AddProduct(otherValue, num);
+          } else {
+            AddProduct(num, otherValue);
+          }
+        });
+      }
+    }, [counts, itemId, updateCounts, AddProduct, boxInCtn]);
 
     // Memoize values to prevent re-renders
     const cartonValue = useMemo(() =>
@@ -308,7 +328,7 @@ const AccordionItem = React.memo(({ title, items, Invoiceitems, datas }) => {
           keyExtractor={item => item.pricing.id.toString()}
           renderItem={renderItem}
           removeClippedSubviews={true}
-          initialNumToRender={8}
+          initialNumToRender={items.length}
           maxToRenderPerBatch={5}
           updateCellsBatchingPeriod={50}
           windowSize={10}
@@ -319,6 +339,7 @@ const AccordionItem = React.memo(({ title, items, Invoiceitems, datas }) => {
 });
 
 const AddProducts = ({ datas, allProduct, search, Invoiceitems }) => {
+  // console.log(allProduct.length, '////dot length')
   const [ProductName, SetProductname] = useState([]);
   const order = useSelector(state => state.UnProductive_reducer, shallowEqual);
 
@@ -389,7 +410,7 @@ const AddProducts = ({ datas, allProduct, search, Invoiceitems }) => {
       data={filteredProductName}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
-      initialNumToRender={10}
+      initialNumToRender={allProduct.length}
       maxToRenderPerBatch={5}
       windowSize={11}
       removeClippedSubviews={true}

@@ -45,6 +45,7 @@ const ConfirmOrder = ({ route, navigation }) => {
     discountRate,
     uuiddd
   } = route.params;
+  console.log(RouteDate, 'Route date')
   const [GrossAmount, setGrossAmount] = useState(0);
   const [totalPrice, setTotalprice] = useState(0);
   const [TotalCarton, setTotalCartons] = useState(0);
