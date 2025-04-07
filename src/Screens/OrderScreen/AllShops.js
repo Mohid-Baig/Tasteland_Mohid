@@ -2336,6 +2336,8 @@ const AllShops = ({ route }) => {
         data={filteredStores}
         renderItem={renderItem}
         keyExtractor={(item, index) => item.id.toString()}
+      // keyExtractor={(item, index) => item}
+
       />
       <Modal
         transparent={true}

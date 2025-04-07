@@ -59,6 +59,9 @@ export const processPendingEdits = async () => {
             },
           });
           console.log('Shop updated successfully:', response.data);
+          if (response.status == 200) {
+            await AsyncStorage.removeItem(PENDING_SHOP_EDITS_KEY);
+          }
         } else {
           // Otherwise, create a new shop
           const response = await instance.post('/shop/', edit, {
@@ -67,7 +70,11 @@ export const processPendingEdits = async () => {
             },
           });
           console.log('New shop created successfully:', response.data);
+          if (response.status == 200) {
+            await AsyncStorage.removeItem(PENDING_SHOP_EDITS_KEY);
+          }
         }
+
       } catch (error) {
         console.error('Error syncing pending edit:', error);
         continue; // Continue with the next edit if there's an error
@@ -75,7 +82,6 @@ export const processPendingEdits = async () => {
     }
 
     // Clear pending edits after processing
-    await AsyncStorage.removeItem(PENDING_SHOP_EDITS_KEY);
     console.log('All pending edits have been processed and cleared');
   } catch (error) {
     console.error('Error processing pending edits:', error);

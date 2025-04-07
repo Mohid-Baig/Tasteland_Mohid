@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,24 +9,24 @@ import {
   PermissionsAndroid,
   ToastAndroid,
 } from 'react-native';
-import {TextInput, Button} from 'react-native-paper';
-import {Picker} from '@react-native-picker/picker';
+import { TextInput, Button } from 'react-native-paper';
+import { Picker } from '@react-native-picker/picker';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import instance from '../../Components/BaseUrl';
 import moment from 'moment';
-import {ScrollView} from 'react-native-gesture-handler';
+import { ScrollView } from 'react-native-gesture-handler';
 import Loader from '../../Components/Loaders/Loader';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import GetLocation from 'react-native-get-location';
-import MapView, {Marker} from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 
 const SHOPS_STORAGE_KEY = 'OFFLINE_SHOPS';
 const SHOP_TYPES_STORAGE_KEY = 'SHOP_TYPES';
 const ROUTES_STORAGE_KEY = 'ROUTES';
 const PENDING_SHOP_EDITS_KEY = 'PENDING_SHOP_EDITS';
-const AddNewShop = ({route}) => {
+const AddNewShop = ({ route }) => {
   const navigation = useNavigation();
   const [errors, setErrors] = useState({});
   const [shopName, setShopName] = useState('');
@@ -42,7 +42,7 @@ const AddNewShop = ({route}) => {
   const [ntn, setntn] = useState(null);
   const [AllShops, setAllShops] = useState([]);
   const [territorialData, setTerritorialData] = useState(null);
-  const [weekDates, setWeekDates] = useState({startDate: null, endDate: null});
+  const [weekDates, setWeekDates] = useState({ startDate: null, endDate: null });
   const [currentDate, setCurrentDate] = useState();
   const [shops, setshops] = useState(null);
   const [allroute, setAllRoute] = useState([]);
@@ -52,7 +52,7 @@ const AddNewShop = ({route}) => {
   const [offlineShops, setOfflineShops] = useState([]);
   const [shopData, setShopData] = useState(null);
   const [isSynced, setIsSynced] = useState(false);
-  const {orderBokerId} = route.params;
+  const { orderBokerId } = route.params;
   const [edited, isEdited] = useState(false);
   const [longitude, setLongitude] = useState();
   const [latitude, setLatitude] = useState();
@@ -236,7 +236,7 @@ const AddNewShop = ({route}) => {
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
 
-    return {startDate, endDate};
+    return { startDate, endDate };
   };
 
   const formatDateToYYYYMMDD = date => {
@@ -250,7 +250,7 @@ const AddNewShop = ({route}) => {
     const currentDate = new Date();
     // console.log(currentDate, 'currentDate')
     if (currentDate) {
-      const {startDate, endDate} = getMondayToSundayWeek(currentDate);
+      const { startDate, endDate } = getMondayToSundayWeek(currentDate);
       setWeekDates({
         startDate: formatDateToYYYYMMDD(startDate),
         endDate: formatDateToYYYYMMDD(endDate),
@@ -700,6 +700,131 @@ const AddNewShop = ({route}) => {
     }
   };
 
+
+  // const Pushofflinedatainroute = async (data) => {
+  //   console.log(data, 'data in function');
+
+  //   const userId = await AsyncStorage.getItem('userId');
+  //   try {
+  //     const territorialDataKey = `territorialData_${userId}`;
+  //     const territorialDataJson = await AsyncStorage.getItem(territorialDataKey);
+  //     let shopID = []
+  //     if (territorialDataJson !== null) {
+  //       const territorialData = JSON.parse(territorialDataJson);
+
+  //       territorialData.pjp_shops.forEach(item => {
+  //         item.pjp_shops.route_shops.forEach(pj => {
+  //           pj.shops.forEach(idd => {
+  //             shopID.push(idd.id)
+  //           })
+  //         })
+  //         console.log(shopID, 'shopids')
+  //         const sorting = shopID.sort((a, b) => a - b)
+  //         console.log(sorting)
+  //         const lastid = sorting[sorting.length - 1]
+  //         const newid = lastid + 1
+  //         console.log(newid)
+  //         const newdata = {
+  //           ...data,
+  //           id: newid
+  //         };
+  //         if (item.pjp_shops.route_shops && Array.isArray(item.pjp_shops.route_shops)) {
+  //           item.pjp_shops.route_shops.forEach(routeItem => {
+  //             if (routeItem.route && routeItem.route.id === data.route.id) {
+  //               if (!routeItem.shops) {
+  //                 routeItem.shops = [];
+  //               }
+  //               // routeItem.shops.forEach(sho => {
+  //               //   shopID.push(sho.id)
+  //               // })
+  //               // const sorting = shopID.sort((a, b) => a - b)
+  //               // console.log(sorting)
+  //               // const lastid = sorting[sorting.length - 1]
+  //               // const newid = lastid + 1
+  //               // console.log(newid)
+  //               // const newdata = {
+  //               //   ...data,
+  //               //   id: newid
+  //               // };
+  //               routeItem.shops.push(newdata);
+  //             }
+  //           });
+  //         }
+  //       })
+
+
+  //       await AsyncStorage.setItem(territorialDataKey, JSON.stringify(territorialData));
+  //       console.log('Data successfully updated in territorial data');
+  //     } else {
+  //       console.log('No offline data found for key:', territorialDataKey);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error updating offline territorial data:', error);
+  //   }
+  // };
+
+  const Pushofflinedatainroute = async (data) => {
+    console.log(data, 'data in function');
+
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) {
+      console.error('No user ID found');
+      return;
+    }
+
+    try {
+      const territorialDataKey = `territorialData_${userId}`;
+      const territorialDataJson = await AsyncStorage.getItem(territorialDataKey);
+
+      if (!territorialDataJson) {
+        console.log('No offline data found for key:', territorialDataKey);
+        return;
+      }
+
+      const territorialData = JSON.parse(territorialDataJson);
+
+      // Find all existing shop IDs to generate a new unique ID
+      const allShopIds = [];
+      territorialData.pjp_shops.forEach(item => {
+        item.pjp_shops?.route_shops?.forEach(route => {
+          route.shops?.forEach(shop => {
+            if (shop.id) allShopIds.push(shop.id);
+          });
+        });
+      });
+
+      const newId = allShopIds.length > 0 ? Math.max(...allShopIds) + 1 : 1;
+      const newShopData = { ...data, id: newId };
+
+      // Update the territorial data
+      let foundRoute = false;
+
+      territorialData.pjp_shops.forEach(item => {
+        item.pjp_shops?.route_shops?.forEach(routeItem => {
+          if (routeItem.route?.id === data.route?.id) {
+            foundRoute = true;
+            if (!routeItem.shops) routeItem.shops = [];
+            routeItem.shops.push(newShopData);
+          }
+        });
+      });
+
+      if (!foundRoute) {
+        console.warn(`Route with ID ${data.route?.id} not found in territorial data`);
+        return;
+      }
+
+      // Save back to AsyncStorage
+      await AsyncStorage.setItem(territorialDataKey, JSON.stringify(territorialData));
+      console.log('Data successfully updated in territorial data');
+      return newShopData; // Return the new shop data with generated ID
+
+    } catch (error) {
+      console.error('Error updating offline territorial data:', error);
+      throw error; // Re-throw to let calling code handle it
+    }
+  };
+
   const handleSubmit = async currentLocation => {
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) {
@@ -708,7 +833,7 @@ const AddNewShop = ({route}) => {
     }
 
     const currentDate = moment().toISOString();
-    const {Item} = route.params || {};
+    const { Item } = route.params || {};
     // console.log(Item);
     const payload = {
       name: shopName,
@@ -735,7 +860,7 @@ const AddNewShop = ({route}) => {
       },
     };
 
-    const payloadEdit = Item ? {...payload, id: Item.id} : payload;
+    const payloadEdit = Item ? { ...payload, id: Item.id } : payload;
 
     try {
       setIsLoading(true);
@@ -770,7 +895,7 @@ const AddNewShop = ({route}) => {
                 },
               },
             ],
-            {cancelable: true},
+            { cancelable: true },
           );
           await updateShopInAsyncStorage(response.data);
         } else {
@@ -780,10 +905,10 @@ const AddNewShop = ({route}) => {
               Authorization: `Bearer ${authToken}`,
             },
           });
-          await AsyncStorage.setItem(
-            'NewShopResponse',
-            JSON.stringify(response.data),
-          );
+          // await AsyncStorage.setItem(
+          //   'NewShopResponse',
+          //   JSON.stringify(response.data),
+          // );
           Alert.alert(
             'Success',
             'Shop created successfully!',
@@ -799,12 +924,13 @@ const AddNewShop = ({route}) => {
                 },
               },
             ],
-            {cancelable: true},
+            { cancelable: true },
           );
         }
       } else {
         // Offline: Save the payload to AsyncStorage
         await savePendingEdit(payloadEdit);
+        await Pushofflinedatainroute(payloadEdit)
         Alert.alert(
           'No Internet Connection',
           'Your changes have been saved locally and will be synced to the server as soon as you have an internet connection.',
@@ -817,7 +943,7 @@ const AddNewShop = ({route}) => {
               },
             },
           ],
-          {cancelable: true},
+          { cancelable: true },
         );
       }
     } catch (error) {
@@ -840,7 +966,7 @@ const AddNewShop = ({route}) => {
             onPress: () => console.log('Error alert Ok clicked'),
           },
         ],
-        {cancelable: true},
+        { cancelable: true },
       );
     } finally {
       setIsLoading(false);
@@ -862,8 +988,8 @@ const AddNewShop = ({route}) => {
   };
   useEffect(() => {
     if (route.params.Item) {
-      const {Item} = route.params;
-      const {routes} = route.params;
+      const { Item } = route.params;
+      const { routes } = route.params;
       setShopName(Item.name);
       setCategory(Item.category);
       if (Item.shop_type) {
@@ -952,18 +1078,18 @@ const AddNewShop = ({route}) => {
             style={styles.picker}>
             <Picker.Item
               label="Select Shop Type"
-              style={{color: '#000'}}
+              style={{ color: '#000' }}
               value={null}
             />
             {AllShops?.length
               ? AllShops.map(shop => (
-                  <Picker.Item
-                    key={shop.id}
-                    label={shop.name}
-                    style={{color: 'grey'}}
-                    value={shop.id}
-                  />
-                ))
+                <Picker.Item
+                  key={shop.id}
+                  label={shop.name}
+                  style={{ color: 'grey' }}
+                  value={shop.id}
+                />
+              ))
               : null}
           </Picker>
         </View>
@@ -978,13 +1104,13 @@ const AddNewShop = ({route}) => {
             style={styles.picker}>
             <Picker.Item
               label="Select Category"
-              style={{color: '#000'}}
+              style={{ color: '#000' }}
               value=""
             />
             {categories.map((category, index) => (
               <Picker.Item
                 key={index}
-                style={{color: 'grey'}}
+                style={{ color: 'grey' }}
                 label={category}
                 value={category}
               />
@@ -1005,13 +1131,13 @@ const AddNewShop = ({route}) => {
             style={styles.picker}>
             <Picker.Item
               label="Select Route"
-              style={{color: '#000'}}
+              style={{ color: '#000' }}
               value=""
             />
             {allroute?.map((data, index) => (
               <Picker.Item
                 key={index}
-                style={{color: 'grey'}}
+                style={{ color: 'grey' }}
                 label={data.name}
                 value={data}
               />

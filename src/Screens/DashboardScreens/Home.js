@@ -73,10 +73,10 @@ const Home = ({ navigation }) => {
         try {
           // Fetch totalAmount data from AsyncStorage
           const storedData = await AsyncStorage.getItem(`localofflinedata_${userId}`);
-
+          const totalData = JSON.parse(storedData);
           // Check if storedData exists and is not null
-          if (storedData) {
-            const totalData = JSON.parse(storedData);
+          if (totalData) {
+            // const totalData = JSON.parse(storedData);
             const storedDate = totalData[0]?.ordercreationdate; // Assuming the date is in the first item
 
             const currentDate = getTodayCurrentDate();
@@ -1103,6 +1103,7 @@ const Home = ({ navigation }) => {
       for (const order of parsedOfflinePostOrders) {
         try {
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
+          console.log(order, 'payload of offline data on line 1106')
           if (!authToken) {
             console.warn('Auth token is missing. Skipping order sync.');
             await saveFailedOrder(userId, order);
