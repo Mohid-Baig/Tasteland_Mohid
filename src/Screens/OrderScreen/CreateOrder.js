@@ -30,7 +30,7 @@ const CreateOrder = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [SelectedProductData, setSelectedProductData] = useState([]);
   const [totalPrice, setTotalprice] = useState(0);
-  const { Store, shopData, Invoiceitems, existingOrderId, cItems, uuiddd, RouteDDate } = route.params;
+  const { Store, shopData, Invoiceitems, existingOrderId, cItems, uuiddd, RouteDDate, navigationView } = route.params;
   const [searchText, setSearchText] = useState('');
   const [GrossAmount, setGrossAmount] = useState(0);
   const [distributiveDiscount, setDistributiveDiscount] = useState(null);
@@ -710,7 +710,8 @@ const CreateOrder = ({ navigation, route }) => {
                 ratte: ratte,
                 discountRate: discountRate,
                 uuiddd: uuiddd,
-                RouteDDate: RouteDDate
+                RouteDDate: RouteDDate,
+                navigationView: navigationView
               });
             }}
             style={styles.createOrderButton}>

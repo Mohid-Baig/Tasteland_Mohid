@@ -17,7 +17,7 @@ const ViewInvoice = ({ route, navigation }) => {
   const [Detail, setDetail] = useState([]);
   const [singleDetail, setSingleDetail] = useState();
   const [gstRate, setGSTrate] = useState();
-  const { cartItems, Gst, orderBokerId, local, RouteDate } = route.params;
+  const { cartItems, Gst, orderBokerId, local, RouteDate, navigationView } = route.params;
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -307,6 +307,7 @@ const ViewInvoice = ({ route, navigation }) => {
                 Store: cartItems?.shop,
                 existingOrderId: cartItems?.id,
                 RouteDDate: RouteDate,
+                navigationView: navigationView,
               });
             } catch (error) {
               console.error('Error during navigation or storing total edit amount:', error);

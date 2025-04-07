@@ -98,8 +98,8 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
 
         cartItems.forEach(item => {
           const { carton_ordered, box_ordered, itemss } = item;
-          const { trade_offer, pricing } = itemss;
-          const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing;
+          const { trade_offer, pricing } = itemss || {};
+          const { trade_price, box_in_carton, pricing_gst, gst_base, retail_price } = pricing || {};
 
           let quantity = 0;
           if (carton_ordered > 0) {
@@ -260,11 +260,13 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
     return `${year}-${month}-${day}`;
   };
 
-  useEffect(() => {
-    if (selectedDate) {
-      getInternetAPi();
-    }
-  }, [selectedDate, routeID, shopID]);
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedDate) {
+        getInternetAPi();
+      }
+    }, [selectedDate, routeID, shopID])
+  );
 
   return (
     <View style={styles.main}>
@@ -307,6 +309,7 @@ const Internet = ({ selectedDate, orderBokerId, routeID, shopID }) => {
                     cartItems: item,
                     Gst: gstRef.current, // Use the gstRef value here
                     grossAmount: GrossAmount,
+                    navigationView: true,
                   });
                 }, 200);
               }}>

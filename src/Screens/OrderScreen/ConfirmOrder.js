@@ -44,7 +44,8 @@ const ConfirmOrder = ({ route, navigation }) => {
     ratte,
     discountRate,
     uuiddd,
-    RouteDDate
+    RouteDDate,
+    navigationView
   } = route.params;
   console.log(RouteDate, 'Route date')
   const [GrossAmount, setGrossAmount] = useState(0);
@@ -62,6 +63,7 @@ const ConfirmOrder = ({ route, navigation }) => {
   // const cartItems = route.params.cartItems;
   console.log(uuiddd, 'unid')
   console.log(RouteDDate, 'RouteDDate in confirm order')
+  console.log(navigationView, 'NavigationView')
 
   console.log(JSON.stringify(cartItems), 'hello motherfather--');
 
@@ -156,6 +158,17 @@ const ConfirmOrder = ({ route, navigation }) => {
       setGstTxt(gst_pricing); // Set the gst value as a variable, not an array
     }
   }, [cartItems]);
+
+  const getOrderBookerId = async () => {
+    try {
+      const id = await AsyncStorage.getItem('orderBokerId');
+      return id ? parseInt(id) : null;
+    } catch (error) {
+      console.error('Error retrieving orderBokerId:', error);
+      return null;
+    }
+  };
+
 
   const incrementTotalVisits = async () => {
     const userId = await AsyncStorage.getItem('userId');
@@ -874,6 +887,25 @@ const ConfirmOrder = ({ route, navigation }) => {
     ordercreationdate: getCurrentDate()
   };
 
+
+  const handleNavigation = async () => {
+    console.log('UUID Value:', uuiddd);
+
+    if (RouteDDate) {
+      navigation.navigate('AllShops', {
+        RouteDate: RouteDDate,
+      });
+    } else if (navigationView === true) {
+      const orderBookerId = await getOrderBookerId();
+      navigation.navigate('Invoice', {
+        orderBokerId: orderBookerId,
+      });
+    }
+
+    console.log(RouteDate, 'RouteDate');
+  };
+
+
   const updateOrder = async (currentLocation) => {
     const userId = await AsyncStorage.getItem('userId');
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
@@ -1041,15 +1073,10 @@ const ConfirmOrder = ({ route, navigation }) => {
           {
             text: 'OK',
             onPress: () => {
-              console.log('UUID Value:', uuiddd);
-              if (RouteDDate) {
-                navigation.navigate('AllShops', {
-                  RouteDate: RouteDDate,
-                });
-              }
-              console.log(RouteDate, 'RouteDate');
+              handleNavigation();
             },
-          },
+          }
+
         ]);
       } else {
         // Offline: Save to offline edit storage
@@ -1189,7 +1216,12 @@ const ConfirmOrder = ({ route, navigation }) => {
         console.log(`Updated Total Cartons in offline: ${updatedTotalCartons}`);
 
         console.log('Order saved for offline update.');
-        Alert.alert('Info', 'No network. Changes saved offline and will be synced when online', [{ text: 'OK' }]);
+        Alert.alert('Info', 'No network. Changes saved offline and will be synced when online', [{
+          text: 'OK',
+          onPress: () => {
+            handleNavigation();
+          },
+        }]);
       }
     } catch (error) {
       if (error.response && error.response.status === 401) {
