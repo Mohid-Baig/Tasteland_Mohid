@@ -32,6 +32,7 @@ import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import Geolocation from 'react-native-geolocation-service';
 import NetInfo from '@react-native-community/netinfo'; // Import for network status
+import { processPendingEdits } from '../ShopScreen/syncService';
 const Home = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [headingData, setHeadingData] = useState({});
@@ -49,6 +50,7 @@ const Home = ({ navigation }) => {
   const [totalCartons, setTotalCartons] = useState(0);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [DateAuto, setDateAuto] = useState();
+
 
   const { DateTimeModule } = NativeModules;
   const getTodayCurrentDate = () => {
@@ -996,9 +998,18 @@ const Home = ({ navigation }) => {
     return totalCartons;
   };
 
-  const dateCheck = () => {
+  const dateCheck = async () => {
+    const state = await NetInfo.fetch();
+
     if (DateAuto == true) {
-      syncOrders();
+      if (state.isConnected) {
+        syncOrders();
+      } else {
+        Alert.alert(
+          'Network Issue',
+          'Please enable you network to sync data'
+        )
+      }
     } else {
       Alert.alert(
         'Date Issue',
@@ -1007,11 +1018,55 @@ const Home = ({ navigation }) => {
     }
   };
   let hasSyncErrors = false; // Track sync errors
+
+  const handleSync = async () => {
+    await processPendingEdits();
+  };
+
+  const getPostedShops = async (userId) => {
+    try {
+      const data = await AsyncStorage.getItem(`shopsAfterposting_${userId}`);
+      return JSON.parse(data) || [];
+    } catch (error) {
+      console.error('Error reading posted shops:', error);
+      return [];
+    }
+  };
+
+  const updateOrderWithMatchingShop = async (order) => {
+    const userId = await AsyncStorage.getItem('userId');
+    const postedShops = await getPostedShops(userId);
+
+    if (!postedShops || postedShops.length === 0) {
+      console.log('No posted shops data available');
+      return order;
+    }
+
+    // Find if the shop in this order matches any posted shop by name
+    const matchingShop = postedShops.find(
+      postedShop => postedShop.name === order.shop.name
+    );
+
+    if (matchingShop) {
+      console.log(`Shop name match found: ${order.shop.name} - Updating shop ID from ${order.fk_shop} to ${matchingShop.id}`);
+      // Update the order's shop information
+      order.fk_shop = matchingShop.id;
+      order.shop = matchingShop;
+    }
+
+    return order;
+  };
+
+
+
+
+
   const syncOrders = async () => {
     setIsLoading(true);
     let OrderSyncErrors = false;
     try {
       // Clear previous Territorial, Discount Slab, Special Discount Slab, and Pricing data
+      handleSync()
       await AsyncStorage.removeItem(`territorialData_${userId}`);
       await AsyncStorage.removeItem(`discountSlabData_${userId}`);
       await AsyncStorage.removeItem(`specialDiscountSlabData_${userId}`);
@@ -1102,15 +1157,18 @@ const Home = ({ navigation }) => {
       // Sync Offline Post Orders
       for (const order of parsedOfflinePostOrders) {
         try {
+          const updatedOrder = await updateOrderWithMatchingShop(order);
+
           const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
-          console.log(order, 'payload of offline data on line 1106')
+          console.log(JSON.stringify(updatedOrder), 'payload of offline data after shop matching');
+
           if (!authToken) {
             console.warn('Auth token is missing. Skipping order sync.');
-            await saveFailedOrder(userId, order);
+            await saveFailedOrder(userId, updatedOrder);
             continue;
           }
 
-          const response = await instance.post('/secondary_order', order, {
+          const response = await instance.post('/secondary_order', updatedOrder, {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },
@@ -1121,9 +1179,12 @@ const Home = ({ navigation }) => {
             OrderSyncErrors = false;
             await AsyncStorage.removeItem(`offlineOrders_${userId}`);
           }
+          if (response.status == 200) {
+            await AsyncStorage.removeItem(`shopsAfterposting_${userId}`);
+          }
 
           const postorderId = response.data.id;
-          const shop_id = order.shop.id;
+          const shop_id = updatedOrder.shop.id;
           const date = response.data.date
           const status = response.data.status
           await updateStoredOrderIds(userId, postorderId, shop_id, date, status);
@@ -1819,7 +1880,7 @@ const Home = ({ navigation }) => {
               </View>
             </MenuTrigger>
             <MenuOptions style={styles.menuOptions}>
-              <MenuOption onSelect={() => { dateCheck(), bookingVisit() }}>
+              <MenuOption onSelect={() => { TokenRenew(), dateCheck(), bookingVisit() }}>
                 <Text style={styles.singleMenuOption}>Sync</Text>
               </MenuOption>
               <MenuOption>

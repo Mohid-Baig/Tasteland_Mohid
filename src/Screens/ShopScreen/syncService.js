@@ -50,6 +50,7 @@ export const processPendingEdits = async () => {
     const authToken = await AsyncStorage.getItem('AUTH_TOKEN');
 
     for (const edit of pendingEdits) {
+      const userId = await AsyncStorage.getItem('userId');
       try {
         if (edit.id) {
           // If an id exists, update the shop
@@ -70,6 +71,12 @@ export const processPendingEdits = async () => {
             },
           });
           console.log('New shop created successfully:', response.data);
+          const existingShopsString = await AsyncStorage.getItem(`shopsAfterposting_${userId}`);
+          const existingShops = existingShopsString ? JSON.parse(existingShopsString) : [];
+
+          existingShops.push(response.data);
+
+          await AsyncStorage.setItem(`shopsAfterposting_${userId}`, JSON.stringify(existingShops));
           if (response.status == 200) {
             await AsyncStorage.removeItem(PENDING_SHOP_EDITS_KEY);
           }

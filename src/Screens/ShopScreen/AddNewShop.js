@@ -765,10 +765,12 @@ const AddNewShop = ({ route }) => {
 
   const Pushofflinedatainroute = async (data) => {
     console.log(data, 'data in function');
+    console.log(shopName);
 
     const userId = await AsyncStorage.getItem('userId');
     if (!userId) {
       console.error('No user ID found');
+      Alert.alert('Error', 'No user ID found');
       return;
     }
 
@@ -778,10 +780,37 @@ const AddNewShop = ({ route }) => {
 
       if (!territorialDataJson) {
         console.log('No offline data found for key:', territorialDataKey);
+        Alert.alert('Error', 'No offline data found');
         return;
       }
 
       const territorialData = JSON.parse(territorialDataJson);
+
+      // Check for duplicate shop name
+      let duplicateFound = false;
+      territorialData.pjp_shops.forEach(item => {
+        item.pjp_shops?.route_shops?.forEach(route => {
+          route.shops?.forEach(shop => {
+            if (shop.name?.toLowerCase() === shopName?.toLowerCase()) {
+              duplicateFound = true;
+            }
+          });
+        });
+      });
+
+      if (duplicateFound) {
+        // Show alert for 2 seconds then throw error to trigger catch block
+        Alert.alert(
+          'Duplicate Shop',
+          'A shop with this name already exists. Please choose a different name.'
+        );
+
+        // Wait for 2 seconds
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Throw an error that will be caught in the handleSubmit catch block
+        throw new Error('Duplicate shop name');
+      }
 
       // Find all existing shop IDs to generate a new unique ID
       const allShopIds = [];
@@ -798,7 +827,6 @@ const AddNewShop = ({ route }) => {
 
       // Update the territorial data
       let foundRoute = false;
-
       territorialData.pjp_shops.forEach(item => {
         item.pjp_shops?.route_shops?.forEach(routeItem => {
           if (routeItem.route?.id === data.route?.id) {
@@ -811,17 +839,18 @@ const AddNewShop = ({ route }) => {
 
       if (!foundRoute) {
         console.warn(`Route with ID ${data.route?.id} not found in territorial data`);
+        Alert.alert('Error', 'Route not found in territorial data');
         return;
       }
 
       // Save back to AsyncStorage
       await AsyncStorage.setItem(territorialDataKey, JSON.stringify(territorialData));
       console.log('Data successfully updated in territorial data');
-      return newShopData; // Return the new shop data with generated ID
+      return newShopData;
 
     } catch (error) {
       console.error('Error updating offline territorial data:', error);
-      throw error; // Re-throw to let calling code handle it
+      throw error; // Re-throw the error so it's caught in handleSubmit
     }
   };
 
